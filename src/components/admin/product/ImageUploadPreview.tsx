@@ -33,34 +33,52 @@ function ImageUploadPreview({
       setIsUploading(true);
       try {
         const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", "YOUR_UPLOAD_PRESET");
+        formData.append("image", file);
 
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload`,
-          {
+        if (preview) {
+          await fetch("/api/delete", {
             method: "POST",
-            body: formData,
-          }
-        );
-        const data = await response.json();
-        const imageUrl = data.secure_url;
+            body: JSON.stringify({ url: preview }),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+        }
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await response.json();
+        const imageUrl = result.secure_url;
         setPreview(imageUrl);
         onChange(imageUrl);
       } catch (error) {
-        console.error("Error uploading image to Cloudinary:", error);
+        console.error("Error uploading image:", error);
       } finally {
         setIsUploading(false);
       }
+    } else {
+      setIsUploading(false); // Reset uploading state if no file is selected
     }
   };
 
-  const handleRemove = () => {
+  const handleRemove = async () => {
+    if (preview) {
+      await fetch("/api/delete", {
+        method: "POST",
+        body: JSON.stringify({ url: preview }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
     setPreview(null);
     onChange(null);
   };
 
   const handleEdit = () => {
+    setIsUploading(true);
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
@@ -80,6 +98,11 @@ function ImageUploadPreview({
       />
       {preview ? (
         <div className="relative h-full w-full">
+          {isUploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-lg">
+              <Spinner size="lg" />
+            </div>
+          )}
           <Image
             src={preview || "/placeholder.svg"}
             alt="Preview"
