@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import React from "react";
 
-function AdminDashboard() {
+async function AdminDashboard() {
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
