@@ -86,4 +86,25 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  h1 {
+    @apply text-h1-mobile md:text-h1;
+  }
+  h2 {
+    @apply text-h2-mobile md:text-h2;
+  }
+  h3 {
+    @apply text-h3-mobile md:text-h3;
+  }
+  h4 {
+    @apply text-h4-mobile md:text-h4;
+  }
+  h5 {
+    @apply text-h5-mobile md:text-h5;
+  }
+  h6 {
+    @apply text-h6-mobile md:text-h6;
+  }
+  p {
+    @apply text-sm md:text-base lg:text-lg;
+  }
 }

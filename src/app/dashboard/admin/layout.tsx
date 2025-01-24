@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+"use client";
 import {
   Collapsible,
   CollapsibleContent,
@@ -9,7 +9,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -27,12 +26,16 @@ import {
   Package,
   ShoppingCart,
   Users,
+  Newspaper,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { usePathname } from "next/navigation";
 
 function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -51,7 +54,10 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === "/dashboard/admin"}
+                  >
                     <Link href="/dashboard/admin">
                       <LayoutDashboard className="text-primary" />
                       <span>Dashboard</span>
@@ -59,25 +65,44 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === "/dashboard/admin/order"}
+                  >
                     <Link href="/dashboard/admin/order">
                       <ShoppingCart className="text-primary" />
-                      <span>Order</span>
+                      <span>Pesanan</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/dashboard/user">
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === "/dashboard/admin/users"}
+                  >
+                    <Link href="/dashboard/admin/users">
                       <Users className="text-primary" />
-                      <span>User</span>
+                      <span>Pengguna</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === "/dashboard/admin/artikel"}
+                  >
+                    <Link href="/dashboard/admin/artikel">
+                      <Newspaper className="text-primary" />
+                      <span>Artikel</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <Collapsible className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton>
+                      <SidebarMenuButton
+                        isActive={pathname.includes("/dashboard/admin/product")}
+                      >
                         <Package className="text-primary" />
                         <span>Produk</span>
                         <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
@@ -86,14 +111,22 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={pathname === "/dashboard/admin/product"}
+                          >
                             <Link href={"/dashboard/admin/product"}>
                               Semua Produk
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                         <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={
+                              pathname === "/dashboard/admin/product/category"
+                            }
+                          >
                             <Link href={"/dashboard/admin/product/category"}>
                               Kategori
                             </Link>
