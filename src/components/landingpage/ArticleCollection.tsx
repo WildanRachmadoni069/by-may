@@ -1,15 +1,9 @@
 "use client";
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselApi,
-} from "../ui/carousel";
-import Link from "next/link";
+
 import { ArticleCard } from "@/components/general/ArticleCard";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import {
   collection,
   getDocs,
@@ -30,34 +24,43 @@ function formatFirebaseTimestamp(timestamp: any) {
   return null;
 }
 
-async function getLatestArticles() {
-  try {
-    const articlesRef = collection(db, "articles");
-    const q = query(
-      articlesRef,
-      where("status", "==", "published"),
-      orderBy("created_at", "desc"),
-      limit(3)
-    );
+export default function ArticleCollection() {
+  const [articles, setArticles] = useState<ArticleData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        created_at: formatFirebaseTimestamp(data.created_at),
-        updated_at: formatFirebaseTimestamp(data.updated_at),
-      };
-    }) as ArticleData[];
-  } catch (error) {
-    console.error("Error fetching articles:", error);
-    return [];
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const articlesRef = collection(db, "articles");
+        const q = query(
+          articlesRef,
+          where("status", "==", "published"),
+          orderBy("created_at", "desc"),
+          limit(3)
+        );
+
+        const snapshot = await getDocs(q);
+        const articlesData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          created_at: formatFirebaseTimestamp(doc.data().created_at),
+          updated_at: formatFirebaseTimestamp(doc.data().updated_at),
+        })) as ArticleData[];
+
+        setArticles(articlesData);
+      } catch (error) {
+        console.error("Error fetching articles:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchArticles();
+  }, []);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
-}
-
-export default async function ArticleCollection() {
-  const articles = await getLatestArticles();
 
   if (articles.length === 0) {
     return null;

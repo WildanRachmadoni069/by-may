@@ -8,11 +8,19 @@ export default function Home() {
   return (
     <>
       <MainNav />
-      <HeroLandingpage />
-      <BannerLandingpage />
-      <ProductCollections title="Produk Unggulan" />
-      <ProductCollections title="Produk Terbaru" />
-      <ArticleCollection />
+      <main>
+        <HeroLandingpage />
+        <BannerLandingpage />
+        <section aria-labelledby="featured-products" className="py-12">
+          <ProductCollections title="Produk Unggulan" />
+        </section>
+        <section aria-labelledby="new-products" className="py-12">
+          <ProductCollections title="Produk Terbaru" />
+        </section>
+        <section aria-labelledby="latest-articles" className="py-12">
+          <ArticleCollection />
+        </section>
+      </main>
     </>
   );
 }
