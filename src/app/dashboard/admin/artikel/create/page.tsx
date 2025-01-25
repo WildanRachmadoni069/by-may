@@ -2,6 +2,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import type Quill from "quill";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,9 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
-const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
-import "react-quill-new/dist/quill.snow.css";
+const QuillEditor = dynamic(() => import("@/components/editor/QuillEditor"), {
+  ssr: false,
+});
 
 import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
 import { db } from "@/lib/firebase/firebaseConfig";
@@ -107,7 +109,40 @@ const CharacterCountSEO = ({
   );
 };
 
+const uploadImageHandler = async () => {
+  const input = document.createElement("input");
+  input.setAttribute("type", "file");
+  input.setAttribute("accept", "image/*");
+  input.click();
+
+  return new Promise((resolve) => {
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (file) {
+        try {
+          const formData = new FormData();
+          formData.append("image", file);
+
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) throw new Error("Upload failed");
+
+          const data = await response.json();
+          resolve(data.url);
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          resolve(false);
+        }
+      }
+    };
+  });
+};
+
 export default function ArticleCreatePage() {
+  const quillRef = React.useRef<Quill>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -191,7 +226,7 @@ export default function ArticleCreatePage() {
           <CardHeader>
             <CardTitle>Informasi Dasar</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="space-y-2">
               <LabelWithTooltip
                 htmlFor="title"
@@ -225,27 +260,12 @@ export default function ArticleCreatePage() {
                 label="Konten"
                 tooltip="Isi utama artikel. Gunakan editor untuk memformat teks, menambah gambar, dan mengatur layout."
               />
-              <div className="h-64">
-                <ReactQuill
-                  theme="snow"
+              <div className="h-[400px] relative">
+                <QuillEditor
+                  ref={quillRef}
                   value={formik.values.content}
                   onChange={(value) => formik.setFieldValue("content", value)}
-                  className="h-48"
-                  modules={{
-                    toolbar: [
-                      [{ header: [2, 3, false] }],
-                      [
-                        {
-                          align: [],
-                        },
-                      ],
-                      [{ indent: "-1" }, { indent: "+1" }],
-                      [{ color: [] }, { background: [] }],
-                      ["bold", "italic", "underline", "strike", "blockquote"],
-                      [{ list: "ordered" }, { list: "bullet" }],
-                      ["link", "image"],
-                    ],
-                  }}
+                  className="h-full"
                 />
               </div>
               {formik.touched.content && formik.errors.content && (
