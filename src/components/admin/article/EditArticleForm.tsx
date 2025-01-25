@@ -1,4 +1,5 @@
 "use client";
+
 import React from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -16,17 +17,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { doc, updateDoc, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase/firebaseConfig";
+import type { ArticleData } from "@/types/article";
+import { generateSlug, generateExcerpt } from "@/utils/article";
 import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
+import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
 import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
+
 const QuillEditor = dynamic(() => import("@/components/editor/QuillEditor"), {
   ssr: false,
 });
-
-import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
-import { db } from "@/lib/firebase/firebaseConfig";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
-import { useToast } from "@/hooks/use-toast";
 
 const validationSchema = Yup.object({
   title: Yup.string().required("Judul wajib diisi"),
@@ -47,108 +50,45 @@ const validationSchema = Yup.object({
   }),
 });
 
-const generateSlug = (title: string): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
-    .replace(/\s+/g, "-") // Replace spaces with -
-    .replace(/-+/g, "-") // Replace multiple - with single -
-    .trim(); // Trim - from start and end
-};
+interface EditArticleFormProps {
+  article: ArticleData;
+}
 
-const generateExcerpt = (content: string): string => {
-  // Add space before closing HTML tags
-  const textWithSpaces = content.replace(/<\//g, " </");
-
-  // Remove HTML tags and get plain text
-  const plainText = textWithSpaces
-    .replace(/<[^>]+>/g, "") // Remove HTML tags
-    .replace(/\s+/g, " ") // Replace multiple spaces with single space
-    .replace(/\n+/g, " ") // Replace line breaks with space
-    .trim(); // Remove leading/trailing spaces
-
-  // Get first 150 characters and add ellipsis if needed
-  return plainText.length > 150
-    ? `${plainText.substring(0, 150)}...`
-    : plainText;
-};
-
-const uploadImageHandler = async () => {
-  const input = document.createElement("input");
-  input.setAttribute("type", "file");
-  input.setAttribute("accept", "image/*");
-  input.click();
-
-  return new Promise((resolve) => {
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (file) {
-        try {
-          const formData = new FormData();
-          formData.append("image", file);
-
-          const response = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!response.ok) throw new Error("Upload failed");
-
-          const data = await response.json();
-          resolve(data.url);
-        } catch (error) {
-          console.error("Error uploading image:", error);
-          resolve(false);
-        }
-      }
-    };
-  });
-};
-
-export default function ArticleCreatePage() {
+export default function EditArticleForm({ article }: EditArticleFormProps) {
   const quillRef = React.useRef<Quill>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const [slugManuallyChanged, setSlugManuallyChanged] = React.useState(false);
 
   const formik = useFormik({
     initialValues: {
-      title: "",
-      slug: "",
-      content: "",
-      excerpt: "",
-      featured_image: { url: "", alt: "" },
-      status: "draft",
-      meta: { title: "", description: "", og_image: "" },
+      title: article.title,
+      slug: article.slug,
+      content: article.content,
+      excerpt: article.excerpt,
+      featured_image: article.featured_image,
+      status: article.status,
+      meta: article.meta,
     },
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        const articleData = {
+        const docRef = doc(db, "articles", article.id);
+        const updateData = {
           ...values,
-          author: {
-            id: "admin",
-            name: "Admin",
-          },
-          created_at: Timestamp.now(),
           updated_at: Timestamp.now(),
         };
 
-        // Save to Firestore
-        const articlesRef = collection(db, "articles");
-        await addDoc(articlesRef, articleData);
-
+        await updateDoc(docRef, updateData);
         toast({
-          title: "Artikel berhasil dibuat",
-          description: "Artikel telah berhasil disimpan ke database",
+          title: "Artikel berhasil diperbarui",
+          description: "Perubahan telah berhasil disimpan",
         });
-
         router.push("/dashboard/admin/artikel");
       } catch (error) {
-        console.error("Error creating article:", error);
+        console.error("Error updating article:", error);
         toast({
-          title: "Gagal membuat artikel",
-          description:
-            "Terjadi kesalahan saat menyimpan artikel. Silakan coba lagi.",
+          title: "Gagal memperbarui artikel",
           variant: "destructive",
         });
       } finally {
@@ -157,73 +97,42 @@ export default function ArticleCreatePage() {
     },
   });
 
-  // Add effect to auto-generate slug when title changes
+  // Improved slug generation
   React.useEffect(() => {
-    const slug = generateSlug(formik.values.title);
-    formik.setFieldValue("slug", slug);
-  }, [formik.values.title]);
+    if (!slugManuallyChanged) {
+      const newSlug = generateSlug(formik.values.title);
+      formik.setFieldValue("slug", newSlug);
+    }
+  }, [formik.values.title, slugManuallyChanged]);
 
-  // Add effect to auto-generate excerpt when content changes
+  // Auto-generate excerpt when content changes
   React.useEffect(() => {
     const excerpt = generateExcerpt(formik.values.content);
     formik.setFieldValue("excerpt", excerpt);
   }, [formik.values.content]);
 
-  // Add effect to sync featured image URL to og_image
+  // Sync featured image to og_image
   React.useEffect(() => {
     if (formik.values.featured_image.url) {
       formik.setFieldValue("meta.og_image", formik.values.featured_image.url);
     }
   }, [formik.values.featured_image.url]);
 
-  // Modified effect untuk sync title ke meta title
-  React.useEffect(() => {
-    // Hanya update meta title jika kosong atau sama dengan title sebelumnya
-    if (
-      !formik.values.meta.title ||
-      formik.values.meta.title === formik.values.title
-    ) {
-      formik.setFieldValue("meta.title", formik.values.title);
-    }
-  }, [formik.values.title]);
-
-  // Alternative solution menggunakan formik setValues untuk update semua field terkait
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    formik.setValues({
-      ...formik.values,
-      title: newTitle,
-      meta: {
-        ...formik.values.meta,
-        title:
-          formik.values.meta.title === formik.values.title
-            ? newTitle
-            : formik.values.meta.title,
-      },
-    });
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-6">
       <form onSubmit={formik.handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Informasi Dasar</CardTitle>
+            <CardTitle>Edit Artikel</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <LabelWithTooltip
                 htmlFor="title"
                 label="Judul"
-                tooltip="Judul artikel yang akan ditampilkan sebagai headline. Pastikan menarik dan informatif."
+                tooltip="Judul artikel yang akan ditampilkan sebagai headline"
               />
-              <Input
-                id="title"
-                onChange={handleTitleChange}
-                value={formik.values.title}
-                name="title"
-                onBlur={formik.handleBlur}
-              />
+              <Input id="title" {...formik.getFieldProps("title")} />
               {formik.touched.title && formik.errors.title && (
                 <p className="text-sm text-red-500">{formik.errors.title}</p>
               )}
@@ -232,23 +141,27 @@ export default function ArticleCreatePage() {
             <div className="space-y-2">
               <LabelWithTooltip
                 htmlFor="slug"
-                label="Slug (Otomatis)"
-                tooltip="URL ramah yang dibuat otomatis dari judul artikel."
+                label="Slug"
+                tooltip="URL ramah untuk artikel ini. Dibuat otomatis dari judul, tapi bisa diubah manual."
               />
               <Input
-                disabled
                 id="slug"
                 {...formik.getFieldProps("slug")}
-                readOnly
-                className="bg-gray-50"
+                onChange={(e) => {
+                  setSlugManuallyChanged(true);
+                  formik.handleChange(e);
+                }}
               />
+              {formik.touched.slug && formik.errors.slug && (
+                <p className="text-sm text-red-500">{formik.errors.slug}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <LabelWithTooltip
                 htmlFor="content"
                 label="Konten"
-                tooltip="Isi utama artikel. Gunakan editor untuk memformat teks, menambah gambar, dan mengatur layout."
+                tooltip="Isi utama artikel"
               />
               <div className="h-[400px] relative">
                 <QuillEditor
@@ -267,25 +180,21 @@ export default function ArticleCreatePage() {
               <LabelWithTooltip
                 htmlFor="excerpt"
                 label="Ringkasan (Otomatis)"
-                tooltip="Ringkasan singkat artikel yang dibuat otomatis dari konten. Digunakan di halaman daftar artikel."
+                tooltip="Ringkasan singkat artikel yang dibuat otomatis dari konten."
               />
               <Textarea
                 id="excerpt"
-                disabled
                 {...formik.getFieldProps("excerpt")}
                 readOnly
                 className="bg-gray-50"
               />
-              {formik.touched.excerpt && formik.errors.excerpt && (
-                <p className="text-sm text-red-500">{formik.errors.excerpt}</p>
-              )}
             </div>
 
             <div className="space-y-2">
               <LabelWithTooltip
                 htmlFor="status"
                 label="Status"
-                tooltip="Draft untuk menyimpan artikel tanpa dipublikasikan. Terbit untuk menampilkan artikel ke publik."
+                tooltip="Status publikasi artikel"
               />
               <Select
                 value={formik.values.status}
@@ -307,7 +216,7 @@ export default function ArticleCreatePage() {
           <CardHeader>
             <CardTitle>Gambar Utama</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <FeaturedImageArticle
               value={formik.values.featured_image}
               onChange={(imageData) =>
@@ -333,7 +242,7 @@ export default function ArticleCreatePage() {
                 <LabelWithTooltip
                   htmlFor="meta.title"
                   label="Judul Meta"
-                  tooltip="Judul yang muncul di hasil pencarian Google. Idealnya tidak lebih dari 60 karakter."
+                  tooltip="Judul untuk SEO"
                 />
                 <Input
                   id="meta.title"
@@ -349,7 +258,7 @@ export default function ArticleCreatePage() {
                 <LabelWithTooltip
                   htmlFor="meta.description"
                   label="Deskripsi Meta"
-                  tooltip="Deskripsi singkat yang muncul di hasil pencarian Google. Idealnya tidak lebih dari 160 karakter."
+                  tooltip="Deskripsi untuk SEO"
                 />
                 <Textarea
                   id="meta.description"
@@ -361,7 +270,6 @@ export default function ArticleCreatePage() {
                 />
               </div>
 
-              {/* Hidden OG Image field */}
               <Input
                 type="hidden"
                 id="meta.og_image"
@@ -369,8 +277,8 @@ export default function ArticleCreatePage() {
               />
             </div>
 
-            <div className="border rounded-lg p-4 bg-white space-y-2">
-              <h4 className="text-sm font-medium text-gray-500">
+            <div className="border rounded-lg p-4 bg-white">
+              <h4 className="text-sm font-medium text-gray-500 mb-2">
                 Pratinjau Hasil Pencarian Google
               </h4>
               <GoogleSearchPreview
@@ -387,7 +295,7 @@ export default function ArticleCreatePage() {
             Batal
           </Button>
           <Button type="submit" disabled={formik.isSubmitting}>
-            {formik.isSubmitting ? "Menyimpan..." : "Simpan Artikel"}
+            {formik.isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
           </Button>
         </div>
       </form>

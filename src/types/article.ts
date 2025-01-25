@@ -18,6 +18,6 @@ export interface ArticleData {
     id: string;
     name: string;
   };
-  created_at: any;
-  updated_at: any;
+  created_at: string | null; // Changed from 'any' to string | null
+  updated_at: string | null; // Changed from 'any' to string | null
 }
