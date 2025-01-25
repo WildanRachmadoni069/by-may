@@ -58,7 +58,7 @@ function MainNav() {
                   <NavigationMenuItem>
                     <Link href="/artikel" legacyBehavior passHref>
                       <NavigationMenuLink
-                        active={pathName == "/artikel"}
+                        active={pathName.includes("/artikel")}
                         className={navigationMenuTriggerStyle()}
                       >
                         Artikel

@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
         pathname: "/dba8iejyl/image/upload/**",
         search: "",
       },
+      {
+        protocol: "https",
+        hostname: "ui-avatars.com",
+        pathname: "/api/**",
+      },
     ],
     dangerouslyAllowSVG: true,
   },

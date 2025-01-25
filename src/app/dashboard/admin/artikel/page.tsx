@@ -9,9 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Eye } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,28 +23,71 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase/firebaseConfig";
 
 function ArtikelAdminPage() {
-  // Temporary dummy data - replace with actual API call
-  const [articles] = useState([
-    {
-      id: 1,
-      title: "Article 1",
-      category: "Fashion",
-      publishDate: "2024-01-20",
-    },
-    {
-      id: 2,
-      title: "Article 2",
-      category: "Lifestyle",
-      publishDate: "2024-01-21",
-    },
-  ]);
+  interface Article {
+    id: string;
+    title: string;
+    slug: string;
+    created_at: Timestamp;
+  }
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleDelete = (id: number) => {
-    // Implement delete functionality here
-    console.log("Deleting article:", id);
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const articlesRef = collection(db, "articles");
+        const snapshot = await getDocs(articlesRef);
+        const articlesData = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+          };
+        }) as Article[];
+        setArticles(articlesData);
+      } catch (error) {
+        console.error("Error fetching articles:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchArticles();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "articles", id));
+      setArticles(articles.filter((article) => article.id !== id));
+    } catch (error) {
+      console.error("Error deleting article:", error);
+    }
   };
+
+  const formatDate = (timestamp: Timestamp) => {
+    if (!timestamp || !timestamp.toDate) {
+      return "Tanggal tidak tersedia";
+    }
+    return timestamp.toDate().toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  if (isLoading) {
+    return <div className="p-8">Loading...</div>;
+  }
 
   return (
     <div className="p-8">
@@ -60,8 +103,7 @@ function ArtikelAdminPage() {
           <TableRow>
             <TableHead>No</TableHead>
             <TableHead>Judul</TableHead>
-            <TableHead>Kategori</TableHead>
-            <TableHead>Tanggal Publikasi</TableHead>
+            <TableHead>Tanggal Dibuat</TableHead>
             <TableHead>Aksi</TableHead>
           </TableRow>
         </TableHeader>
@@ -70,9 +112,13 @@ function ArtikelAdminPage() {
             <TableRow key={article.id}>
               <TableCell>{index + 1}</TableCell>
               <TableCell>{article.title}</TableCell>
-              <TableCell>{article.category}</TableCell>
-              <TableCell>{article.publishDate}</TableCell>
+              <TableCell>{formatDate(article.created_at)}</TableCell>
               <TableCell className="flex gap-2">
+                <Link href={`/artikel/${article.slug}`} target="_blank">
+                  <Button variant="outline" size="icon">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Link href={`/dashboard/admin/artikel/edit/${article.id}`}>
                   <Button variant="outline" size="icon">
                     <Pencil className="h-4 w-4" />

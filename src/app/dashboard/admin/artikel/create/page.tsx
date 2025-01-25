@@ -21,6 +21,9 @@ const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 import "react-quill-new/dist/quill.snow.css";
 
 import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
+import { db } from "@/lib/firebase/firebaseConfig";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 const validationSchema = Yup.object({
   title: Yup.string().required("Judul wajib diisi"),
@@ -106,6 +109,7 @@ const CharacterCountSEO = ({
 
 export default function ArticleCreatePage() {
   const router = useRouter();
+  const { toast } = useToast();
 
   const formik = useFormik({
     initialValues: {
@@ -120,11 +124,34 @@ export default function ArticleCreatePage() {
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        // Add your API call here
-        console.log(values);
+        const articleData = {
+          ...values,
+          author: {
+            id: "admin",
+            name: "Admin",
+          },
+          created_at: Timestamp.now(),
+          updated_at: Timestamp.now(),
+        };
+
+        // Save to Firestore
+        const articlesRef = collection(db, "articles");
+        await addDoc(articlesRef, articleData);
+
+        toast({
+          title: "Artikel berhasil dibuat",
+          description: "Artikel telah berhasil disimpan ke database",
+        });
+
         router.push("/dashboard/admin/artikel");
       } catch (error) {
         console.error("Error creating article:", error);
+        toast({
+          title: "Gagal membuat artikel",
+          description:
+            "Terjadi kesalahan saat menyimpan artikel. Silakan coba lagi.",
+          variant: "destructive",
+        });
       } finally {
         setSubmitting(false);
       }
