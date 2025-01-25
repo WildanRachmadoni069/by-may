@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import {
   Carousel,
@@ -9,52 +9,92 @@ import {
   CarouselApi,
 } from "../ui/carousel";
 import Link from "next/link";
-import { ArticleCard } from "../general/ArticleCard";
-import articles from "@/lib/data/articles.js";
+import { ArticleCard } from "@/components/general/ArticleCard";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase/firebaseConfig";
+import type { ArticleData } from "@/types/article";
 
-function ArticleCollection() {
-  const [carouselApi, setCarouselApi] = React.useState<CarouselApi>();
-  React.useEffect(() => {
-    if (!carouselApi) {
-      return;
-    }
-  }, [carouselApi]);
+function formatFirebaseTimestamp(timestamp: any) {
+  if (!timestamp) return null;
+  if (typeof timestamp === "string") return timestamp;
+  if (timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000).toISOString();
+  }
+  return null;
+}
+
+async function getLatestArticles() {
+  try {
+    const articlesRef = collection(db, "articles");
+    const q = query(
+      articlesRef,
+      where("status", "==", "published"),
+      orderBy("created_at", "desc"),
+      limit(3)
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        created_at: formatFirebaseTimestamp(data.created_at),
+        updated_at: formatFirebaseTimestamp(data.updated_at),
+      };
+    }) as ArticleData[];
+  } catch (error) {
+    console.error("Error fetching articles:", error);
+    return [];
+  }
+}
+
+export default async function ArticleCollection() {
+  const articles = await getLatestArticles();
+
+  if (articles.length === 0) {
+    return null;
+  }
+
   return (
-    <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-      <header className="flex items-center justify-between mb-4 border-b-2">
-        <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
-          Artikel Terbaru
-        </h2>
-        <div className="flex items-center gap-2 pb-4">
-          <Button asChild>
-            <Link href={"/artikel"}>Lihat Semua Artikel</Link>
-          </Button>
+    <section className="py-16 bg-gray-50">
+      <div className="container px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">Artikel Terbaru</h2>
+          <p className="text-gray-600">
+            Jelajahi artikel-artikel inspiratif seputar Al-Qur'an dan kehidupan
+            islami
+          </p>
         </div>
-      </header>
-      <div>
-        <Carousel
-          opts={{
-            align: "center",
-            loop: true,
-          }}
-          setApi={setCarouselApi}
-        >
-          <CarouselContent className="-ml-2 md:-ml-4">
-            {articles?.map((item, index) => (
-              <CarouselItem
-                key={index}
-                className="basis-1/2 md:basis-1/3 lg:basis-1/4 pl-2 md:pl-4 rounded-md"
-              >
-                <div className="p-1">
-                  <ArticleCard {...item} />
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
+          {articles.map((article) => (
+            <ArticleCard
+              key={article.id}
+              title={article.title}
+              excerpt={article.excerpt}
+              slug={article.slug}
+              featured_image={article.featured_image}
+              created_at={article.created_at || undefined}
+            />
+          ))}
+        </div>
+
+        <div className="text-center">
+          <Link href="/artikel">
+            <Button variant="outline" size="lg">
+              Lihat Semua Artikel
+            </Button>
+          </Link>
+        </div>
       </div>
     </section>
   );
 }
-
-export default ArticleCollection;
