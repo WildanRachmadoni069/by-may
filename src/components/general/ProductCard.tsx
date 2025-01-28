@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Button } from "../ui/button";
 import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface Product {
   id: number;
@@ -33,7 +34,7 @@ function ProductCard({ product }: { product: Product }) {
         </CardHeader>
 
         {/* Detail Produk */}
-        <CardContent className="flex flex-col gap-1 pt-2">
+        <CardContent className={cn("flex flex-col gap-1 pt-2 px-2")}>
           <h3 className="text-lg font-semibold text-wrap min-h-[56px] line-clamp-2">
             {product.title}
           </h3>

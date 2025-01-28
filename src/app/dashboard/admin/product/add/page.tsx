@@ -18,7 +18,6 @@ import React, { useState } from "react";
 function Page() {
   return (
     <div>
-      <h1>Add Product</h1>
       <ProductForm />
     </div>
   );
