@@ -45,7 +45,7 @@ function ImageUploadPreview({
           });
         }
 
-        const response = await fetch("/api/upload", {
+        const response = await fetch("/api/upload/image-product", {
           method: "POST",
           body: formData,
         });

@@ -6,16 +6,7 @@ import MainNav from "@/components/landingpage/MainNav";
 import React from "react";
 
 function LandingPage() {
-  return (
-    <>
-      <MainNav />
-      <Hero />
-      <Banner />
-      <ProductCollections title="Produk Unggulan" />
-      <ProductCollections title="Produk Terbaru" />
-      <ArticleCollection />
-    </>
-  );
+  return <></>;
 }
 
 export default LandingPage;
