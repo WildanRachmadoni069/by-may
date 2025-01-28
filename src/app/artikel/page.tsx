@@ -6,11 +6,11 @@ import type { ArticleData } from "@/types/article";
 import React from "react";
 
 export const metadata: Metadata = {
-  title: "Artikel | By May Scarf",
+  title: "Artikel",
   description:
     "Koleksi artikel tentang Al-Qur'an, perlengkapan ibadah, dan kehidupan islami untuk memperkaya pemahaman dan meningkatkan kualitas ibadah Anda.",
   openGraph: {
-    title: "Artikel | By May Scarf",
+    title: "Artikel",
     description:
       "Koleksi artikel islami untuk memperkaya pemahaman dan meningkatkan kualitas ibadah Anda.",
     type: "website",
