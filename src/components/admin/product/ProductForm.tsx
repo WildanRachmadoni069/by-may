@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,17 @@ import { Plus, X } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { ProductFormValues, ProductVariation } from "@/types/product";
-import { CATEGORIES, SPECIAL_LABELS } from "@/constants/product";
+import { SPECIAL_LABELS } from "@/constants/product";
 import { VariationCard } from "./VariationCard";
-import { PriceStockField } from "./PriceStockField";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
+import { useCategoryStore } from "@/store/useCategoryStore";
+import { useProductStore } from "@/store/useProductStore";
+
+interface ProductFormProps {
+  productId?: string;
+  initialData?: ProductFormValues & { id: string };
+}
 
 const ProductSchema = Yup.object().shape({
   name: Yup.string().required("Nama produk wajib diisi"),
@@ -87,7 +95,21 @@ const initialValues: ProductFormValues = {
   dimensions: { width: 0, length: 0, height: 0 },
 };
 
-export function ProductForm() {
+export function ProductForm({ productId, initialData }: ProductFormProps) {
+  const { toast } = useToast();
+  const router = useRouter();
+  const {
+    categories,
+    loading: categoriesLoading,
+    fetchCategories,
+  } = useCategoryStore();
+  const { addProduct, editProduct } = useProductStore();
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
   const [showVariationForm, setShowVariationForm] = useState(false);
   const [editingVariationIndex, setEditingVariationIndex] = useState<
     number | null
@@ -101,22 +123,34 @@ export function ProductForm() {
   });
 
   const formik = useFormik({
-    initialValues,
+    initialValues: initialData || initialValues,
     validationSchema: ProductSchema,
+    enableReinitialize: true,
     onSubmit: async (values, actions) => {
       try {
-        console.log(values);
-        // Handle form submission here
-        // For example:
-        // await submitProductData(values);
-        actions.setSubmitting(false);
+        if (productId) {
+          await editProduct(productId, values);
+          toast({
+            title: "Produk berhasil diperbarui",
+            description: "Perubahan telah disimpan",
+          });
+        } else {
+          await addProduct(values);
+          toast({
+            title: "Produk berhasil ditambahkan",
+            description: "Produk baru telah disimpan",
+          });
+        }
+        router.push("/dashboard/admin/product");
       } catch (error) {
         console.error("Error submitting form:", error);
-        actions.setSubmitting(false);
-        actions.setStatus({
-          submitError:
-            "An error occurred while submitting the form. Please try again.",
+        toast({
+          variant: "destructive",
+          title: "Gagal menyimpan produk",
+          description: "Terjadi kesalahan. Silakan coba lagi.",
         });
+      } finally {
+        actions.setSubmitting(false);
       }
     },
   });
@@ -145,6 +179,41 @@ export function ProductForm() {
     setShowVariationForm(true);
   };
 
+  const generateVariationCombinations = (
+    variations: ProductFormValues["variations"]
+  ) => {
+    if (!variations.length) return [];
+
+    const combinations = variations.reduce((acc, variation, currentIndex) => {
+      // For first variation
+      if (currentIndex === 0) {
+        return variation.options.map((option) => ({
+          id: `${variation.id}-${option.id}`,
+          name: `${option.name}`,
+          components: [{ variationId: variation.id, optionId: option.id }],
+        }));
+      }
+
+      // For subsequent variations, combine with existing combinations
+      const newCombinations = [];
+      for (const existingComb of acc) {
+        for (const option of variation.options) {
+          newCombinations.push({
+            id: `${existingComb.id}-${option.id}`,
+            name: `${existingComb.name} + ${option.name}`,
+            components: [
+              ...existingComb.components,
+              { variationId: variation.id, optionId: option.id },
+            ],
+          });
+        }
+      }
+      return newCombinations;
+    }, [] as Array<{ id: string; name: string; components: Array<{ variationId: string; optionId: string }> }>);
+
+    return combinations;
+  };
+
   const handleSaveVariation = () => {
     if (!newVariation.name || newVariation.options.some((opt) => !opt.name)) {
       return;
@@ -159,24 +228,20 @@ export function ProductForm() {
       };
       formik.setFieldValue("variations", updatedVariations);
 
-      // Recalculate variation prices
-      const newVariationPrices = { ...formik.values.variationPrices };
+      // Recalculate variation prices with clean combinations
       const combinations = generateVariationCombinations(updatedVariations);
+      const newVariationPrices: Record<
+        string,
+        { price: number; stock: number }
+      > = {};
 
-      // Remove old combinations
-      Object.keys(newVariationPrices).forEach((key) => {
-        if (!combinations.find((c) => c.id === key)) {
-          delete newVariationPrices[key];
-        }
-      });
-
-      // Add new combinations
+      // Preserve existing prices and stocks for combinations that still exist
       combinations.forEach((combination) => {
-        if (!newVariationPrices[combination.id]) {
-          newVariationPrices[combination.id] = {
-            price: 0,
-            stock: 0,
-          };
+        if (formik.values.variationPrices[combination.id]) {
+          newVariationPrices[combination.id] =
+            formik.values.variationPrices[combination.id];
+        } else {
+          newVariationPrices[combination.id] = { price: 0, stock: 0 };
         }
       });
 
@@ -184,25 +249,23 @@ export function ProductForm() {
     } else {
       // Adding new variation
       const newVariationData = { id: Date.now().toString(), ...newVariation };
-      formik.setFieldValue("variations", [
-        ...formik.values.variations,
-        newVariationData,
-      ]);
+      const updatedVariations = [...formik.values.variations, newVariationData];
+      formik.setFieldValue("variations", updatedVariations);
       formik.setFieldValue("hasVariations", true);
 
-      // Initialize prices and stock for the new variation options
-      const existingCombinations = generateVariationCombinations([
-        ...formik.values.variations,
-        newVariationData,
-      ]);
-      const newVariationPrices = { ...formik.values.variationPrices };
+      // Generate clean combinations for the new variation structure
+      const combinations = generateVariationCombinations(updatedVariations);
+      const newVariationPrices: Record<
+        string,
+        { price: number; stock: number }
+      > = {};
 
-      existingCombinations.forEach((combination) => {
-        if (!newVariationPrices[combination.id]) {
-          newVariationPrices[combination.id] = {
-            price: 0,
-            stock: 0,
-          };
+      combinations.forEach((combination) => {
+        if (formik.values.variationPrices[combination.id]) {
+          newVariationPrices[combination.id] =
+            formik.values.variationPrices[combination.id];
+        } else {
+          newVariationPrices[combination.id] = { price: 0, stock: 0 };
         }
       });
 
@@ -223,35 +286,6 @@ export function ProductForm() {
       (_, i) => i !== index
     );
     formik.setFieldValue("variations", newVariations);
-  };
-
-  const generateVariationCombinations = (
-    variations: ProductFormValues["variations"]
-  ) => {
-    if (!variations.length) return [];
-
-    const combinations = variations.reduce((acc, variation) => {
-      if (!acc.length) {
-        return variation.options.map((option) => ({
-          id: `${variation.id}-${option.id}`,
-          name: `${option.name}`,
-          components: [{ variationId: variation.id, optionId: option.id }],
-        }));
-      }
-
-      return acc.flatMap((item) =>
-        variation.options.map((option) => ({
-          id: `${item.id}-${option.id}`,
-          name: `${item.name}-${option.name}`,
-          components: [
-            ...item.components,
-            { variationId: variation.id, optionId: option.id },
-          ],
-        }))
-      );
-    }, [] as any[]);
-
-    return combinations;
   };
 
   // Add helper function to get variation price/stock
@@ -449,11 +483,12 @@ export function ProductForm() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          Tambah Produk Baru
+          {productId ? "Edit Produk" : "Tambah Produk Baru"}
         </h2>
         <p className="text-muted-foreground mt-2">
-          Isi informasi produk dengan lengkap untuk menampilkan produk di toko
-          Anda.
+          {productId
+            ? "Perbarui informasi produk Anda."
+            : "Isi informasi produk dengan lengkap untuk menampilkan produk di toko Anda."}
         </p>
       </div>
 
@@ -491,10 +526,14 @@ export function ProductForm() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih kategori" />
+                  <SelectValue
+                    placeholder={
+                      categoriesLoading ? "Memuat..." : "Pilih kategori"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((category) => (
+                  {categories.map((category) => (
                     <SelectItem key={category.value} value={category.value}>
                       {category.label}
                     </SelectItem>
@@ -756,9 +795,23 @@ export function ProductForm() {
                 <div className="text-red-500">{formik.status.submitError}</div>
               )}
             </div>
-            <Button type="submit" size="lg" disabled={formik.isSubmitting}>
-              {formik.isSubmitting ? "Menyimpan..." : "Simpan Produk"}
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => router.push("/dashboard/admin/product")}
+              >
+                Batal
+              </Button>
+              <Button type="submit" size="lg" disabled={formik.isSubmitting}>
+                {formik.isSubmitting
+                  ? "Menyimpan..."
+                  : productId
+                  ? "Perbarui Produk"
+                  : "Simpan Produk"}
+              </Button>
+            </div>
           </div>
         </div>
       </form>

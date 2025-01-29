@@ -84,9 +84,8 @@ export default function RootLayout({
       <body
         className={`${jakartaSans.className} antialiased min-h-screen bg-background flex flex-col`}
       >
-        <main className="relative flex-grow">{children}</main>
-        <Footer />
         <Toaster />
+        <main className="relative flex-grow">{children}</main>
       </body>
     </html>
   );

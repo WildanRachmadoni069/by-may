@@ -1,16 +1,19 @@
 export const SPECIAL_LABELS = [
-  { label: "Populer", value: "popular" },
-  { label: "Baru", value: "new" },
-  { label: "Paling Laku", value: "best-seller" },
-  { label: "Favorit", value: "favorite" },
+  { value: "", label: "Tidak Ada" },
+  { value: "new", label: "Produk Baru" },
+  { value: "best", label: "Best Seller" },
+  { value: "sale", label: "Diskon" },
 ] as const;
 
-export const CATEGORIES = [
-  { label: "Al-Quran", value: "quran" },
-  { label: "Sajadah", value: "prayer-rug" },
-  { label: "Tasbih", value: "prayer-beads" },
-  { label: "Hampers", value: "hampers" },
-] as const;
+// Remove or comment out CATEGORIES constant
+// export const CATEGORIES = [...];
+
+// export const CATEGORIES = [
+//   { label: "Al-Quran", value: "quran" },
+//   { label: "Sajadah", value: "prayer-rug" },
+//   { label: "Tasbih", value: "prayer-beads" },
+//   { label: "Hampers", value: "hampers" },
+// ] as const;
 
 export type SpecialLabel = (typeof SPECIAL_LABELS)[number]["value"];
-export type ProductCategory = (typeof CATEGORIES)[number]["value"];
+// export type ProductCategory = (typeof CATEGORIES)[number]["value"];
