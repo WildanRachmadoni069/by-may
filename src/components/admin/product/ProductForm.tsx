@@ -39,6 +39,7 @@ interface ProductFormProps {
 
 const ProductSchema = Yup.object().shape({
   name: Yup.string().required("Nama produk wajib diisi"),
+  slug: Yup.string().required("Slug wajib diisi"),
   description: Yup.string().required("Deskripsi produk wajib diisi"),
   category: Yup.string().required("Kategori wajib dipilih"),
   specialLabel: Yup.string(),
@@ -92,6 +93,7 @@ const ProductSchema = Yup.object().shape({
 
 const initialValues: ProductFormValues = {
   name: "",
+  slug: "", // Add initial value for slug
   description: "",
   category: "",
   specialLabel: "",
@@ -180,6 +182,17 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
       }
     },
   });
+
+  // Add useEffect to generate slug whenever name changes
+  useEffect(() => {
+    if (formik.values.name) {
+      const generatedSlug = formik.values.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      formik.setFieldValue("slug", generatedSlug);
+    }
+  }, [formik.values.name]);
 
   const handleAddOption = () => {
     setNewVariation((prev) => ({
@@ -532,6 +545,15 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
                 <div className="text-red-500">{formik.errors.name}</div>
               )}
             </div>
+
+            {/* Add hidden slug input */}
+            <Input
+              type="hidden"
+              id="slug"
+              {...formik.getFieldProps("slug")}
+              readOnly
+            />
+
             <div>
               <Label htmlFor="description">Deskripsi</Label>
               <ProductDescriptionEditor

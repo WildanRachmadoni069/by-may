@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, PlusCircle, Trash, Search } from "lucide-react";
+import { Pencil, PlusCircle, Trash, Search, Eye } from "lucide-react"; // Add Eye icon
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { formatRupiah } from "@/lib/utils";
@@ -343,7 +343,12 @@ function AdminProductList() {
                 </TableCell>
                 <TableCell>{getProductPrice(product)}</TableCell>
                 <TableCell>{getProductStock(product)}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right space-x-2">
+                  <Link href={`/produk/${product.slug}`} target="_blank">
+                    <Button variant="outline" size="sm" className="mr-2">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Link href={`/dashboard/admin/product/edit/${product.id}`}>
                     <Button variant="outline" size="sm" className="mr-2">
                       <Pencil className="h-4 w-4" />

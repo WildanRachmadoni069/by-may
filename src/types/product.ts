@@ -29,6 +29,7 @@ export interface ProductSEO {
 
 export interface ProductFormValues {
   name: string;
+  slug: string; // Add slug field if not exists
   description: string;
   category: string;
   specialLabel: string;
