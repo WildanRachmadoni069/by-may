@@ -26,6 +26,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { useProductStore } from "@/store/useProductStore";
+import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
+import LabelWithTooltip from "@/components/general/LabelWithTooltip";
+import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
+import { useCollectionStore } from "@/store/useCollectionStore";
+import ProductDescriptionEditor from "@/components/editor/ProductDescriptionEditor";
 
 interface ProductFormProps {
   productId?: string;
@@ -77,6 +82,12 @@ const ProductSchema = Yup.object().shape({
       .required("Tinggi wajib diisi")
       .positive("Tinggi harus positif"),
   }),
+  seo: Yup.object().shape({
+    title: Yup.string().required("Meta title wajib diisi"),
+    description: Yup.string().required("Meta description wajib diisi"),
+    keywords: Yup.array().of(Yup.string()),
+  }),
+  collection: Yup.string(),
 });
 
 const initialValues: ProductFormValues = {
@@ -93,6 +104,12 @@ const initialValues: ProductFormValues = {
   variationPrices: {},
   weight: 0,
   dimensions: { width: 0, length: 0, height: 0 },
+  seo: {
+    title: "",
+    description: "",
+    keywords: [],
+  },
+  collection: "none", // Change default value from undefined/empty to "none"
 };
 
 export function ProductForm({ productId, initialData }: ProductFormProps) {
@@ -104,11 +121,20 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     fetchCategories,
   } = useCategoryStore();
   const { addProduct, editProduct } = useProductStore();
+  const {
+    collections,
+    loading: collectionsLoading,
+    fetchCollections,
+  } = useCollectionStore();
 
   // Fetch categories on mount
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
 
   const [showVariationForm, setShowVariationForm] = useState(false);
   const [editingVariationIndex, setEditingVariationIndex] = useState<
@@ -508,10 +534,9 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
             </div>
             <div>
               <Label htmlFor="description">Deskripsi</Label>
-              <Textarea
-                id="description"
-                {...formik.getFieldProps("description")}
-                rows={5}
+              <ProductDescriptionEditor
+                value={formik.values.description}
+                onChange={(value) => formik.setFieldValue("description", value)}
               />
               {formik.touched.description && formik.errors.description && (
                 <div className="text-red-500">{formik.errors.description}</div>
@@ -543,6 +568,34 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
               {formik.touched.category && formik.errors.category && (
                 <div className="text-red-500">{formik.errors.category}</div>
               )}
+            </div>
+            <div>
+              <Label>Koleksi (Opsional)</Label>
+              <Select
+                value={formik.values.collection || "none"} // Ensure we always have a valid value
+                onValueChange={(value) =>
+                  formik.setFieldValue(
+                    "collection",
+                    value === "none" ? undefined : value
+                  )
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      collectionsLoading ? "Memuat..." : "Pilih koleksi"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Tidak ada koleksi</SelectItem>
+                  {collections.map((collection) => (
+                    <SelectItem key={collection.value} value={collection.value}>
+                      {collection.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Label Produk Spesial</Label>
@@ -782,6 +835,70 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
                       {formik.errors.dimensions.height}
                     </div>
                   )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SEO & Meta */}
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle>SEO & Meta</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Optimasi produk Anda untuk mesin pencari
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <LabelWithTooltip
+                  htmlFor="seo.title"
+                  label="Meta Title"
+                  tooltip="Judul yang muncul di hasil pencarian Google. Idealnya 50-60 karakter."
+                />
+                <Input id="seo.title" {...formik.getFieldProps("seo.title")} />
+                <CharacterCountSEO
+                  current={formik.values.seo.title.length}
+                  type="title"
+                />
+                {formik.touched.seo?.title && formik.errors.seo?.title && (
+                  <div className="text-red-500">{formik.errors.seo.title}</div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <LabelWithTooltip
+                  htmlFor="seo.description"
+                  label="Meta Description"
+                  tooltip="Deskripsi singkat yang muncul di hasil pencarian. Idealnya 120-160 karakter."
+                />
+                <Textarea
+                  id="seo.description"
+                  {...formik.getFieldProps("seo.description")}
+                />
+                <CharacterCountSEO
+                  current={formik.values.seo.description.length}
+                  type="description"
+                />
+                {formik.touched.seo?.description &&
+                  formik.errors.seo?.description && (
+                    <div className="text-red-500">
+                      {formik.errors.seo.description}
+                    </div>
+                  )}
+              </div>
+
+              <div className="border rounded-lg p-4 bg-white space-y-2">
+                <h4 className="text-sm font-medium text-gray-500">
+                  Pratinjau Hasil Pencarian Google
+                </h4>
+                <GoogleSearchPreview
+                  title={formik.values.seo.title || formik.values.name}
+                  description={formik.values.seo.description}
+                  slug={`products/${formik.values.name
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")}`}
+                />
               </div>
             </div>
           </CardContent>

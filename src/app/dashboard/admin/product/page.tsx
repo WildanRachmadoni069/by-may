@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/pagination";
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { useProductStore } from "@/store/useProductStore";
+import { useCollectionStore } from "@/store/useCollectionStore";
 
 interface Product {
   id: string;
@@ -66,6 +67,7 @@ function AdminProductList() {
   } = useProductStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [collectionFilter, setCollectionFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5; // Changed from 10 to 5
   const { toast } = useToast();
@@ -74,10 +76,19 @@ function AdminProductList() {
     loading: categoriesLoading,
     fetchCategories,
   } = useCategoryStore();
+  const {
+    collections,
+    loading: collectionsLoading,
+    fetchCollections,
+  } = useCollectionStore();
 
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
 
   useEffect(() => {
     fetchProducts();
@@ -132,7 +143,13 @@ function AdminProductList() {
       .includes(searchQuery.toLowerCase());
     const matchesCategory =
       categoryFilter === "all" || product.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesCollection =
+      collectionFilter === "all" ||
+      (collectionFilter === "none"
+        ? !product.collection
+        : product.collection === collectionFilter);
+
+    return matchesSearch && matchesCategory && matchesCollection;
   });
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -275,6 +292,22 @@ function AdminProductList() {
             {categories.map((category) => (
               <SelectItem key={category.value} value={category.value}>
                 {category.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={collectionFilter} onValueChange={setCollectionFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue
+              placeholder={collectionsLoading ? "Memuat..." : "Semua Koleksi"}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Koleksi</SelectItem>
+            <SelectItem value="none">Tanpa Koleksi</SelectItem>
+            {collections.map((collection) => (
+              <SelectItem key={collection.value} value={collection.value}>
+                {collection.label}
               </SelectItem>
             ))}
           </SelectContent>

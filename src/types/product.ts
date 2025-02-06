@@ -21,6 +21,12 @@ export interface VariationPrice {
   stock: number;
 }
 
+export interface ProductSEO {
+  title: string;
+  description: string;
+  keywords: string[];
+}
+
 export interface ProductFormValues {
   name: string;
   description: string;
@@ -35,4 +41,6 @@ export interface ProductFormValues {
   variationPrices: Record<string, VariationPrice>;
   weight: number;
   dimensions: ProductDimensions;
+  seo: ProductSEO;
+  collection?: string; // Make it optional
 }
