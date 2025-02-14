@@ -20,6 +20,9 @@ import { useParams } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { MinusIcon, PlusIcon, ShoppingCartIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 export default function ProductDetail() {
   const [product, setProduct] = useState<ProductFormValues | null>(null);
@@ -28,6 +31,13 @@ export default function ProductDetail() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, string>
+  >({});
+  const [quantity, setQuantity] = useState(1);
+  const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [currentStock, setCurrentStock] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -56,6 +66,115 @@ export default function ProductDetail() {
       setCurrent(api.selectedScrollSnap());
     });
   }, [api]);
+
+  const generateVariationKey = (
+    selectedOpts: Record<string, string>
+  ): string => {
+    if (!product?.variations.length) return "";
+
+    // For double variations, we need to combine both variation IDs
+    // Format: "variation1Id-option1Id-option2Id"
+    if (product.variations.length === 2) {
+      const firstVariation = product.variations[0];
+      const secondVariation = product.variations[1];
+
+      const firstOptionId = selectedOpts[firstVariation.id];
+      const secondOptionId = selectedOpts[secondVariation.id];
+
+      if (!firstOptionId || !secondOptionId) return "";
+
+      return `${firstVariation.id}-${firstOptionId}-${secondOptionId}`;
+    }
+
+    // Single variation case (existing logic)
+    const selectedVariation = product.variations[0];
+    const selectedOptionId = selectedOpts[selectedVariation.id];
+
+    if (!selectedOptionId) return "";
+    return `${selectedVariation.id}-${selectedOptionId}`;
+  };
+
+  const updatePriceAndStock = (selectedOpts: Record<string, string>) => {
+    if (!product) return;
+
+    if (!product.hasVariations) {
+      setCurrentPrice(product.basePrice || 0);
+      setCurrentStock(product.baseStock || 0);
+      return;
+    }
+
+    // Check if all required variations are selected
+    const allVariationsSelected = product.variations.every(
+      (variation) => selectedOpts[variation.id]
+    );
+
+    if (allVariationsSelected) {
+      const key = generateVariationKey(selectedOpts);
+      console.log("Generated variation key:", key);
+
+      const variation = product.variationPrices[key];
+      if (variation) {
+        setCurrentPrice(variation.price);
+        setCurrentStock(variation.stock);
+        console.log("Found variation price:", variation);
+      } else {
+        setCurrentPrice(null);
+        setCurrentStock(null);
+        console.log("No matching variation found for key:", key);
+      }
+    } else {
+      // If not all variations are selected, show price range
+      setCurrentPrice(null);
+      setCurrentStock(null);
+      console.log("Not all variations selected:", selectedOpts);
+    }
+  };
+
+  useEffect(() => {
+    updatePriceAndStock(selectedOptions);
+    // Debug logs
+    console.log("Selected Options:", selectedOptions);
+    console.log("Current Price:", currentPrice);
+    console.log("Available Variations:", product?.variationPrices);
+  }, [selectedOptions]);
+
+  const handleOptionSelect = (variationId: string, optionId: string) => {
+    const newSelectedOptions = { ...selectedOptions };
+
+    // If clicking the same option, deselect it
+    if (selectedOptions[variationId] === optionId) {
+      delete newSelectedOptions[variationId];
+    } else {
+      // Otherwise select the new option
+      newSelectedOptions[variationId] = optionId;
+    }
+
+    setSelectedOptions(newSelectedOptions);
+  };
+
+  const handleQuantityChange = (value: number) => {
+    if (value >= 1) setQuantity(value);
+  };
+
+  const renderPrice = () => {
+    if (!product?.hasVariations) {
+      return formatRupiah(product?.basePrice || 0);
+    }
+
+    if (currentPrice !== null) {
+      return formatRupiah(currentPrice);
+    }
+
+    // Get all possible prices based on current selection
+    const allPrices = Object.entries(product.variationPrices).map(
+      ([key, value]) => value.price
+    );
+
+    const minPrice = Math.min(...allPrices);
+    const maxPrice = Math.max(...allPrices);
+
+    return `${formatRupiah(minPrice)} - ${formatRupiah(maxPrice)}`;
+  };
 
   if (loading) {
     return (
@@ -137,32 +256,24 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Product Info Section - Flexible Width */}
+        {/* Updated Product Info Section */}
         <div className="flex-1 space-y-6 min-w-0">
-          <div>
-            <h1 className="text-3xl font-bold">{product.name}</h1>
-            <div className="mt-4 text-3xl font-semibold text-primary">
-              {product.hasVariations
-                ? `${formatRupiah(
-                    Math.min(
-                      ...Object.values(product.variationPrices).map(
-                        (v) => v.price
-                      )
-                    )
-                  )} - ${formatRupiah(
-                    Math.max(
-                      ...Object.values(product.variationPrices).map(
-                        (v) => v.price
-                      )
-                    )
-                  )}`
-                : formatRupiah(product.basePrice || 0)}
+          {/* Product Header */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">{product.name}</h1>
+              {product.specialLabel && (
+                <Badge variant="secondary">{product.specialLabel}</Badge>
+              )}
+            </div>
+            <div className="text-3xl font-semibold text-primary">
+              {renderPrice()}
             </div>
           </div>
 
-          <Separator className="my-6" />
+          <Separator />
 
-          {/* Variations */}
+          {/* Product Options */}
           {product.hasVariations && (
             <div className="space-y-6">
               {product.variations.map((variation) => (
@@ -172,13 +283,19 @@ export default function ProductDetail() {
                     {variation.options.map((option) => (
                       <button
                         key={option.id}
+                        onClick={() =>
+                          handleOptionSelect(variation.id, option.id)
+                        }
                         className={cn(
-                          "flex flex-col items-center border rounded-lg p-3 hover:border-primary transition-colors",
-                          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                          "flex flex-col items-center border rounded-lg p-3 transition-colors",
+                          selectedOptions[variation.id] === option.id
+                            ? "border-primary bg-primary/5"
+                            : "border-input hover:border-primary",
+                          "focus:outline-none focus:ring-2 focus:ring-primary/20" // Menambah fokus indikator
                         )}
                       >
                         {option.imageUrl && (
-                          <div className="relative w-20 h-20 mb-2">
+                          <div className="relative w-16 h-16 mb-2">
                             <Image
                               src={option.imageUrl}
                               alt={option.name}
@@ -197,6 +314,86 @@ export default function ProductDetail() {
               ))}
             </div>
           )}
+
+          {/* Quantity Selector */}
+          <div className="space-y-4">
+            <h3 className="font-medium text-lg">Jumlah</h3>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  disabled={
+                    quantity <= 1 ||
+                    (currentStock !== null && quantity > currentStock)
+                  }
+                >
+                  <MinusIcon className="h-4 w-4" />
+                </Button>
+                <Input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) =>
+                    handleQuantityChange(parseInt(e.target.value) || 1)
+                  }
+                  className="w-20 text-center mx-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  min="1"
+                  max={currentStock || undefined}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                  disabled={currentStock !== null && quantity >= currentStock}
+                >
+                  <PlusIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              <span className="text-muted-foreground text-sm">
+                Stok:{" "}
+                {currentStock !== null
+                  ? currentStock
+                  : product.baseStock || "Pilih variasi"}
+              </span>
+            </div>
+          </div>
+
+          {/* Add to Cart Section */}
+          <div className="space-y-4 pt-4">
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={
+                (product.hasVariations &&
+                  Object.keys(selectedOptions).length !==
+                    product.variations.length) ||
+                !currentStock ||
+                quantity > currentStock
+              }
+            >
+              <ShoppingCartIcon className="mr-2 h-5 w-5" />
+              {product.hasVariations &&
+              Object.keys(selectedOptions).length !== product.variations.length
+                ? "Pilih Variasi"
+                : "Tambah ke Keranjang"}
+            </Button>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <h4 className="font-medium">Pengiriman</h4>
+                <p className="text-muted-foreground">
+                  Berat: {product.weight} gram
+                </p>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-medium">Dimensi</h4>
+                <p className="text-muted-foreground">
+                  {product.dimensions.length} × {product.dimensions.width} ×{" "}
+                  {product.dimensions.height} cm
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
