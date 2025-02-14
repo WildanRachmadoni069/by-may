@@ -5,16 +5,9 @@ import { Button } from "../ui/button";
 import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { ProductFormValues } from "@/types/product";
 
-interface Product {
-  id: number;
-  title: string;
-  price: number;
-  description: string;
-  stock: number;
-}
-
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product }: { product: ProductFormValues }) {
   return (
     <Link
       href={"/"}
@@ -36,11 +29,11 @@ function ProductCard({ product }: { product: Product }) {
         {/* Detail Produk */}
         <CardContent className={cn("flex flex-col gap-1 pt-2 px-2")}>
           <h3 className="text-lg font-semibold text-wrap min-h-[56px] line-clamp-2">
-            {product.title}
+            {product.name}
           </h3>
           <p className="text-gray-600">
             <span className="text-sm">Rp</span>
-            {product.price}
+            {product.basePrice}
           </p>
         </CardContent>
 

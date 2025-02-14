@@ -1,81 +1,83 @@
-const exampleProduct = {
-  additionalImages: [
-    "https://res.cloudinary.com/dba8iejyl/image/upload/v1738835495/file_isrb68.webp",
-    "https://res.cloudinary.com/dba8iejyl/image/upload/v1738835500/file_vnfxbk.webp",
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-  ],
-  basePrice: 0,
-  baseStock: 0,
-  category: "ZwLMDMGK0mnXMoits56J",
-  collection: "or47wjdkv1tIdwCNGagD",
-  createdAt: {
-    nanoseconds: 102000000,
-    seconds: 1738835673,
-  },
-  description: "<p>Al-Quran Custom Nama Soft Cream ...</p>",
-  dimensions: {
-    height: 10,
-    length: 29,
-    width: 21,
-  },
-  hasVariations: true,
-  id: "pgoGUR241xeCppnrINwZ",
-  mainImage:
-    "https://res.cloudinary.com/dba8iejyl/image/upload/v1738835475/file_edq6nd.webp",
-  name: "Al-Quran Custom Nama Soft Cream",
-  seo: {
-    description:
-      "Al-Quran Custom Nama Soft Cream Surabaya - Harga Murah! Desain pastel hijau & kuning estetis, bahan premium. Ukuran A7-A4. ready kirim cepat dari Surabaya!",
-    keywords: [],
-    title: "Al-Quran Custom Nama Soft Cream",
-  },
-  slug: "al-quran-custom-nama-soft-cream",
-  specialLabel: "",
-  updatedAt: {},
-  variationPrices: {
-    "1738835650611-1738835038858": {
-      price: 39900,
-      stock: 100,
+export const productList = [
+  {
+    additionalImages: [
+      "https://res.cloudinary.com/dba8iejyl/image/upload/v1738835495/file_isrb68.webp",
+      "https://res.cloudinary.com/dba8iejyl/image/upload/v1738835500/file_vnfxbk.webp",
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ],
+    basePrice: 0,
+    baseStock: 0,
+    category: "ZwLMDMGK0mnXMoits56J",
+    collection: "or47wjdkv1tIdwCNGagD",
+    createdAt: {
+      nanoseconds: 102000000,
+      seconds: 1738835673,
     },
-    "1738835650611-1738835633728": {
-      price: 39900,
-      stock: 100,
+    description: "<p>Al-Quran Custom Nama Soft Cream ...</p>",
+    dimensions: {
+      height: 10,
+      length: 29,
+      width: 21,
     },
-    "1738835650611-1738835641877": {
-      price: 59900,
-      stock: 100,
+    hasVariations: true,
+    id: "pgoGUR241xeCppnrINwZ",
+    mainImage:
+      "https://res.cloudinary.com/dba8iejyl/image/upload/v1738835475/file_edq6nd.webp",
+    name: "Al-Quran Custom Nama Soft Cream",
+    seo: {
+      description:
+        "Al-Quran Custom Nama Soft Cream Surabaya - Harga Murah! Desain pastel hijau & kuning estetis, bahan premium. Ukuran A7-A4. ready kirim cepat dari Surabaya!",
+      keywords: [],
+      title: "Al-Quran Custom Nama Soft Cream",
     },
+    slug: "al-quran-custom-nama-soft-cream",
+    specialLabel: "",
+    updatedAt: {},
+    variationPrices: {
+      "1738835650611-1738835038858": {
+        price: 39900,
+        stock: 100,
+      },
+      "1738835650611-1738835633728": {
+        price: 39900,
+        stock: 100,
+      },
+      "1738835650611-1738835641877": {
+        price: 59900,
+        stock: 100,
+      },
+    },
+    variations: [
+      {
+        id: "1738835650611",
+        name: "Ukuran",
+        options: [
+          {
+            id: "1738835038858",
+            imageUrl: null,
+            name: "A7 Non Terjemah",
+          },
+          {
+            id: "1738835633728",
+            imageUrl: null,
+            name: "A6 Non Terjemah",
+          },
+          {
+            id: "1738835641877",
+            imageUrl: null,
+            name: "A6 Terjemah",
+          },
+        ],
+      },
+    ],
+    weight: 1000,
   },
-  variations: [
-    {
-      id: "1738835650611",
-      name: "Ukuran",
-      options: [
-        {
-          id: "1738835038858",
-          imageUrl: null,
-          name: "A7 Non Terjemah",
-        },
-        {
-          id: "1738835633728",
-          imageUrl: null,
-          name: "A6 Non Terjemah",
-        },
-        {
-          id: "1738835641877",
-          imageUrl: null,
-          name: "A6 Terjemah",
-        },
-      ],
-    },
-  ],
-  weight: 1000,
-};
+];
 
 const exampleProductWithDoubleVariation = {
   additionalImages: [null, null, null, null, null, null, null, null],

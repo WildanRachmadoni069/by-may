@@ -29,13 +29,13 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const { slug } = useParams();
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const [api, setApi] = useState<CarouselApi>();
+  const [firstCarouselApi, setFirstCarouselApi] = useState<CarouselApi>();
+  const [secondCarouselApi, setSecondCarouselApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<
     Record<string, string>
   >({});
   const [quantity, setQuantity] = useState(1);
-  const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [currentStock, setCurrentStock] = useState<number | null>(null);
 
@@ -60,12 +60,18 @@ export default function ProductDetail() {
   }, [slug]);
 
   useEffect(() => {
-    if (!api) return;
+    if (!firstCarouselApi || !secondCarouselApi) return;
 
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
+    firstCarouselApi.on("select", () => {
+      const newIndex = firstCarouselApi.selectedScrollSnap();
+      setCurrent(newIndex);
+
+      // Scroll thumbnail carousel to keep active thumbnail visible
+      const thumbnailsPerView = 5; // Adjust based on your layout
+      const targetPage = Math.floor(newIndex / thumbnailsPerView);
+      secondCarouselApi.scrollTo(targetPage * thumbnailsPerView);
     });
-  }, [api]);
+  }, [firstCarouselApi, secondCarouselApi]);
 
   const generateVariationKey = (
     selectedOpts: Record<string, string>
@@ -196,14 +202,14 @@ export default function ProductDetail() {
   ].filter((img): img is string => Boolean(img));
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
-      {/* Main Product Section - Updated Layout */}
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Image Carousel Section - Fixed Width */}
-        <div className="w-full md:w-[450px] md:flex-shrink-0">
+    <div className="container mx-auto p-4 lg:p-6 space-y-6">
+      {/* Main Product Section */}
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Image Carousel Section - Slightly reduced width */}
+        <div className="w-full md:w-[400px] md:flex-shrink-0">
           <div className="sticky top-6">
-            <Card className="p-4 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <Carousel className="w-full" setApi={setApi}>
+            <Card className="p-3 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <Carousel className="w-full" setApi={setFirstCarouselApi}>
                 <CarouselContent>
                   {images.map((image, index) => (
                     <CarouselItem key={index}>
@@ -227,59 +233,79 @@ export default function ProductDetail() {
                   <CarouselNext className="relative right-0 translate-x-0 hover:translate-x-0" />
                 </div>
               </Carousel>
-
-              {/* Thumbnails */}
-              <div className="mt-4">
-                <div className="flex space-x-2 overflow-x-auto py-2 px-1">
-                  {images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => api?.scrollTo(index)}
-                      className={cn(
-                        "relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden", // Reduce thumbnail size
-                        current === index
-                          ? "ring-2 ring-primary"
-                          : "ring-1 ring-muted hover:ring-primary/50"
-                      )}
-                    >
-                      <Image
-                        src={image}
-                        alt={`Thumbnail ${index + 1}`}
-                        fill
-                        className="object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
+              {/* Thumbnails with reduced margin */}
+              <div className="mt-3">
+                <Carousel
+                  opts={{
+                    align: "start",
+                  }}
+                  setApi={setSecondCarouselApi}
+                  className="w-full"
+                >
+                  <CarouselContent className="-ml-2">
+                    {images.map((image, index) => (
+                      <CarouselItem className="basis-1/5 pl-2" key={index}>
+                        <button
+                          key={index}
+                          onClick={() => firstCarouselApi?.scrollTo(index)}
+                          className={cn(
+                            "relative m-1 w-16 h-16 flex-shrink-0 rounded-md overflow-hidden", // Reduce thumbnail size
+                            current === index
+                              ? "ring-2 ring-primary"
+                              : "ring-1 ring-muted hover:ring-primary/50"
+                          )}
+                        >
+                          <Image
+                            src={image}
+                            alt={`Thumbnail ${index + 1}`}
+                            fill
+                            className="object-cover"
+                          />
+                        </button>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <div className="absolute top-1/2 left-[1px] flex items-center justify-center">
+                    <CarouselPrevious className="relative rounded-sm left-0 translate-x-0 hover:translate-x-0" />
+                  </div>
+                  <div className="absolute top-1/2 right-[1px] flex items-center justify-center">
+                    <CarouselNext className="relative rounded-sm  right-0 translate-x-0 hover:translate-x-0" />
+                  </div>
+                </Carousel>
               </div>
             </Card>
           </div>
         </div>
 
-        {/* Updated Product Info Section */}
-        <div className="flex-1 space-y-6 min-w-0">
-          {/* Product Header */}
-          <div className="space-y-4">
+        {/* Product Info Section - Optimized spacing */}
+        <div className="flex-1 space-y-4 min-w-0">
+          {/* Product Header - Reduced spacing */}
+          <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold">{product.name}</h1>
+              <h1 className="text-2xl font-bold">{product.name}</h1>
               {product.specialLabel && (
                 <Badge variant="secondary">{product.specialLabel}</Badge>
               )}
             </div>
-            <div className="text-3xl font-semibold text-primary">
+            <div className="text-2xl font-semibold text-primary">
               {renderPrice()}
             </div>
           </div>
 
-          <Separator />
+          <Separator className="my-3" />
 
-          {/* Product Options */}
+          {/* Product Options - Conditional spacing based on variation count */}
           {product.hasVariations && (
-            <div className="space-y-6">
+            <div
+              className={cn(
+                "space-y-4",
+                product.variations.length === 1 && "space-y-3"
+              )}
+            >
               {product.variations.map((variation) => (
-                <div key={variation.id} className="space-y-3">
-                  <h3 className="font-medium text-lg">{variation.name}</h3>
-                  <div className="flex flex-wrap gap-3">
+                <div key={variation.id} className="space-y-2">
+                  <h3 className="font-medium">{variation.name}</h3>
+                  <div className="flex flex-wrap gap-2">
                     {variation.options.map((option) => (
                       <button
                         key={option.id}
@@ -287,15 +313,15 @@ export default function ProductDetail() {
                           handleOptionSelect(variation.id, option.id)
                         }
                         className={cn(
-                          "flex flex-col items-center border rounded-lg p-3 transition-colors",
+                          "flex flex-col items-center border rounded-lg p-2 transition-colors min-w-[5rem]",
                           selectedOptions[variation.id] === option.id
                             ? "border-primary bg-primary/5"
                             : "border-input hover:border-primary",
-                          "focus:outline-none focus:ring-2 focus:ring-primary/20" // Menambah fokus indikator
+                          "focus:outline-none focus:ring-2 focus:ring-primary/20"
                         )}
                       >
                         {option.imageUrl && (
-                          <div className="relative w-16 h-16 mb-2">
+                          <div className="relative w-14 h-14 mb-1">
                             <Image
                               src={option.imageUrl}
                               alt={option.name}
@@ -304,9 +330,7 @@ export default function ProductDetail() {
                             />
                           </div>
                         )}
-                        <span className="text-sm font-medium">
-                          {option.name}
-                        </span>
+                        <span className="text-sm">{option.name}</span>
                       </button>
                     ))}
                   </div>
@@ -315,9 +339,9 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {/* Quantity Selector */}
-          <div className="space-y-4">
-            <h3 className="font-medium text-lg">Jumlah</h3>
+          {/* Quantity Selector - Simplified */}
+          <div className="space-y-2">
+            <h3 className="font-medium">Jumlah</h3>
             <div className="flex items-center gap-4">
               <div className="flex items-center">
                 <Button
@@ -350,59 +374,39 @@ export default function ProductDetail() {
                   <PlusIcon className="h-4 w-4" />
                 </Button>
               </div>
-              <span className="text-muted-foreground text-sm">
-                Stok:{" "}
-                {currentStock !== null
-                  ? currentStock
-                  : product.baseStock || "Pilih variasi"}
+              <span className="text-sm text-muted-foreground">
+                Stok: {currentStock !== null ? currentStock : "Pilih variasi"}
               </span>
             </div>
           </div>
 
-          {/* Add to Cart Section */}
-          <div className="space-y-4 pt-4">
-            <Button
-              className="w-full"
-              size="lg"
-              disabled={
-                (product.hasVariations &&
-                  Object.keys(selectedOptions).length !==
-                    product.variations.length) ||
-                !currentStock ||
-                quantity > currentStock
-              }
-            >
-              <ShoppingCartIcon className="mr-2 h-5 w-5" />
-              {product.hasVariations &&
-              Object.keys(selectedOptions).length !== product.variations.length
-                ? "Pilih Variasi"
-                : "Tambah ke Keranjang"}
-            </Button>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="space-y-2">
-                <h4 className="font-medium">Pengiriman</h4>
-                <p className="text-muted-foreground">
-                  Berat: {product.weight} gram
-                </p>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-medium">Dimensi</h4>
-                <p className="text-muted-foreground">
-                  {product.dimensions.length} × {product.dimensions.width} ×{" "}
-                  {product.dimensions.height} cm
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Add to Cart - Simplified */}
+          <Button
+            className="w-full sm:w-auto mt-4"
+            size="lg"
+            disabled={
+              (product.hasVariations &&
+                Object.keys(selectedOptions).length !==
+                  product.variations.length) ||
+              !currentStock ||
+              quantity > currentStock
+            }
+          >
+            <ShoppingCartIcon className="mr-2 h-5 w-5" />
+            {product.hasVariations &&
+            Object.keys(selectedOptions).length !== product.variations.length
+              ? "Pilih Variasi"
+              : "Tambah ke Keranjang"}
+          </Button>
         </div>
       </div>
 
-      {/* Updated Description Section */}
-      <Card className="mt-8">
-        <div className="px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold">Deskripsi Produk</h2>
+      {/* Description Section - More compact */}
+      <Card>
+        <div className="px-4 py-3 border-b">
+          <h2 className="text-lg font-semibold">Deskripsi Produk</h2>
         </div>
-        <div className="p-6">
+        <div className="p-4">
           <div
             className={cn(
               "prose max-w-none relative",
