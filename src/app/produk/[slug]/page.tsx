@@ -227,10 +227,10 @@ export default function ProductDetail() {
                   ))}
                 </CarouselContent>
                 <div className="absolute top-1/2 left-[1px] flex items-center justify-center">
-                  <CarouselPrevious className="relative left-0 translate-x-0 hover:translate-x-0" />
+                  <CarouselPrevious className="relative left-0 translate-x-0 hover:translate-x-0 size-10" />
                 </div>
                 <div className="absolute top-1/2 right-[1px] flex items-center justify-center">
-                  <CarouselNext className="relative right-0 translate-x-0 hover:translate-x-0" />
+                  <CarouselNext className="relative right-0 translate-x-0 hover:translate-x-0 size-10" />
                 </div>
               </Carousel>
               {/* Thumbnails with reduced margin */}
@@ -265,12 +265,6 @@ export default function ProductDetail() {
                       </CarouselItem>
                     ))}
                   </CarouselContent>
-                  <div className="absolute top-1/2 left-[1px] flex items-center justify-center">
-                    <CarouselPrevious className="relative rounded-sm left-0 translate-x-0 hover:translate-x-0" />
-                  </div>
-                  <div className="absolute top-1/2 right-[1px] flex items-center justify-center">
-                    <CarouselNext className="relative rounded-sm  right-0 translate-x-0 hover:translate-x-0" />
-                  </div>
                 </Carousel>
               </div>
             </Card>

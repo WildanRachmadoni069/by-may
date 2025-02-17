@@ -1,18 +1,8 @@
 "use client";
 import React from "react";
 import ProductCard from "@/components/general/ProductCard";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import productList from "@/lib/data/product";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { productList } from "@/lib/data/product";
+import { ChevronRight } from "lucide-react";
 import ProductSidebar from "@/components/productpage/ProductSidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -53,6 +43,7 @@ function ProductPage() {
             <h2 className="sr-only">Koleksi Produk</h2>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 justify-center">
               {productList.map((item, index) => {
+                // @ts-ignore
                 return <ProductCard product={item} key={index} />;
               })}
             </ul>
