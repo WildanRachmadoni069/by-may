@@ -46,3 +46,23 @@ export interface ProductFormValues {
   seo: ProductSEO;
   collection?: string; // Make it optional
 }
+
+export interface GetProductsOptions {
+  category?: string;
+  collection?: string;
+  sortBy?: string;
+  itemsPerPage?: number;
+  lastDoc?: any;
+  searchQuery?: string; // Add this field
+}
+
+export interface Product extends ProductFormValues {
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FilteredProductsResponse {
+  products: Product[];
+  lastDoc: any;
+  hasMore: boolean;
+}

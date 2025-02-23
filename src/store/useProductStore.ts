@@ -5,8 +5,13 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  getFilteredProducts, // Add this import
 } from "@/lib/firebase/products";
-import { ProductFormValues } from "@/types/product";
+import {
+  ProductFormValues,
+  GetProductsOptions,
+  FilteredProductsResponse,
+} from "@/types/product";
 
 interface Product extends ProductFormValues {
   id: string;
@@ -28,6 +33,10 @@ interface ProductState {
   ) => Promise<void>;
   removeProduct: (id: string) => Promise<void>;
   setSelectedProduct: (product: Product | null) => void;
+  lastDoc: any;
+  hasMore: boolean;
+  fetchFilteredProducts: (options: GetProductsOptions) => Promise<void>;
+  fetchMoreProducts: (options: GetProductsOptions) => Promise<void>;
 }
 
 export const useProductStore = create<ProductState>((set, get) => ({
@@ -35,6 +44,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
   loading: false,
   error: null,
   selectedProduct: null,
+  lastDoc: null,
+  hasMore: true,
 
   fetchProducts: async () => {
     set({ loading: true });
@@ -119,5 +130,47 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
   setSelectedProduct: (product: Product | null) => {
     set({ selectedProduct: product });
+  },
+
+  fetchFilteredProducts: async (options: GetProductsOptions) => {
+    set({ loading: true, products: [] }); // Reset products when filters change
+    try {
+      const result = await getFilteredProducts(options);
+      set({
+        products: result.products as Product[],
+        lastDoc: result.lastDoc,
+        hasMore: result.hasMore,
+        error: null,
+      });
+    } catch (error) {
+      set({ error: "Failed to fetch products" });
+      console.error("Error fetching filtered products:", error);
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchMoreProducts: async (options: GetProductsOptions) => {
+    const { lastDoc, loading } = get();
+    if (loading || !lastDoc) return;
+
+    set({ loading: true });
+    try {
+      const result = await getFilteredProducts({
+        ...options,
+        lastDoc,
+      });
+      set((state) => ({
+        products: [...state.products, ...(result.products as Product[])],
+        lastDoc: result.lastDoc,
+        hasMore: result.hasMore,
+        error: null,
+      }));
+    } catch (error) {
+      set({ error: "Failed to fetch more products" });
+      console.error("Error fetching more products:", error);
+    } finally {
+      set({ loading: false });
+    }
   },
 }));

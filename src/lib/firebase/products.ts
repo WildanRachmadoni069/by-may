@@ -1,17 +1,27 @@
 import {
   collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
   query,
   where,
   orderBy,
+  limit,
+  startAfter,
+  QueryConstraint,
+  getDocs,
+  addDoc,
+  doc,
+  updateDoc,
+  deleteDoc,
+  CollectionReference,
+  DocumentData,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "./firebaseConfig";
-import { ProductFormValues } from "@/types/product";
+import {
+  ProductFormValues,
+  GetProductsOptions,
+  FilteredProductsResponse,
+  Product,
+} from "@/types/product";
 
 const COLLECTION_NAME = "products";
 
@@ -100,7 +110,10 @@ function cleanData(
 
   return cleaned;
 }
-
+const productsRef: CollectionReference<DocumentData> = collection(
+  db,
+  COLLECTION_NAME
+);
 export async function createProduct(productData: ProductFormValues) {
   const productsRef = collection(db, COLLECTION_NAME);
 
@@ -243,4 +256,71 @@ export async function getProductsByCategory(category: string) {
     id: doc.id,
     ...doc.data(),
   }));
+}
+
+export async function getFilteredProducts({
+  category,
+  collection: collectionName, // Renamed to avoid conflict with Firestore's collection function
+  sortBy = "newest",
+  itemsPerPage = 12,
+  lastDoc,
+  searchQuery,
+}: GetProductsOptions): Promise<FilteredProductsResponse> {
+  const constraints: QueryConstraint[] = [];
+
+  // Add search query filter if provided
+  if (searchQuery) {
+    // Add index for this in Firebase
+    constraints.push(where("name", ">=", searchQuery));
+    constraints.push(where("name", "<=", searchQuery + "\uf8ff"));
+  }
+
+  // Add category filter
+  if (category && category !== "all") {
+    constraints.push(where("category", "==", category));
+  }
+
+  // Add collection filter
+  if (collectionName) {
+    // Use renamed variable
+    if (collectionName === "none") {
+      constraints.push(where("collection", "==", null));
+    } else if (collectionName !== "all") {
+      constraints.push(where("collection", "==", collectionName));
+    }
+  }
+
+  // Add sorting
+  switch (sortBy) {
+    case "price-asc":
+      constraints.push(orderBy("basePrice", "asc"));
+      break;
+    case "price-desc":
+      constraints.push(orderBy("basePrice", "desc"));
+      break;
+    case "newest":
+    default:
+      constraints.push(orderBy("createdAt", "desc"));
+  }
+
+  // Add pagination
+  constraints.push(limit(itemsPerPage));
+  if (lastDoc) {
+    constraints.push(startAfter(lastDoc));
+  }
+
+  const q = query(productsRef, ...constraints);
+  const querySnapshot = await getDocs(q);
+
+  const lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+  const products = querySnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Product[];
+
+  return {
+    products,
+    lastDoc: lastVisible,
+    hasMore: querySnapshot.docs.length === itemsPerPage,
+  };
 }

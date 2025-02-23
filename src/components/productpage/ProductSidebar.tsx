@@ -1,76 +1,86 @@
 "use client";
-import React from "react";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Label } from "../ui/label";
-import { Button } from "../ui/button";
+import React, { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCategoryStore } from "@/store/useCategoryStore";
+import { useCollectionStore } from "@/store/useCollectionStore";
+import { useProductFilterStore } from "@/store/useProductFilterStore";
 
 function ProductSidebar() {
-  const [sortBy, setSortBy] = React.useState("a-z");
-  const [categories, setCategories] = React.useState("all");
-  const [priceSort, setPriceSort] = React.useState("highest");
+  const { categories, fetchCategories } = useCategoryStore();
+  const { collections, fetchCollections } = useCollectionStore();
+  const filters = useProductFilterStore();
+
+  useEffect(() => {
+    fetchCategories();
+    fetchCollections();
+  }, [fetchCategories, fetchCollections]);
+
   return (
-    <aside>
-      <h3 className="font-bold text-lg mb-4">Filter & Urutkan</h3>
-      <div className="mb-6">
-        <h4 className="font-semibold mb-2">Urutkan</h4>
-        <RadioGroup value={sortBy} onValueChange={setSortBy}>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="a-z" id="sort-a-z" />
-            <Label htmlFor="sort-a-z">A-Z</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="z-a" id="sort-z-a" />
-            <Label htmlFor="sort-z-a">Z-A</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="newest" id="sort-newest" />
-            <Label htmlFor="sort-newest">Terbaru</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="oldest" id="sort-oldest" />
-            <Label htmlFor="sort-oldest">Terlama</Label>
-          </div>
-        </RadioGroup>
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm font-medium pb-4">Urutkan</label>
+        <Select value={filters.sortBy} onValueChange={filters.setSortBy}>
+          <SelectTrigger>
+            <SelectValue placeholder="Urutkan" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Terbaru</SelectItem>
+            <SelectItem value="price-asc">Harga Terendah</SelectItem>
+            <SelectItem value="price-desc">Harga Tertinggi</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="mb-6">
-        <h4 className="font-semibold mb-2">Kategori</h4>
-        <RadioGroup value={categories} onValueChange={setCategories}>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="all" id="categorie-all" />
-            <Label htmlFor="categorie-all">Semua</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="may quran" id="categorie-quran" />
-            <Label htmlFor="categorie-quran">May Quran</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="may gift" id="categorie-gift" />
-            <Label htmlFor="categorie-gift">May Gift</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="may prayer" id="categorie-prayer" />
-            <Label htmlFor="categorie-prayer">May Prayer</Label>
-          </div>
-        </RadioGroup>
+      <div>
+        <label className="text-sm font-medium pb-4">Kategori</label>
+        <Select value={filters.category} onValueChange={filters.setCategory}>
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih Kategori" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Kategori</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category.value} value={category.value}>
+                {category.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="mb-6">
-        <h4 className="font-semibold mb-2">Harga</h4>
-        <RadioGroup value={priceSort} onValueChange={setPriceSort}>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="highest" id="price-highest" />
-            <Label htmlFor="price-highest">Termahal</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="lowest" id="price-lowest" />
-            <Label htmlFor="price-lowest">Termurah</Label>
-          </div>
-        </RadioGroup>
+      <div>
+        <label className="text-sm font-medium pb-4">Koleksi</label>
+        <Select
+          value={filters.collection}
+          onValueChange={filters.setCollection}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih Koleksi" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Koleksi</SelectItem>
+            <SelectItem value="none">Tanpa Koleksi</SelectItem>
+            {collections.map((collection) => (
+              <SelectItem key={collection.value} value={collection.value}>
+                {collection.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <Button className="w-full">Terapkan Filter</Button>
-    </aside>
+      <Button className="w-full" onClick={filters.resetFilters}>
+        Reset Filter
+      </Button>
+    </div>
   );
 }
 

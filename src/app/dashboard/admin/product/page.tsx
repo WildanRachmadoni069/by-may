@@ -1,5 +1,5 @@
 "use client";
-
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,7 +12,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, PlusCircle, Trash, Search, Eye } from "lucide-react"; // Add Eye icon
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
 import { formatRupiah } from "@/lib/utils";
 import {
   AlertDialog,
@@ -46,6 +45,7 @@ import {
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { useProductStore } from "@/store/useProductStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
+import { useProductFilterStore } from "@/store/useProductFilterStore";
 
 interface Product {
   id: string;
@@ -62,37 +62,59 @@ function AdminProductList() {
     products,
     loading: productsLoading,
     error,
-    fetchProducts,
+    hasMore,
+    fetchFilteredProducts,
+    fetchMoreProducts,
     removeProduct,
   } = useProductStore();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [collectionFilter, setCollectionFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Changed from 10 to 5
   const { toast } = useToast();
-  const {
-    categories,
-    loading: categoriesLoading,
-    fetchCategories,
-  } = useCategoryStore();
-  const {
-    collections,
-    loading: collectionsLoading,
-    fetchCollections,
-  } = useCollectionStore();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const filters = useProductFilterStore();
+  const { categories, fetchCategories } = useCategoryStore();
+  const { collections, fetchCollections } = useCollectionStore();
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch initial data
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
-
-  useEffect(() => {
     fetchCollections();
-  }, [fetchCollections]);
+  }, [fetchCategories, fetchCollections]);
 
+  // Fetch filtered products
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchFilteredProducts({
+      category: filters.category,
+      collection: filters.collection,
+      sortBy: filters.sortBy,
+      itemsPerPage: 10,
+      searchQuery: debouncedSearch,
+    });
+  }, [
+    fetchFilteredProducts,
+    filters.category,
+    filters.collection,
+    filters.sortBy,
+    debouncedSearch,
+  ]);
+
+  const loadMore = () => {
+    fetchMoreProducts({
+      category: filters.category,
+      collection: filters.collection,
+      sortBy: filters.sortBy,
+      itemsPerPage: 10,
+      searchQuery: debouncedSearch,
+    });
+  };
 
   const handleDelete = async (productId: string) => {
     try {
@@ -137,108 +159,6 @@ function AdminProductList() {
     );
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      categoryFilter === "all" || product.category === categoryFilter;
-    const matchesCollection =
-      collectionFilter === "all" ||
-      (collectionFilter === "none"
-        ? !product.collection
-        : product.collection === collectionFilter);
-
-    return matchesSearch && matchesCategory && matchesCollection;
-  });
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, endIndex);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const renderPaginationItems = () => {
-    const items = [];
-    const maxVisiblePages = 5;
-
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    // First page
-    if (startPage > 1) {
-      items.push(
-        <PaginationItem key="1">
-          <PaginationLink
-            onClick={(e) => {
-              e.preventDefault();
-              handlePageChange(1);
-            }}
-          >
-            1
-          </PaginationLink>
-        </PaginationItem>
-      );
-      if (startPage > 2) {
-        items.push(
-          <PaginationItem key="ellipsis1">
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-    }
-
-    // Page numbers
-    for (let i = startPage; i <= endPage; i++) {
-      items.push(
-        <PaginationItem key={i}>
-          <PaginationLink
-            onClick={(e) => {
-              e.preventDefault();
-              handlePageChange(i);
-            }}
-            isActive={currentPage === i}
-          >
-            {i}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-
-    // Last page
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        items.push(
-          <PaginationItem key="ellipsis2">
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-      items.push(
-        <PaginationItem key={totalPages}>
-          <PaginationLink
-            onClick={(e) => {
-              e.preventDefault();
-              handlePageChange(totalPages);
-            }}
-          >
-            {totalPages}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-
-    return items;
-  };
-
   if (productsLoading) {
     return (
       <div className="space-y-4">
@@ -256,9 +176,6 @@ function AdminProductList() {
   if (error) {
     return <div>Error: {error}</div>;
   }
-
-  // Update the condition for showing pagination
-  const shouldShowPagination = filteredProducts.length > 0;
 
   return (
     <>
@@ -281,11 +198,9 @@ function AdminProductList() {
             className="pl-10"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={filters.category} onValueChange={filters.setCategory}>
           <SelectTrigger className="w-[200px]">
-            <SelectValue
-              placeholder={categoriesLoading ? "Memuat..." : "Semua Kategori"}
-            />
+            <SelectValue placeholder="Semua Kategori" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Kategori</SelectItem>
@@ -296,11 +211,12 @@ function AdminProductList() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={collectionFilter} onValueChange={setCollectionFilter}>
+        <Select
+          value={filters.collection}
+          onValueChange={filters.setCollection}
+        >
           <SelectTrigger className="w-[200px]">
-            <SelectValue
-              placeholder={collectionsLoading ? "Memuat..." : "Semua Koleksi"}
-            />
+            <SelectValue placeholder="Semua Koleksi" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Koleksi</SelectItem>
@@ -325,16 +241,14 @@ function AdminProductList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {currentProducts.length === 0 ? (
+          {products.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center">
-                {products.length === 0
-                  ? "Belum ada produk"
-                  : "Tidak ada produk yang sesuai"}
+                {productsLoading ? "Memuat..." : "Tidak ada produk yang sesuai"}
               </TableCell>
             </TableRow>
           ) : (
-            currentProducts.map((product) => (
+            products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>{product.name}</TableCell>
                 <TableCell>
@@ -385,47 +299,15 @@ function AdminProductList() {
         </TableBody>
       </Table>
 
-      {shouldShowPagination && (
+      {hasMore && (
         <div className="mt-4 flex justify-center">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage > 1) {
-                      handlePageChange(currentPage - 1);
-                    }
-                  }}
-                  aria-disabled={currentPage === 1}
-                  className={
-                    currentPage === 1 ? "pointer-events-none opacity-50" : ""
-                  }
-                />
-              </PaginationItem>
-
-              {renderPaginationItems()}
-
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (currentPage < totalPages) {
-                      handlePageChange(currentPage + 1);
-                    }
-                  }}
-                  aria-disabled={currentPage === totalPages}
-                  className={
-                    currentPage === totalPages
-                      ? "pointer-events-none opacity-50"
-                      : ""
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+          <Button
+            variant="outline"
+            onClick={loadMore}
+            disabled={productsLoading}
+          >
+            {productsLoading ? "Memuat..." : "Tampilkan Lebih Banyak"}
+          </Button>
         </div>
       )}
     </>
