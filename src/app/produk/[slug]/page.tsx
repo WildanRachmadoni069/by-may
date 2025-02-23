@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { MinusIcon, PlusIcon, ShoppingCartIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useCartStore } from "@/store/useCartStore";
+import { toast } from "@/hooks/use-toast";
 
 export default function ProductDetail() {
   const [product, setProduct] = useState<ProductFormValues | null>(null);
@@ -38,6 +40,7 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [currentStock, setCurrentStock] = useState<number | null>(null);
+  const addToCart = useCartStore((state) => state.addItem);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -160,6 +163,63 @@ export default function ProductDetail() {
 
   const handleQuantityChange = (value: number) => {
     if (value >= 1) setQuantity(value);
+  };
+
+  const handleAddToCart = async () => {
+    if (!product) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Product tidak ditemukan",
+      });
+      return;
+    }
+
+    if (product.hasVariations && !currentPrice) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Silakan pilih variasi produk terlebih dahulu",
+      });
+      return;
+    }
+
+    const variationKey = product.hasVariations
+      ? generateVariationKey(selectedOptions)
+      : undefined;
+
+    if (!product.id) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Product ID tidak ditemukan",
+      });
+      return;
+    }
+
+    const cartItem = {
+      productId: product.id,
+      name: product.name,
+      price: currentPrice || product.basePrice || 0,
+      quantity: quantity,
+      image: product.mainImage || "",
+      selectedOptions: product.hasVariations ? selectedOptions : undefined,
+      variationKey,
+    };
+
+    try {
+      await addToCart(cartItem);
+      toast({
+        title: "Berhasil",
+        description: "Produk berhasil ditambahkan ke keranjang",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Gagal menambahkan produk ke keranjang",
+      });
+    }
   };
 
   const renderPrice = () => {
@@ -378,6 +438,7 @@ export default function ProductDetail() {
           <Button
             className="w-full sm:w-auto mt-4"
             size="lg"
+            onClick={handleAddToCart}
             disabled={
               (product.hasVariations &&
                 Object.keys(selectedOptions).length !==

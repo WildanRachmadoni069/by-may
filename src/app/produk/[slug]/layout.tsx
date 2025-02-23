@@ -10,10 +10,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
-    const q = query(
-      collection(db, "products"),
-      where("slug", "==", params.slug)
-    );
+    const { slug } = await params;
+    const q = query(collection(db, "products"), where("slug", "==", slug));
     const querySnapshot = await getDocs(q);
 
     if (!querySnapshot.empty) {
