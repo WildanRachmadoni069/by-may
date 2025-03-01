@@ -69,19 +69,9 @@ function AdminProductList() {
   } = useProductStore();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const filters = useProductFilterStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { collections, fetchCollections } = useCollectionStore();
-
-  // Debounce search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // Fetch initial data
   useEffect(() => {
@@ -96,14 +86,12 @@ function AdminProductList() {
       collection: filters.collection,
       sortBy: filters.sortBy,
       itemsPerPage: 10,
-      searchQuery: debouncedSearch,
     });
   }, [
     fetchFilteredProducts,
     filters.category,
     filters.collection,
     filters.sortBy,
-    debouncedSearch,
   ]);
 
   const loadMore = () => {
@@ -112,7 +100,7 @@ function AdminProductList() {
       collection: filters.collection,
       sortBy: filters.sortBy,
       itemsPerPage: 10,
-      searchQuery: debouncedSearch,
+      searchQuery: searchQuery.trim(),
     });
   };
 
@@ -130,6 +118,37 @@ function AdminProductList() {
         description: "Gagal menghapus produk",
       });
     }
+  };
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      // Reset to initial state if search is empty
+      fetchFilteredProducts({
+        category: filters.category,
+        collection: filters.collection,
+        sortBy: filters.sortBy,
+        itemsPerPage: 10,
+      });
+      return;
+    }
+
+    fetchFilteredProducts({
+      category: filters.category,
+      collection: filters.collection,
+      sortBy: filters.sortBy,
+      itemsPerPage: 10,
+      searchQuery: searchQuery.trim(),
+    });
+  };
+
+  const handleResetSearch = () => {
+    setSearchQuery("");
+    fetchFilteredProducts({
+      category: filters.category,
+      collection: filters.collection,
+      sortBy: filters.sortBy,
+      itemsPerPage: 10,
+    });
   };
 
   const getProductPrice = (product: Product) => {
@@ -188,15 +207,41 @@ function AdminProductList() {
         </Link>
       </div>
 
-      <div className="mb-6 flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari produk..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari produk..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+            />
+          </div>
+          <Button onClick={handleSearch} disabled={productsLoading}>
+            {productsLoading ? (
+              <span className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                Mencari...
+              </span>
+            ) : (
+              "Cari"
+            )}
+          </Button>
+          {searchQuery && (
+            <Button
+              variant="outline"
+              onClick={handleResetSearch}
+              disabled={productsLoading}
+            >
+              Reset
+            </Button>
+          )}
         </div>
         <Select value={filters.category} onValueChange={filters.setCategory}>
           <SelectTrigger className="w-[200px]">

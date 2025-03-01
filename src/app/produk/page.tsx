@@ -1,7 +1,7 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import ProductCard from "@/components/general/ProductCard";
-import { ChevronRight, ShoppingBag } from "lucide-react";
+import { ChevronRight, ShoppingBag, Search } from "lucide-react";
 import ProductSidebar from "@/components/productpage/ProductSidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useProductStore } from "@/store/useProductStore";
@@ -12,12 +12,12 @@ import { Button } from "@/components/ui/button";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
 
 function ProductPage() {
   const {

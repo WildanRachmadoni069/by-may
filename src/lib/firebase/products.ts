@@ -1,19 +1,19 @@
 import {
   collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
   query,
   where,
   orderBy,
+  startAt,
+  endAt,
   limit,
   startAfter,
   QueryConstraint,
-  getDocs,
-  addDoc,
-  doc,
-  updateDoc,
-  deleteDoc,
-  CollectionReference,
-  DocumentData,
-  getDoc,
 } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import {
@@ -110,10 +110,7 @@ function cleanData(
 
   return cleaned;
 }
-const productsRef: CollectionReference<DocumentData> = collection(
-  db,
-  COLLECTION_NAME
-);
+
 export async function createProduct(productData: ProductFormValues) {
   const productsRef = collection(db, COLLECTION_NAME);
 
@@ -121,6 +118,7 @@ export async function createProduct(productData: ProductFormValues) {
     ...(cleanData(productData) as Record<string, any>),
     createdAt: new Date(),
     updatedAt: new Date(),
+    nameSearch: productData.name.toLowerCase().trim(),
   };
 
   const docRef = await addDoc(productsRef, dataToSubmit);
@@ -133,11 +131,15 @@ export async function updateProduct(
 ) {
   const productRef = doc(db, COLLECTION_NAME, productId);
 
-  const cleanedData =
-    cleanData({
-      ...productData,
-      updatedAt: new Date(),
-    }) || {};
+  const updateData = {
+    ...productData,
+    ...(productData.name && {
+      nameSearch: productData.name.toLowerCase().trim(),
+    }),
+    updatedAt: new Date(),
+  };
+
+  const cleanedData = cleanData(updateData) || {};
 
   const dataToUpdate = Object.entries(cleanedData).reduce(
     (acc, [key, value]) => {
@@ -260,29 +262,35 @@ export async function getProductsByCategory(category: string) {
 
 export async function getFilteredProducts({
   category,
-  collection: collectionName, // Renamed to avoid conflict with Firestore's collection function
+  collection: collectionName,
   sortBy = "newest",
   itemsPerPage = 12,
   lastDoc,
   searchQuery,
 }: GetProductsOptions): Promise<FilteredProductsResponse> {
+  const productsRef = collection(db, COLLECTION_NAME);
   const constraints: QueryConstraint[] = [];
 
   // Add search query filter if provided
-  if (searchQuery) {
-    // Add index for this in Firebase
-    constraints.push(where("name", ">=", searchQuery));
-    constraints.push(where("name", "<=", searchQuery + "\uf8ff"));
+  if (searchQuery?.trim()) {
+    const searchLower = searchQuery.toLowerCase().trim();
+    constraints.push(orderBy("nameSearch")); // Required for startAt/endAt query
+    constraints.push(startAt(searchLower));
+    constraints.push(endAt(searchLower + "\uf8ff"));
   }
 
   // Add category filter
   if (category && category !== "all") {
-    constraints.push(where("category", "==", category));
+    if (searchQuery) {
+      // If searching, we need a composite index for nameSearch + category
+      constraints.push(where("category", "==", category));
+    } else {
+      constraints.push(where("category", "==", category));
+    }
   }
 
   // Add collection filter
   if (collectionName) {
-    // Use renamed variable
     if (collectionName === "none") {
       constraints.push(where("collection", "==", null));
     } else if (collectionName !== "all") {
@@ -290,17 +298,19 @@ export async function getFilteredProducts({
     }
   }
 
-  // Add sorting
-  switch (sortBy) {
-    case "price-asc":
-      constraints.push(orderBy("basePrice", "asc"));
-      break;
-    case "price-desc":
-      constraints.push(orderBy("basePrice", "desc"));
-      break;
-    case "newest":
-    default:
-      constraints.push(orderBy("createdAt", "desc"));
+  // Add sorting - only if not searching
+  if (!searchQuery) {
+    switch (sortBy) {
+      case "price-asc":
+        constraints.push(orderBy("basePrice", "asc"));
+        break;
+      case "price-desc":
+        constraints.push(orderBy("basePrice", "desc"));
+        break;
+      case "newest":
+      default:
+        constraints.push(orderBy("createdAt", "desc"));
+    }
   }
 
   // Add pagination

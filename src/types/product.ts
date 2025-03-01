@@ -45,6 +45,7 @@ export interface ProductFormValues {
   dimensions: ProductDimensions;
   seo: ProductSEO;
   collection?: string; // Make it optional
+  nameSearch: string; // Add this field - required, not optional
 }
 
 export interface GetProductsOptions {
