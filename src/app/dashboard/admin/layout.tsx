@@ -132,6 +132,18 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={
+                              pathname === "/dashboard/admin/product/collection"
+                            }
+                          >
+                            <Link href={"/dashboard/admin/product/collection"}>
+                              Koleksi
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   </SidebarMenuItem>

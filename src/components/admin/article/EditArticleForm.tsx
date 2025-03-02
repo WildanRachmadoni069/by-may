@@ -37,11 +37,13 @@ const validationSchema = Yup.object({
   content: Yup.string().required("Konten wajib diisi"),
   excerpt: Yup.string().required("Ringkasan wajib diisi"),
   featured_image: Yup.object({
-    url: Yup.string()
-      .url("URL tidak valid")
-      .required("Gambar utama wajib diisi"),
-    alt: Yup.string().required("Teks alt wajib diisi"),
-  }),
+    url: Yup.string().url("URL tidak valid").nullable(),
+    alt: Yup.string().when("url", ([url]) => {
+      return url && url.length > 0
+        ? Yup.string().required("Teks alt wajib diisi")
+        : Yup.string().nullable();
+    }),
+  }).nullable(),
   status: Yup.string().oneOf(["draft", "published"]).required(),
   meta: Yup.object({
     title: Yup.string().required("Meta title wajib diisi"),
@@ -113,10 +115,10 @@ export default function EditArticleForm({ article }: EditArticleFormProps) {
 
   // Sync featured image to og_image
   React.useEffect(() => {
-    if (formik.values.featured_image.url) {
+    if (formik.values.featured_image?.url) {
       formik.setFieldValue("meta.og_image", formik.values.featured_image.url);
     }
-  }, [formik.values.featured_image.url]);
+  }, [formik.values.featured_image]);
 
   return (
     <div className="max-w-4xl mx-auto p-6">

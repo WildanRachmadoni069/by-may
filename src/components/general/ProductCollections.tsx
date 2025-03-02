@@ -9,7 +9,7 @@ import {
   CarouselItem,
   CarouselApi,
 } from "../ui/carousel";
-import productList from "@/lib/data/product";
+import { productList } from "@/lib/data/product";
 
 interface ProductCollectionsProps {
   title: string;
@@ -62,6 +62,7 @@ function ProductCollections({ title }: ProductCollectionsProps) {
                 className="basis-1/2 md:basis-1/3 lg:basis-1/6 pl-1 md:pl-2 rounded-md"
               >
                 <div className="p-1">
+                  {/* @ts-ignore */}
                   <ProductCard product={item} />
                 </div>
               </CarouselItem>

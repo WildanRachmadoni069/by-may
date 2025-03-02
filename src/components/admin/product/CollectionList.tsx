@@ -14,14 +14,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Pencil, Trash } from "lucide-react";
 import { db } from "@/lib/firebase/firebaseConfig";
-import {
-  collection,
-  query,
-  onSnapshot,
-  deleteDoc,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
+import { collection, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -32,107 +25,98 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useCollectionStore } from "@/store/useCollectionStore";
 
-interface Category {
-  id: string;
-  name: string;
-}
-
-export default function CategoryList() {
-  const [categories, setCategories] = useState<Category[]>([]);
+export default function CollectionList() {
+  const { collections, loading, error, fetchCollections } =
+    useCollectionStore();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "categories"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const categoriesData: Category[] = [];
-      querySnapshot.forEach((doc) => {
-        categoriesData.push({ id: doc.id, ...doc.data() } as Category);
-      });
-      setCategories(categoriesData);
-    });
+    fetchCollections();
+  }, [fetchCollections]);
 
-    return () => unsubscribe();
-  }, []);
-
-  const handleEdit = (category: Category) => {
-    setEditingId(category.id);
-    setEditName(category.name);
+  const handleEdit = (collection: { id: string; name: string }) => {
+    setEditingId(collection.id);
+    setEditName(collection.name);
   };
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
 
     try {
-      await updateDoc(doc(db, "categories", editingId), { name: editName });
+      await updateDoc(doc(db, "collections", editingId), { name: editName });
       toast({
-        title: "Kategori berhasil diperbarui",
-        description: "Perubahan pada kategori telah disimpan.",
+        title: "Koleksi berhasil diperbarui",
+        description: "Perubahan pada koleksi telah disimpan.",
       });
       setEditingId(null);
       setEditName("");
     } catch (error) {
-      console.error("Error updating category:", error);
+      console.error("Error updating collection:", error);
       toast({
-        title: "Gagal memperbarui kategori",
-        description:
-          "Terjadi kesalahan saat memperbarui kategori. Silakan coba lagi.",
+        title: "Gagal memperbarui koleksi",
+        description: "Terjadi kesalahan saat memperbarui koleksi.",
         variant: "destructive",
       });
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditName("");
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
 
     try {
-      await deleteDoc(doc(db, "categories", deleteId));
+      await deleteDoc(doc(db, "collections", deleteId));
       toast({
-        title: "Kategori berhasil dihapus",
-        description: "Kategori telah dihapus dari database.",
+        title: "Koleksi berhasil dihapus",
+        description: "Koleksi telah dihapus dari database.",
       });
       setDeleteId(null);
     } catch (error) {
-      console.error("Error deleting category:", error);
+      console.error("Error deleting collection:", error);
       toast({
-        title: "Gagal menghapus kategori",
-        description:
-          "Terjadi kesalahan saat menghapus kategori. Silakan coba lagi.",
+        title: "Gagal menghapus koleksi",
+        description: "Terjadi kesalahan saat menghapus koleksi.",
         variant: "destructive",
       });
     }
   };
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Daftar Kategori</CardTitle>
+        <CardTitle>Daftar Koleksi</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nama Kategori</TableHead>
+              <TableHead>Nama Koleksi</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories.map((category) => (
-              <TableRow key={category.id}>
+            {collections.map((collection) => (
+              <TableRow key={collection.id}>
                 <TableCell>
-                  {editingId === category.id ? (
+                  {editingId === collection.id ? (
                     <div className="flex flex-col md:flex-row gap-2 items-center space-x-2">
                       <Input
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" && handleSaveEdit()
+                        }
                         className="flex-grow"
                       />
                       <div className="w-full flex gap-2">
@@ -142,41 +126,39 @@ export default function CategoryList() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={handleCancelEdit}
+                          onClick={() => setEditingId(null)}
                         >
                           Batal
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    category.name
+                    collection.name
                   )}
                 </TableCell>
-                <TableCell className="flex flex-col md:flex-row items-end md:justify-end gap-2">
+                <TableCell className="text-right space-x-2">
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => handleEdit(category)}
+                    onClick={() => handleEdit(collection)}
                   >
                     <Pencil className="h-4 w-4" />
-                    <span className="sr-only">Edit</span>
                   </Button>
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setDeleteId(category.id)}
+                        onClick={() => setDeleteId(collection.id)}
                       >
                         <Trash className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Konfirmasi Hapus</DialogTitle>
                         <DialogDescription>
-                          Apakah Anda yakin ingin menghapus kategori ini?
+                          Apakah Anda yakin ingin menghapus koleksi ini?
                         </DialogDescription>
                       </DialogHeader>
                       <DialogFooter>

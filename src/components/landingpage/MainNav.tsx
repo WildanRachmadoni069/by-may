@@ -12,6 +12,10 @@ import {
 } from "../ui/navigation-menu";
 import MobileNav from "./MobileNav";
 import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
+
+// Dynamically import CartButton with no SSR
+const CartButton = dynamic(() => import("./CartButton"), { ssr: false });
 
 function MainNav() {
   const pathName = usePathname();
@@ -92,6 +96,7 @@ function MainNav() {
 
           <div className="flex items-center gap-4">
             <div className="sm:flex sm:gap-4">
+              <CartButton />
               <Button asChild variant={"outline"}>
                 <Link href="/login">Masuk</Link>
               </Button>
