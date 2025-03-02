@@ -42,6 +42,10 @@ export default function ProductDetail() {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [currentStock, setCurrentStock] = useState<number | null>(null);
   const addToCart = useCartStore((state) => state.addItem);
+  const [variationImageMap, setVariationImageMap] = useState<
+    Record<string, number>
+  >({});
+  const [allImages, setAllImages] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -74,6 +78,46 @@ export default function ProductDetail() {
 
     fetchProduct();
   }, [slug]);
+
+  useEffect(() => {
+    if (!product) return;
+
+    // Start with product images
+    const productImages = [
+      product.mainImage,
+      ...(product.additionalImages?.filter(Boolean) || []),
+    ].filter((img): img is string => Boolean(img));
+
+    // Check if first variation has images
+    let optionImageMap: Record<string, number> = {};
+
+    if (product.variations.length > 0 && product.variations[0].options) {
+      let currentIndex = productImages.length;
+      const firstVariation = product.variations[0];
+
+      // Add images from first variation options
+      firstVariation.options.forEach((option) => {
+        if (option.imageUrl) {
+          // Store the index of this variation image
+          optionImageMap[`${firstVariation.id}-${option.id}`] = currentIndex;
+          currentIndex++;
+        }
+      });
+
+      // Get all variation images
+      const variationImages = firstVariation.options
+        .map((option) => option.imageUrl)
+        .filter((img): img is string => Boolean(img));
+
+      // Combine all images
+      const combined = [...productImages, ...variationImages];
+      setAllImages(combined);
+      setVariationImageMap(optionImageMap);
+    } else {
+      setAllImages(productImages);
+      setVariationImageMap({});
+    }
+  }, [product]);
 
   useEffect(() => {
     if (!firstCarouselApi || !secondCarouselApi) return;
@@ -168,6 +212,16 @@ export default function ProductDetail() {
     } else {
       // Otherwise select the new option
       newSelectedOptions[variationId] = optionId;
+
+      // If this is the first variation and it has an image, scroll to it
+      const imageMapKey = `${variationId}-${optionId}`;
+      if (
+        product?.variations[0]?.id === variationId &&
+        variationImageMap[imageMapKey] !== undefined
+      ) {
+        const imageIndex = variationImageMap[imageMapKey];
+        firstCarouselApi?.scrollTo(imageIndex);
+      }
     }
 
     setSelectedOptions(newSelectedOptions);
@@ -305,27 +359,22 @@ export default function ProductDetail() {
     return <div className="container mx-auto p-6">Product not found</div>;
   }
 
-  const images = [
-    product.mainImage,
-    ...(product.additionalImages?.filter(Boolean) || []),
-  ].filter((img): img is string => Boolean(img));
-
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-6">
       {/* Main Product Section */}
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Image Carousel Section - Slightly reduced width */}
+        {/* Image Carousel Section - Now using allImages instead of images */}
         <div className="w-full md:w-[400px] md:flex-shrink-0">
           <div className="sticky top-6">
             <Card className="p-3 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <Carousel className="w-full" setApi={setFirstCarouselApi}>
                 <CarouselContent>
-                  {images.map((image, index) => (
+                  {allImages.map((image, index) => (
                     <CarouselItem key={index}>
                       <div className="relative aspect-square">
                         <Image
                           src={image}
-                          alt={`${product.name} - ${index + 1}`}
+                          alt={`${product?.name || "Product"} - ${index + 1}`}
                           fill
                           className="object-cover rounded-lg"
                           sizes="450px"
@@ -342,7 +391,7 @@ export default function ProductDetail() {
                   <CarouselNext className="relative right-0 translate-x-0 hover:translate-x-0 size-10" />
                 </div>
               </Carousel>
-              {/* Thumbnails with reduced margin */}
+              {/* Thumbnails with variation images */}
               <div className="mt-3">
                 <Carousel
                   opts={{
@@ -352,27 +401,57 @@ export default function ProductDetail() {
                   className="w-full"
                 >
                   <CarouselContent className="-ml-2">
-                    {images.map((image, index) => (
-                      <CarouselItem className="basis-1/5 pl-2" key={index}>
-                        <button
-                          key={index}
-                          onClick={() => firstCarouselApi?.scrollTo(index)}
-                          className={cn(
-                            "relative m-1 w-16 h-16 flex-shrink-0 rounded-md overflow-hidden", // Reduce thumbnail size
-                            current === index
-                              ? "ring-2 ring-primary"
-                              : "ring-1 ring-muted hover:ring-primary/50"
-                          )}
-                        >
-                          <Image
-                            src={image}
-                            alt={`Thumbnail ${index + 1}`}
-                            fill
-                            className="object-cover"
-                          />
-                        </button>
-                      </CarouselItem>
-                    ))}
+                    {allImages.map((image, index) => {
+                      // Create a label for the thumbnail
+                      let thumbnailLabel = `Thumbnail ${index + 1}`;
+
+                      // Check if this is a variation image
+                      const isVariationImage = Object.entries(
+                        variationImageMap
+                      ).find(([key, idx]) => idx === index);
+
+                      if (isVariationImage) {
+                        const [variationOptionKey] = isVariationImage;
+                        const [variationId, optionId] =
+                          variationOptionKey.split("-");
+                        const variation = product?.variations.find(
+                          (v) => v.id === variationId
+                        );
+                        const option = variation?.options.find(
+                          (o) => o.id === optionId
+                        );
+
+                        if (option) {
+                          thumbnailLabel = `Variasi: ${option.name}`;
+                        }
+                      }
+
+                      return (
+                        <CarouselItem className="basis-1/5 pl-2" key={index}>
+                          <button
+                            onClick={() => firstCarouselApi?.scrollTo(index)}
+                            className={cn(
+                              "relative m-1 w-16 h-16 flex-shrink-0 rounded-md overflow-hidden",
+                              current === index
+                                ? "ring-2 ring-primary"
+                                : "ring-1 ring-muted hover:ring-primary/50",
+                              // Add visual indicator for variation images
+                              isVariationImage
+                                ? "border-dashed border-2 border-primary/50"
+                                : ""
+                            )}
+                            title={thumbnailLabel}
+                          >
+                            <Image
+                              src={image}
+                              alt={thumbnailLabel}
+                              fill
+                              className="object-cover"
+                            />
+                          </button>
+                        </CarouselItem>
+                      );
+                    })}
                   </CarouselContent>
                 </Carousel>
               </div>
