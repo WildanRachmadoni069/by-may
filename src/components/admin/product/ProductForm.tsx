@@ -19,14 +19,7 @@ import ImageUploadPreview from "./ImageUploadPreview";
 import { Plus, X } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import {
-  ProductFormValues,
-  ProductOption,
-  ProductVariation,
-  VariationCombination,
-  VariationFormData,
-  VariationFormOption,
-} from "@/types/product";
+import { ProductFormValues, ProductVariation } from "@/types/product";
 import { SPECIAL_LABELS } from "@/constants/product";
 import { VariationCard } from "./VariationCard";
 import { useToast } from "@/hooks/use-toast";
@@ -38,9 +31,6 @@ import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import ProductDescriptionEditor from "@/components/editor/ProductDescriptionEditor";
-import { generateMeaningfulId } from "@/lib/utils";
-import { VariationManager } from "./VariationManager";
-import { PriceStockGrid } from "./PriceStockGrid";
 
 interface ProductFormProps {
   productId?: string;
@@ -103,7 +93,6 @@ const ProductSchema = Yup.object().shape({
 
 const initialValues: ProductFormValues = {
   name: "",
-  nameSearch: "",
   slug: "", // Add initial value for slug
   description: "",
   category: "",
@@ -153,9 +142,12 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
   const [editingVariationIndex, setEditingVariationIndex] = useState<
     number | null
   >(null);
-  const [newVariation, setNewVariation] = useState<VariationFormData>({
+  const [newVariation, setNewVariation] = useState<{
+    name: string;
+    options: { id: string; name: string; imageUrl?: string }[];
+  }>({
     name: "",
-    options: [{ id: generateMeaningfulId("option"), name: "", imageUrl: null }],
+    options: [{ id: Date.now().toString(), name: "" }],
   });
 
   const formik = useFormik({
@@ -202,33 +194,11 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     }
   }, [formik.values.name]);
 
-  // Update the function when changing hasVariations state
-  useEffect(() => {
-    if (formik.values.hasVariations) {
-      // When switching to variations mode, ensure basePrice/baseStock aren't used
-      formik.setFieldValue("basePrice", 0);
-      formik.setFieldValue("baseStock", 0);
-    }
-  }, [formik.values.hasVariations]);
-
-  // Update the function to properly handle option types
   const handleAddOption = () => {
-    setNewVariation((prev) => {
-      // Determine if we need to add imageUrl property based on whether this is first variation
-      const isFirstVariation =
-        formik.values.variations.length === 0 ||
-        (editingVariationIndex !== null && editingVariationIndex === 0);
-
-      // Add imageUrl property only for first variation options
-      const newOption: VariationFormOption = isFirstVariation
-        ? { id: generateMeaningfulId("option"), name: "", imageUrl: null }
-        : { id: generateMeaningfulId("option"), name: "" };
-
-      return {
-        ...prev,
-        options: [...prev.options, newOption],
-      };
-    });
+    setNewVariation((prev) => ({
+      ...prev,
+      options: [...prev.options, { id: Date.now().toString(), name: "" }],
+    }));
   };
 
   const handleRemoveOption = (index: number) => {
@@ -238,29 +208,19 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     }));
   };
 
-  // Ensure proper typing in this function
   const handleEditVariation = (index: number) => {
     const variation = formik.values.variations[index];
-
-    // Convert ProductOption[] to VariationFormOption[]
-    const options: VariationFormOption[] = variation.options.map((option) => ({
-      id: option.id,
-      name: option.name,
-      imageUrl: option.imageUrl,
-    }));
-
     setNewVariation({
       name: variation.name,
-      options,
+      options: variation.options,
     });
-
     setEditingVariationIndex(index);
     setShowVariationForm(true);
   };
 
   const generateVariationCombinations = (
     variations: ProductFormValues["variations"]
-  ): VariationCombination[] => {
+  ) => {
     if (!variations.length) return [];
 
     const combinations = variations.reduce((acc, variation, currentIndex) => {
@@ -274,7 +234,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
       }
 
       // For subsequent variations, combine with existing combinations
-      const newCombinations: VariationCombination[] = [];
+      const newCombinations = [];
       for (const existingComb of acc) {
         for (const option of variation.options) {
           newCombinations.push({
@@ -288,49 +248,22 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
         }
       }
       return newCombinations;
-    }, [] as VariationCombination[]);
+    }, [] as Array<{ id: string; name: string; components: Array<{ variationId: string; optionId: string }> }>);
 
     return combinations;
   };
 
-  // Type the local variables in the variation saving function
   const handleSaveVariation = () => {
     if (!newVariation.name || newVariation.options.some((opt) => !opt.name)) {
       return;
     }
-
-    // Determine if this is first variation position (either new first or editing first)
-    const isFirstVariation =
-      formik.values.variations.length === 0 ||
-      (editingVariationIndex !== null && editingVariationIndex === 0);
-
-    // Process options to ensure proper imageUrl handling
-    let processedOptions: ProductOption[] = [...newVariation.options].map(
-      (option) => {
-        if (isFirstVariation) {
-          // First variation: ensure all options have imageUrl (converting null to undefined)
-          return {
-            id: option.id,
-            name: option.name,
-            imageUrl: option.imageUrl === null ? undefined : option.imageUrl, // Convert null to undefined
-          };
-        } else {
-          // Second variation: omit imageUrl
-          return {
-            id: option.id,
-            name: option.name,
-          };
-        }
-      }
-    );
 
     if (editingVariationIndex !== null) {
       // Editing existing variation
       const updatedVariations = [...formik.values.variations];
       updatedVariations[editingVariationIndex] = {
         id: formik.values.variations[editingVariationIndex].id,
-        name: newVariation.name,
-        options: processedOptions,
+        ...newVariation,
       };
       formik.setFieldValue("variations", updatedVariations);
 
@@ -353,13 +286,8 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
 
       formik.setFieldValue("variationPrices", newVariationPrices);
     } else {
-      // Adding new variation with a meaningful ID
-      const variationId = generateMeaningfulId(`var-${newVariation.name}`);
-      const newVariationData = {
-        id: variationId,
-        name: newVariation.name,
-        options: processedOptions,
-      };
+      // Adding new variation
+      const newVariationData = { id: Date.now().toString(), ...newVariation };
       const updatedVariations = [...formik.values.variations, newVariationData];
       formik.setFieldValue("variations", updatedVariations);
       formik.setFieldValue("hasVariations", true);
@@ -383,59 +311,20 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
       formik.setFieldValue("variationPrices", newVariationPrices);
     }
 
-    // Reset form with proper structure for next potential variation
-    const resetOptions: VariationFormOption[] =
-      formik.values.variations.length === 0
-        ? [{ id: generateMeaningfulId("option"), name: "", imageUrl: null }]
-        : [{ id: generateMeaningfulId("option"), name: "" }];
-
+    // Reset form
     setNewVariation({
       name: "",
-      options: resetOptions,
+      options: [{ id: Date.now().toString(), name: "" }],
     });
     setShowVariationForm(false);
     setEditingVariationIndex(null);
   };
 
-  // Update this function to handle proper defaults when removing variations
   const handleRemoveVariation = (index: number) => {
     const newVariations = formik.values.variations.filter(
       (_, i) => i !== index
     );
-
-    // If removing the last variation, reset to non-variation product
-    if (newVariations.length === 0) {
-      formik.setFieldValue("variations", []);
-      formik.setFieldValue("hasVariations", false);
-
-      // Set default price and stock if they were previously undefined
-      if (formik.values.basePrice === undefined) {
-        formik.setFieldValue("basePrice", 0);
-      }
-      if (formik.values.baseStock === undefined) {
-        formik.setFieldValue("baseStock", 0);
-      }
-    } else {
-      formik.setFieldValue("variations", newVariations);
-
-      // Recalculate variations prices
-      const combinations = generateVariationCombinations(newVariations);
-      const newVariationPrices: Record<
-        string,
-        { price: number; stock: number }
-      > = {};
-
-      combinations.forEach((combination) => {
-        if (formik.values.variationPrices[combination.id]) {
-          newVariationPrices[combination.id] =
-            formik.values.variationPrices[combination.id];
-        } else {
-          newVariationPrices[combination.id] = { price: 0, stock: 0 };
-        }
-      });
-
-      formik.setFieldValue("variationPrices", newVariationPrices);
-    }
+    formik.setFieldValue("variations", newVariations);
   };
 
   // Add helper function to get variation price/stock
@@ -469,27 +358,12 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     </div>
   );
 
-  // Fix the renderVariationForm function to restore all original functionality
+  // Add this function to render variation form
   const renderVariationForm = () => {
     const isFirstVariation = formik.values.variations.length === 0;
     const showImageUpload =
       isFirstVariation ||
       (editingVariationIndex !== null && editingVariationIndex === 0);
-
-    const handleCancelEdit = () => {
-      setShowVariationForm(false);
-      setEditingVariationIndex(null);
-      // Reset form state
-      const initialOption: VariationFormOption =
-        formik.values.variations.length === 0
-          ? { id: generateMeaningfulId("option"), name: "", imageUrl: null }
-          : { id: generateMeaningfulId("option"), name: "" };
-
-      setNewVariation({
-        name: "",
-        options: [initialOption],
-      });
-    };
 
     return (
       <div className="space-y-4 border p-4 rounded-lg">
@@ -497,29 +371,25 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
           <Label>
             {editingVariationIndex !== null ? "Edit Variasi" : "Nama Variasi"}
           </Label>
-          {/* Show close button when adding, or cancel text when editing */}
-          {editingVariationIndex === null ? (
+          {/* Only show close button when adding new variation, not when editing */}
+          {editingVariationIndex === null && (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              onClick={handleCancelEdit}
+              onClick={() => {
+                setShowVariationForm(false);
+                setNewVariation({
+                  name: "",
+                  options: [{ id: Date.now().toString(), name: "" }],
+                });
+              }}
             >
               <X className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelEdit}
-            >
-              Batal
             </Button>
           )}
         </div>
 
-        {/* Restore the variation name input field */}
         <Input
           value={newVariation.name}
           onChange={(e) =>
@@ -596,12 +466,6 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
               ? "Update Variasi"
               : "Simpan Variasi"}
           </Button>
-          {/* Add cancel button at the bottom only when in edit mode */}
-          {editingVariationIndex !== null && (
-            <Button type="button" variant="outline" onClick={handleCancelEdit}>
-              Batal
-            </Button>
-          )}
         </div>
       </div>
     );
@@ -653,100 +517,6 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
       </div>
     </div>
   );
-
-  // Update this function to properly initialize the newVariation state
-  // Update setupVariationForm to use proper types
-  const setupVariationForm = (isFirstVariation: boolean = false) => {
-    const initialOption: VariationFormOption = isFirstVariation
-      ? { id: generateMeaningfulId("option"), name: "", imageUrl: null }
-      : { id: generateMeaningfulId("option"), name: "" };
-
-    setNewVariation({
-      name: "",
-      options: [initialOption],
-    });
-
-    setShowVariationForm(true);
-  };
-
-  const renderVariationsSection = () => {
-    return (
-      <>
-        <VariationManager
-          variations={formik.values.variations}
-          onAddVariation={(variation) => {
-            const updatedVariations = [...formik.values.variations, variation];
-            formik.setFieldValue("variations", updatedVariations);
-            formik.setFieldValue("hasVariations", true);
-
-            // Generate combinations and update prices when adding variation
-            const combinations =
-              generateVariationCombinations(updatedVariations);
-            const newVariationPrices: Record<
-              string,
-              { price: number; stock: number }
-            > = {};
-
-            combinations.forEach((combination) => {
-              if (formik.values.variationPrices[combination.id]) {
-                newVariationPrices[combination.id] =
-                  formik.values.variationPrices[combination.id];
-              } else {
-                newVariationPrices[combination.id] = { price: 0, stock: 0 };
-              }
-            });
-
-            formik.setFieldValue("variationPrices", newVariationPrices);
-          }}
-          onUpdateVariation={(index, variation) => {
-            const updatedVariations = [...formik.values.variations];
-            updatedVariations[index] = variation;
-            formik.setFieldValue("variations", updatedVariations);
-
-            // Recalculate combinations and update prices
-            const combinations =
-              generateVariationCombinations(updatedVariations);
-            const newVariationPrices: Record<
-              string,
-              { price: number; stock: number }
-            > = {};
-
-            combinations.forEach((combination) => {
-              if (formik.values.variationPrices[combination.id]) {
-                newVariationPrices[combination.id] =
-                  formik.values.variationPrices[combination.id];
-              } else {
-                newVariationPrices[combination.id] = { price: 0, stock: 0 };
-              }
-            });
-
-            formik.setFieldValue("variationPrices", newVariationPrices);
-          }}
-          onRemoveVariation={handleRemoveVariation}
-          onGenerateCombinations={() => {
-            // You could add additional logic here if needed
-          }}
-          disabled={formik.isSubmitting}
-        />
-
-        {/* Show price/stock grid if there are variations */}
-        {formik.values.variations.length > 0 && (
-          <div className="mt-6">
-            <PriceStockGrid
-              variations={formik.values.variations}
-              combinations={generateVariationCombinations(
-                formik.values.variations
-              )}
-              variationPrices={formik.values.variationPrices}
-              onChange={(id, field, value) => {
-                formik.setFieldValue(`variationPrices.${id}.${field}`, value);
-              }}
-            />
-          </div>
-        )}
-      </>
-    );
-  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -920,13 +690,107 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {/* For products without variations */}
-              {!formik.values.hasVariations &&
-                formik.values.variations.length === 0 &&
-                renderNoVariationsFields()}
+              {formik.values.variations.length === 0 && !showVariationForm && (
+                <>
+                  <div className="text-center py-8">
+                    <h3 className="text-lg font-medium mb-2">
+                      Belum ada variasi produk
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Tambahkan variasi untuk produk dengan beberapa pilihan
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => setShowVariationForm(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah Variasi
+                    </Button>
+                  </div>
+                  {renderNoVariationsFields()}
+                </>
+              )}
 
-              {/* Variations section - use new components */}
-              {renderVariationsSection()}
+              {formik.values.variations.length > 0 && (
+                <div className="space-y-6">
+                  {renderVariationsList()}
+
+                  {formik.values.variations.length === 1 &&
+                    !showVariationForm && (
+                      <div className="flex justify-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowVariationForm(true)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Tambah Variasi Kedua
+                        </Button>
+                      </div>
+                    )}
+
+                  {showVariationForm && renderVariationForm()}
+
+                  <div className="border rounded-lg p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-lg font-medium">
+                        Harga dan Stok Variasi
+                      </Label>
+                    </div>
+                    <Separator />
+                    <div className="space-y-4">
+                      {generateVariationCombinations(
+                        formik.values.variations
+                      ).map((combination) => (
+                        <div
+                          key={combination.id}
+                          className="grid grid-cols-3 gap-4 items-center"
+                        >
+                          <div className="text-sm">{combination.name}</div>
+                          <Input
+                            type="number"
+                            placeholder="Harga"
+                            value={getVariationValue(combination.id, "price")}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              formik.setFieldValue(
+                                `variationPrices.${combination.id}`,
+                                {
+                                  ...formik.values.variationPrices[
+                                    combination.id
+                                  ],
+                                  price: value === "" ? 0 : Number(value),
+                                }
+                              );
+                            }}
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Stok"
+                            value={getVariationValue(combination.id, "stock")}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              formik.setFieldValue(
+                                `variationPrices.${combination.id}`,
+                                {
+                                  ...formik.values.variationPrices[
+                                    combination.id
+                                  ],
+                                  stock: value === "" ? 0 : Number(value),
+                                }
+                              );
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formik.values.variations.length === 0 &&
+                showVariationForm &&
+                renderVariationForm()}
             </div>
           </CardContent>
         </Card>

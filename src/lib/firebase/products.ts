@@ -23,6 +23,7 @@ import {
   GetProductsOptions,
   FilteredProductsResponse,
 } from "@/types/product";
+import { generateSearchKeywords } from "@/lib/utils";
 
 /**
  * Clean an object by removing undefined values and replacing with appropriate defaults
@@ -67,9 +68,8 @@ const prepareProductData = (productData: ProductFormValues) => {
     preparedData.baseStock = 0;
   }
 
-  // Generate nameSearch field for case-insensitive searching
-  const nameSearch = preparedData.name.toLowerCase();
-  preparedData.nameSearch = nameSearch;
+  // Generate search keywords for more flexible searching
+  preparedData.searchKeywords = generateSearchKeywords(preparedData.name);
 
   // Add updated timestamp
   const withTimestamp = {
@@ -130,10 +130,11 @@ export const getFilteredProducts = async (
 
     // Apply search query if provided
     if (searchQuery) {
-      // Use the nameSearch field for case-insensitive search
-      const lowerSearchQuery = searchQuery.toLowerCase();
-      q = query(q, where("nameSearch", ">=", lowerSearchQuery));
-      q = query(q, where("nameSearch", "<=", lowerSearchQuery + "\uf8ff"));
+      // Normalize search query
+      const normalizedQuery = searchQuery.toLowerCase().trim();
+
+      // Search using searchKeywords field
+      q = query(q, where("searchKeywords", "array-contains", normalizedQuery));
     } else {
       // Apply sorting when not searching
       const sortField =
@@ -162,6 +163,44 @@ export const getFilteredProducts = async (
       id: doc.id,
       ...doc.data(),
     })) as Product[];
+
+    // If no products found with exact match, try a more flexible search
+    if (products.length === 0 && searchQuery) {
+      // For more complex searches or partial matches, we need to fetch more data and filter in memory
+      const broadQuery = query(collection(db, "products"));
+      const allProducts = await getDocs(broadQuery);
+
+      const filteredProducts = allProducts.docs
+        .map(
+          (doc) =>
+            ({
+              id: doc.id,
+              ...doc.data(),
+            } as Product)
+        )
+        .filter((product) => {
+          // Case insensitive search in the product name
+          const productName = product.name.toLowerCase();
+          const searchTerms = searchQuery.toLowerCase().split(" ");
+
+          // Check if all search terms are in the product name
+          return searchTerms.every((term) => productName.includes(term));
+        }) as Product[];
+
+      // Apply pagination to the filtered results
+      const paginatedProducts = filteredProducts.slice(0, itemsPerPage);
+
+      return {
+        products: paginatedProducts,
+        lastDoc:
+          paginatedProducts.length === itemsPerPage
+            ? allProducts.docs[itemsPerPage - 1]
+            : null,
+        hasMore:
+          paginatedProducts.length === itemsPerPage &&
+          paginatedProducts.length < filteredProducts.length,
+      };
+    }
 
     const newLastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
     const hasMore = querySnapshot.docs.length === itemsPerPage;

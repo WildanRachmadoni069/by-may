@@ -73,3 +73,37 @@ export function cleanObject<T extends Record<string, any>>(obj: T): Partial<T> {
 
   return result;
 }
+
+/**
+ * Generates search keywords from a product name
+ * Breaks down the name into individual words and meaningful n-grams
+ * @param name - Product name to generate keywords from
+ * @returns Array of search keywords
+ */
+export function generateSearchKeywords(name: string): string[] {
+  if (!name) return [];
+
+  // Convert to lowercase and remove special characters
+  const normalizedName = name.toLowerCase().replace(/[^\w\s]/g, " ");
+
+  // Split into words
+  const words = normalizedName.split(/\s+/).filter((word) => word.length > 1);
+
+  // Create a set to avoid duplicates
+  const keywordsSet = new Set<string>();
+
+  // Add each word
+  words.forEach((word) => {
+    keywordsSet.add(word);
+  });
+
+  // Add pairs of words (bigrams)
+  for (let i = 0; i < words.length - 1; i++) {
+    keywordsSet.add(`${words[i]} ${words[i + 1]}`);
+  }
+
+  // Add original normalized name
+  keywordsSet.add(normalizedName);
+
+  return Array.from(keywordsSet);
+}

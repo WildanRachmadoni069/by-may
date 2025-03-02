@@ -1,25 +1,26 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import ProductCard from "@/components/general/ProductCard";
-import { ChevronRight, ShoppingBag, Search } from "lucide-react";
+import { ChevronRight, ShoppingBag, Search, X } from "lucide-react";
 import ProductSidebar from "@/components/productpage/ProductSidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useProductStore } from "@/store/useProductStore";
 import { useProductFilterStore } from "@/store/useProductFilterStore";
-import { ProductFormValues } from "@/types/product";
-import { Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Input } from "@/components/ui/input";
+import { useSearchParams } from "next/navigation";
+import { SearchBar } from "@/components/productpage/SearchBar";
+import { useRouter } from "next/navigation";
 
 function ProductPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const initialQuery = searchParams.get("q") || "";
+
   const {
     products,
     loading,
@@ -28,21 +29,40 @@ function ProductPage() {
     fetchFilteredProducts,
     fetchMoreProducts,
   } = useProductStore();
-  const filters = useProductFilterStore();
 
+  const filters = useProductFilterStore();
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+
+  // Effect for initial load and when filters change
   useEffect(() => {
     fetchFilteredProducts({
       category: filters.category,
       collection: filters.collection,
       sortBy: filters.sortBy,
       itemsPerPage: 12,
+      searchQuery,
     });
   }, [
     fetchFilteredProducts,
     filters.category,
     filters.collection,
     filters.sortBy,
+    searchQuery,
   ]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+
+    // Update URL with search query
+    const url = new URL(window.location.href);
+    if (query) {
+      url.searchParams.set("q", query);
+    } else {
+      url.searchParams.delete("q");
+    }
+
+    router.replace(url.pathname + url.search);
+  };
 
   const loadMore = () => {
     fetchMoreProducts({
@@ -50,18 +70,35 @@ function ProductPage() {
       collection: filters.collection,
       sortBy: filters.sortBy,
       itemsPerPage: 12,
+      searchQuery,
     });
   };
 
+  // Empty state component enhanced with search information
   const renderEmptyState = () => {
     if (!products || products.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">Belum Ada Produk</h3>
+          <h3 className="text-lg font-medium">
+            {searchQuery
+              ? `Tidak ada produk yang sesuai dengan "${searchQuery}"`
+              : "Belum Ada Produk"}
+          </h3>
           <p className="text-muted-foreground mt-2">
-            Mohon maaf, saat ini belum ada produk yang tersedia.
+            {searchQuery
+              ? "Coba kata kunci lain atau filter yang berbeda."
+              : "Mohon maaf, saat ini belum ada produk yang tersedia."}
           </p>
+          {searchQuery && (
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => handleSearch("")}
+            >
+              Hapus Pencarian
+            </Button>
+          )}
         </div>
       );
     }
@@ -117,6 +154,11 @@ function ProductPage() {
           </p>
         </header>
 
+        {/* Search Bar */}
+        <div className="mt-6">
+          <SearchBar initialQuery={searchQuery} onSearch={handleSearch} />
+        </div>
+
         <div className="mt-8 block lg:hidden">
           <Sheet>
             <SheetTrigger className="flex cursor-pointer items-center gap-2 border-b border-gray-400 pb-1 text-gray-900 transition hover:border-gray-600">
@@ -135,6 +177,24 @@ function ProductPage() {
           </div>
 
           <div className="lg:col-span-3">
+            {/* Search results information */}
+            {searchQuery && products.length > 0 && (
+              <div className="mb-4 flex justify-between items-center">
+                <p className="text-sm text-muted-foreground">
+                  Menampilkan hasil pencarian untuk "{searchQuery}"
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSearch("")}
+                  className="text-sm"
+                >
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Hapus Filter
+                </Button>
+              </div>
+            )}
+
             <h2 className="sr-only">Koleksi Produk</h2>
             {loading && products.length === 0 ? (
               <div className="flex justify-center items-center py-12">

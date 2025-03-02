@@ -65,7 +65,7 @@ export interface ProductFormValues {
   dimensions: ProductDimensions;
   seo: ProductSEO;
   collection?: string;
-  nameSearch: string;
+  searchKeywords?: string[];
 }
 
 export interface GetProductsOptions {
