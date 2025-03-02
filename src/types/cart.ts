@@ -4,8 +4,10 @@ export interface CartItem {
   price: number;
   quantity: number;
   image: string;
-  selectedOptions?: Record<string, string>;
-  variationKey?: string;
+  // For variation products
+  selectedOptions?: Record<string, string>; // Format: {variationName: optionName}
+  variationKey?: string; // Composite key to uniquely identify variations
+  variationImage?: string; // Added field for variation-specific image
 }
 
 export interface CartStore {

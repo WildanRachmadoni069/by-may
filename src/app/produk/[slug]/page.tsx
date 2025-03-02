@@ -50,8 +50,20 @@ export default function ProductDetail() {
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-          const productData = querySnapshot.docs[0].data() as ProductFormValues;
+          const doc = querySnapshot.docs[0];
+          // Include document ID in the product data
+          const productData = {
+            ...doc.data(),
+            id: doc.id,
+          } as ProductFormValues & { id: string };
+
           setProduct(productData);
+
+          // Initialize with default price and stock if no variations
+          if (!productData.hasVariations) {
+            setCurrentPrice(productData.basePrice || 0);
+            setCurrentStock(productData.baseStock || 0);
+          }
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -175,20 +187,9 @@ export default function ProductDetail() {
       return;
     }
 
-    if (product.hasVariations && !currentPrice) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Silakan pilih variasi produk terlebih dahulu",
-      });
-      return;
-    }
-
-    const variationKey = product.hasVariations
-      ? generateVariationKey(selectedOptions)
-      : undefined;
-
+    // Validate product has an ID
     if (!product.id) {
+      console.error("Product ID missing:", product);
       toast({
         variant: "destructive",
         title: "Error",
@@ -197,23 +198,71 @@ export default function ProductDetail() {
       return;
     }
 
+    // For products with variations, ensure a variation is selected
+    if (product.hasVariations) {
+      const allVariationsSelected = product.variations.every(
+        (variation) => selectedOptions[variation.id]
+      );
+
+      if (!allVariationsSelected || !currentPrice) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Silakan pilih variasi produk terlebih dahulu",
+        });
+        return;
+      }
+    }
+
+    const variationKey = product.hasVariations
+      ? generateVariationKey(selectedOptions)
+      : undefined;
+
+    // Get variation image if available
+    let variationImage: string | undefined;
+    if (product.hasVariations && product.variations.length > 0) {
+      const firstVariation = product.variations[0];
+      const selectedOptionId = selectedOptions[firstVariation.id];
+      if (selectedOptionId) {
+        const selectedOption = firstVariation.options.find(
+          (option) => option.id === selectedOptionId
+        );
+        variationImage = selectedOption?.imageUrl;
+      }
+    }
+
+    // Create a valid cart item
     const cartItem = {
       productId: product.id,
       name: product.name,
       price: currentPrice || product.basePrice || 0,
       quantity: quantity,
       image: product.mainImage || "",
-      selectedOptions: product.hasVariations ? selectedOptions : undefined,
+      variationImage, // Add variation image if available
+      selectedOptions: product.hasVariations
+        ? Object.entries(selectedOptions).reduce((acc, [varId, optId]) => {
+            // Map variation IDs to names for better display
+            const variation = product.variations.find((v) => v.id === varId);
+            if (!variation) return acc;
+
+            const option = variation.options.find((o) => o.id === optId);
+            if (!option) return acc;
+
+            return { ...acc, [variation.name]: option.name };
+          }, {})
+        : undefined,
       variationKey,
     };
 
     try {
+      console.log("Adding to cart:", cartItem);
       await addToCart(cartItem);
       toast({
         title: "Berhasil",
         description: "Produk berhasil ditambahkan ke keranjang",
       });
     } catch (error) {
+      console.error("Add to cart error:", error);
       toast({
         variant: "destructive",
         title: "Error",

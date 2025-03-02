@@ -1,121 +1,121 @@
 import { create } from "zustand";
-import { CartItem, CartStore, CartData } from "@/types/cart";
-import { getCart, updateCart, clearCart } from "@/lib/firebase/cart";
+import { persist } from "zustand/middleware";
+import { CartItem } from "@/types/cart";
 
-export const useCartStore = create<CartStore>()((set, get) => ({
-  items: [],
-  loading: false,
-  error: null,
+interface CartState {
+  items: CartItem[];
+  loading: boolean;
+  error: string | null;
 
-  initializeCart: async () => {
-    set({ loading: true });
-    try {
-      const cart = await getCart();
-      set({ items: cart.items || [], error: null });
-    } catch (error) {
-      set({ error: "Failed to fetch cart" });
-      console.error("Error fetching cart:", error);
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  addItem: async (newItem: CartItem) => {
-    set({ loading: true });
-    try {
-      const { items } = get();
-      const existingItemIndex = items.findIndex(
-        (item) =>
-          item.productId === newItem.productId &&
-          item.variationKey === newItem.variationKey
-      );
-
-      let updatedItems: CartItem[];
-      if (existingItemIndex > -1) {
-        updatedItems = [...items];
-        updatedItems[existingItemIndex].quantity += newItem.quantity;
-      } else {
-        updatedItems = [...items, newItem];
-      }
-
-      await updateCart(updatedItems);
-      set({ items: updatedItems, error: null });
-    } catch (error) {
-      set({ error: "Failed to add item" });
-      throw error;
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  removeItem: async (productId: string, variationKey?: string) => {
-    set({ loading: true });
-    try {
-      const { items } = get();
-      const updatedItems = items.filter(
-        (item) =>
-          !(
-            item.productId === productId &&
-            (!variationKey || item.variationKey === variationKey)
-          )
-      );
-      await updateCart(updatedItems);
-      set({ items: updatedItems, error: null });
-    } catch (error) {
-      set({ error: "Failed to remove item" });
-      console.error("Error removing item:", error);
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  updateQuantity: async (
+  // Methods
+  initializeCart: () => Promise<void>;
+  addItem: (item: CartItem) => Promise<void>;
+  updateQuantity: (
     productId: string,
     quantity: number,
     variationKey?: string
-  ) => {
-    set({ loading: true });
-    try {
-      const { items } = get();
-      const updatedItems = items.map((item) => {
-        if (
-          item.productId === productId &&
-          (!variationKey || item.variationKey === variationKey)
-        ) {
-          return { ...item, quantity };
+  ) => Promise<void>;
+  removeItem: (productId: string, variationKey?: string) => Promise<void>;
+  clearCart: () => void;
+
+  // Getters
+  getTotalPrice: () => number;
+  getTotalItems: () => number;
+}
+
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      loading: true,
+      error: null,
+
+      initializeCart: async () => {
+        set({ loading: false });
+      },
+
+      addItem: async (item: CartItem) => {
+        const { items } = get();
+
+        // Check if item already exists
+        const existingItemIndex = items.findIndex(
+          (cartItem) =>
+            cartItem.productId === item.productId &&
+            (item.variationKey
+              ? cartItem.variationKey === item.variationKey
+              : true)
+        );
+
+        if (existingItemIndex !== -1) {
+          // Update quantity if item exists
+          const updatedItems = [...items];
+          updatedItems[existingItemIndex].quantity += item.quantity;
+
+          set({ items: updatedItems });
+        } else {
+          // Add new item
+          set({ items: [...items, item] });
         }
-        return item;
-      });
-      await updateCart(updatedItems);
-      set({ items: updatedItems, error: null });
-    } catch (error) {
-      set({ error: "Failed to update quantity" });
-      console.error("Error updating quantity:", error);
-    } finally {
-      set({ loading: false });
+      },
+
+      updateQuantity: async (
+        productId: string,
+        quantity: number,
+        variationKey?: string
+      ) => {
+        const { items } = get();
+
+        const updatedItems = items.map((item) => {
+          // Match both product ID and variation key (if any)
+          if (
+            item.productId === productId &&
+            (variationKey
+              ? item.variationKey === variationKey
+              : !item.variationKey)
+          ) {
+            return { ...item, quantity };
+          }
+          return item;
+        });
+
+        set({ items: updatedItems });
+      },
+
+      removeItem: async (productId: string, variationKey?: string) => {
+        const { items } = get();
+
+        const filteredItems = items.filter(
+          (item) =>
+            !(
+              item.productId === productId &&
+              (variationKey
+                ? item.variationKey === variationKey
+                : !item.variationKey)
+            )
+        );
+
+        set({ items: filteredItems });
+      },
+
+      clearCart: () => {
+        set({ items: [] });
+      },
+
+      getTotalPrice: () => {
+        const { items } = get();
+        return items.reduce(
+          (total, item) => total + item.price * item.quantity,
+          0
+        );
+      },
+
+      getTotalItems: () => {
+        const { items } = get();
+        return items.reduce((total, item) => total + item.quantity, 0);
+      },
+    }),
+    {
+      name: "cart-storage",
     }
-  },
-
-  clearCart: async () => {
-    set({ loading: true });
-    try {
-      await clearCart();
-      set({ items: [], error: null });
-    } catch (error) {
-      set({ error: "Failed to clear cart" });
-      console.error("Error clearing cart:", error);
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  getTotalItems: () => {
-    const { items } = get();
-    return items.reduce((total, item) => total + item.quantity, 0);
-  },
-
-  getTotalPrice: () => {
-    const { items } = get();
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
-  },
-}));
+  )
+);

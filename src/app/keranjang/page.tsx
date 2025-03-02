@@ -34,11 +34,6 @@ export default function CartPage() {
 
   const { toast } = useToast();
   const totalPrice = getTotalPrice();
-  const freeShippingThreshold = 300000;
-  const progressToFreeShipping = Math.min(
-    (totalPrice / freeShippingThreshold) * 100,
-    100
-  );
 
   useEffect(() => {
     initializeCart();
@@ -72,6 +67,14 @@ export default function CartPage() {
         description: "Gagal menghapus produk",
       });
     }
+  };
+
+  const formatVariations = (item: CartItem) => {
+    if (!item.selectedOptions) return null;
+
+    return Object.entries(item.selectedOptions)
+      .map(([variation, option]) => `${variation}: ${option}`)
+      .join(", ");
   };
 
   if (loading) {
@@ -125,13 +128,13 @@ export default function CartPage() {
                 <div className="divide-y">
                   {items.map((item) => (
                     <div
-                      key={`${item.productId}-${item.variationKey}`}
+                      key={`${item.productId}-${item.variationKey || ""}`}
                       className="p-4 hover:bg-muted/50 transition-all duration-200 animate-fadeIn"
                     >
                       <div className="flex gap-4">
                         <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border">
                           <Image
-                            src={item.image}
+                            src={item.variationImage || item.image}
                             alt={item.name}
                             fill
                             className="object-cover"
@@ -142,9 +145,7 @@ export default function CartPage() {
                             <h3 className="font-medium">{item.name}</h3>
                             {item.selectedOptions && (
                               <p className="text-sm text-muted-foreground">
-                                {Object.values(item.selectedOptions).join(
-                                  " / "
-                                )}
+                                {formatVariations(item)}
                               </p>
                             )}
                             <p className="font-medium text-primary">
@@ -219,36 +220,21 @@ export default function CartPage() {
           </Card>
         </div>
 
-        {/* Summary Section */}
+        {/* Simplified Summary Section */}
         <div className="lg:col-span-4">
           <Card className="sticky top-4">
             <CardHeader className="border-b">
               <CardTitle>Ringkasan Belanja</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
-              {totalPrice < freeShippingThreshold && (
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Tambah {formatRupiah(freeShippingThreshold - totalPrice)}{" "}
-                    lagi untuk mendapatkan gratis ongkir
-                  </p>
-                  <Progress value={progressToFreeShipping} className="h-2" />
-                </div>
-              )}
-
-              <div className="space-y-2">
+              {/* Show only the product summary and total price */}
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
                     Total Harga ({items.length} produk)
                   </span>
                   <span>{formatRupiah(totalPrice)}</span>
                 </div>
-                {totalPrice >= freeShippingThreshold && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Ongkos Kirim</span>
-                    <span className="text-green-600">GRATIS</span>
-                  </div>
-                )}
               </div>
 
               <div className="border-t pt-4">
