@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/store/useCartStore";
 import { toast } from "@/hooks/use-toast";
+import { isLegacyTimestampId } from "@/lib/utils";
 
 export default function ProductDetail() {
   const [product, setProduct] = useState<ProductFormValues | null>(null);
@@ -82,7 +83,6 @@ export default function ProductDetail() {
     if (!product?.variations.length) return "";
 
     // For double variations, we need to combine both variation IDs
-    // Format: "variation1Id-option1Id-option2Id"
     if (product.variations.length === 2) {
       const firstVariation = product.variations[0];
       const secondVariation = product.variations[1];
@@ -95,7 +95,7 @@ export default function ProductDetail() {
       return `${firstVariation.id}-${firstOptionId}-${secondOptionId}`;
     }
 
-    // Single variation case (existing logic)
+    // Single variation case
     const selectedVariation = product.variations[0];
     const selectedOptionId = selectedOpts[selectedVariation.id];
 
@@ -348,7 +348,7 @@ export default function ProductDetail() {
 
           <Separator className="my-3" />
 
-          {/* Product Options - Conditional spacing based on variation count */}
+          {/* Product Options - Added better labeling for variation options */}
           {product.hasVariations && (
             <div
               className={cn(
@@ -373,6 +373,7 @@ export default function ProductDetail() {
                             : "border-input hover:border-primary",
                           "focus:outline-none focus:ring-2 focus:ring-primary/20"
                         )}
+                        aria-label={`Option: ${option.name}`}
                       >
                         {option.imageUrl && (
                           <div className="relative w-14 h-14 mb-1">

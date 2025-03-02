@@ -1,78 +1,108 @@
-import { ProductVariation } from "@/types/product";
+import React from "react";
+import { Pencil, Trash2, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { X } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Image from "next/image";
+import { ProductVariation } from "@/types/product";
+import { isLegacyTimestampId } from "@/lib/utils";
 
 interface VariationCardProps {
   variation: ProductVariation;
   index: number;
-  onEdit: () => void;
-  onRemove: () => void;
+  onEdit: (index: number) => void;
+  onRemove: (index: number) => void;
   disabled?: boolean;
 }
 
-export function VariationCard({
+export const VariationCard = ({
   variation,
   index,
   onEdit,
   onRemove,
-  disabled,
-}: VariationCardProps) {
+  disabled = false,
+}: VariationCardProps) => {
+  // Format ID for display - mask timestamp IDs, show descriptive for new ones
+  const displayId = isLegacyTimestampId(variation.id)
+    ? `${variation.id.substring(0, 4)}...${variation.id.substring(
+        variation.id.length - 4
+      )}`
+    : variation.id;
+
+  // Check if this is the first variation (which may have images)
+  const isFirstVariation = index === 0;
+
   return (
-    <div className="relative overflow-hidden border rounded-lg transition-all hover:border-primary">
-      <div className="p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="font-medium text-lg">{variation.name}</div>
-            <div className="text-sm text-muted-foreground">
-              {variation.options.length} opsi
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onEdit}
-              disabled={disabled}
-            >
-              Edit
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              disabled={disabled}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{variation.name}</span>
+          {/* <Badge variant="outline" className="text-xs">
+            {displayId}
+          </Badge> */}
+          {isFirstVariation && (
+            <Badge variant="secondary" className="text-xs">
+              With Images
+            </Badge>
+          )}
         </div>
-        <Separator />
-        <ScrollArea className="h-28 pr-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {variation.options.map((option) => (
+        <div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(index)}
+            disabled={disabled}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemove(index)}
+            disabled={disabled}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <div className="flex flex-wrap gap-2">
+          {variation.options.map((option) => {
+            // Format option ID similarly
+            const optionDisplayId = isLegacyTimestampId(option.id)
+              ? `${option.id.substring(0, 3)}..${option.id.substring(
+                  option.id.length - 3
+                )}`
+              : option.id;
+
+            return (
               <div
                 key={option.id}
-                className="flex flex-col items-center p-2 gap-2 border rounded-md bg-muted/30"
+                className="flex items-center bg-muted px-2 py-1 rounded text-sm"
               >
-                {index === 0 && option.imageUrl && (
-                  <img
-                    src={option.imageUrl}
-                    alt={option.name}
-                    className="w-16 h-16 object-cover rounded-md"
-                  />
+                {isFirstVariation && option.imageUrl && (
+                  <div className="relative h-5 w-5 mr-1 rounded-sm overflow-hidden">
+                    <Image
+                      src={option.imageUrl}
+                      alt={option.name || "Option image"}
+                      fill
+                      className="object-cover"
+                      sizes="20px"
+                    />
+                  </div>
                 )}
-                <div className="text-sm font-medium text-center">
-                  {option.name}
-                </div>
+                {isFirstVariation && !option.imageUrl && (
+                  <ImageIcon className="h-4 w-4 mr-1 text-muted-foreground" />
+                )}
+                <span>{option.name}</span>
+                {/* <Badge variant="outline" className="ml-1 text-[10px] py-0">
+                  {optionDisplayId}
+                </Badge> */}
               </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-    </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
-}
+};

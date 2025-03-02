@@ -27,10 +27,30 @@ export interface ProductSEO {
   keywords: string[];
 }
 
+// Type for combination components used in the UI
+export interface VariationCombination {
+  id: string;
+  name: string;
+  components: Array<{ variationId: string; optionId: string }>;
+}
+
+// Interface for form field options - make imageUrl consistently nullable
+export interface VariationFormOption {
+  id: string;
+  name: string;
+  imageUrl?: string | null; // Ensure consistent typing with both undefined and null
+}
+
+// Interface for variation form data
+export interface VariationFormData {
+  name: string;
+  options: VariationFormOption[];
+}
+
 export interface ProductFormValues {
   id?: string;
   name: string;
-  slug: string; // Add slug field if not exists
+  slug: string;
   description: string;
   category: string;
   specialLabel: string;
@@ -44,8 +64,8 @@ export interface ProductFormValues {
   weight: number;
   dimensions: ProductDimensions;
   seo: ProductSEO;
-  collection?: string; // Make it optional
-  nameSearch: string; // Add this field - required, not optional
+  collection?: string;
+  nameSearch: string;
 }
 
 export interface GetProductsOptions {
@@ -54,12 +74,13 @@ export interface GetProductsOptions {
   sortBy?: string;
   itemsPerPage?: number;
   lastDoc?: any;
-  searchQuery?: string; // Add this field
+  searchQuery?: string;
 }
 
 export interface Product extends ProductFormValues {
-  createdAt: Date;
-  updatedAt: Date;
+  id: string;
+  createdAt: any;
+  updatedAt: any;
 }
 
 export interface FilteredProductsResponse {
