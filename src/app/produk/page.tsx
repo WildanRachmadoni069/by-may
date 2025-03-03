@@ -154,11 +154,6 @@ function ProductPage() {
           </p>
         </header>
 
-        {/* Search Bar */}
-        <div className="mt-6">
-          <SearchBar initialQuery={searchQuery} onSearch={handleSearch} />
-        </div>
-
         <div className="mt-8 block lg:hidden">
           <Sheet>
             <SheetTrigger className="flex cursor-pointer items-center gap-2 border-b border-gray-400 pb-1 text-gray-900 transition hover:border-gray-600">
