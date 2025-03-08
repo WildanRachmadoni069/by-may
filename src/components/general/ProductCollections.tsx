@@ -132,7 +132,7 @@ function ProductCollections({
           </Carousel>
         ) : (
           <div className="text-center py-12 text-gray-500">
-            Tidak ada produk {specialLabel} saat ini
+            Produk Masih Belum Tersedia
           </div>
         )}
       </div>
