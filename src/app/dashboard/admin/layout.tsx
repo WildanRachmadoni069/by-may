@@ -27,8 +27,9 @@ import {
   ShoppingCart,
   Users,
   Newspaper,
+  Image,
 } from "lucide-react";
-import Image from "next/image";
+import NextImage from "next/image";
 import Link from "next/link";
 import React from "react";
 import { usePathname } from "next/navigation";
@@ -41,7 +42,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <SidebarContent>
           <SidebarHeader className="flex flex-row items-center py-0">
-            <Image
+            <NextImage
               src={"/img/Logo.jpg"}
               alt="Bymay Logo"
               width={60}
@@ -83,6 +84,17 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/dashboard/admin/users">
                       <Users className="text-primary" />
                       <span>Pengguna</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === "/dashboard/admin/banner"}
+                  >
+                    <Link href="/dashboard/admin/banner">
+                      <Image className="text-primary" />
+                      <span>Banner</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
