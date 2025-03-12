@@ -197,17 +197,15 @@ function AdminProductList() {
   }
 
   return (
-    <>
-      <div className="w-full flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Daftar Produk</h1>
-        <Link href="/dashboard/admin/product/add">
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" /> Tambah Produk
-          </Button>
-        </Link>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Daftar Produk</h1>
+        <p className="text-muted-foreground">
+          Kelola produk yang dijual di toko Anda
+        </p>
       </div>
 
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1 flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -243,36 +241,46 @@ function AdminProductList() {
             </Button>
           )}
         </div>
-        <Select value={filters.category} onValueChange={filters.setCategory}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Semua Kategori" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Kategori</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category.value} value={category.value}>
-                {category.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={filters.collection}
-          onValueChange={filters.setCollection}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Semua Koleksi" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Koleksi</SelectItem>
-            <SelectItem value="none">Tanpa Koleksi</SelectItem>
-            {collections.map((collection) => (
-              <SelectItem key={collection.value} value={collection.value}>
-                {collection.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        <div className="flex gap-2 sm:justify-end">
+          <Select value={filters.category} onValueChange={filters.setCategory}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Semua Kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.value} value={category.value}>
+                  {category.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.collection}
+            onValueChange={filters.setCollection}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Semua Koleksi" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Koleksi</SelectItem>
+              <SelectItem value="none">Tanpa Koleksi</SelectItem>
+              {collections.map((collection) => (
+                <SelectItem key={collection.value} value={collection.value}>
+                  {collection.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Link href="/dashboard/admin/product/add">
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" /> Tambah
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Table>
@@ -355,7 +363,7 @@ function AdminProductList() {
           </Button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

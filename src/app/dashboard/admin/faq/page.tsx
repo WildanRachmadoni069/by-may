@@ -108,11 +108,16 @@ function AdminFaqList() {
     return <div>Error: {error}</div>;
   }
   return (
-    <>
-      <div className="w-full flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">
-          Pertanyaan yang Sering Diajukan (FAQ)
-        </h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Pertanyaan Umum (FAQ)</h1>
+        <p className="text-muted-foreground">
+          Kelola pertanyaan dan jawaban untuk membantu pelanggan
+        </p>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <div></div>
         <Link href="/dashboard/admin/faq/add">
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" /> Tambah FAQ
@@ -215,7 +220,7 @@ function AdminFaqList() {
           </Button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

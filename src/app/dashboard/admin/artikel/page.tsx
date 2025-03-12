@@ -18,6 +18,7 @@ import {
   ChevronUp,
   ChevronDown,
   Search,
+  PlusCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -166,23 +167,30 @@ function ArtikelAdminPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manajemen Artikel</h1>
-        <Link href="/dashboard/admin/artikel/create">
-          <Button>Tambah Artikel</Button>
-        </Link>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Manajemen Artikel</h1>
+        <p className="text-muted-foreground">
+          Kelola artikel blog untuk website Anda
+        </p>
       </div>
 
-      {/* Search Input */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-        <Input
-          placeholder="Cari artikel berdasarkan judul..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 max-w-sm"
-        />
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+        {/* Search Input */}
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Cari artikel berdasarkan judul..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Link href="/dashboard/admin/artikel/create">
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" /> Tambah Artikel
+          </Button>
+        </Link>
       </div>
 
       <Table>

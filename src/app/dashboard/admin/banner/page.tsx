@@ -80,9 +80,16 @@ function AdminBannerPage() {
   }
 
   return (
-    <>
-      <div className="w-full flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Kelola Banner</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Kelola Banner</h1>
+        <p className="text-muted-foreground">
+          Atur banner yang ditampilkan pada halaman beranda
+        </p>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <div></div>
         <Link href="/dashboard/admin/banner/add">
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" /> Tambah Banner
@@ -181,7 +188,7 @@ function AdminBannerPage() {
           )}
         </TableBody>
       </Table>
-    </>
+    </div>
   );
 }
 
