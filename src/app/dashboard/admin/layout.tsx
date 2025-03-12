@@ -29,6 +29,7 @@ import {
   Newspaper,
   Image,
   HelpCircle, // Added HelpCircle icon for FAQ
+  Search, // Add this for the SEO icon
 } from "lucide-react";
 import NextImage from "next/image";
 import Link from "next/link";
@@ -122,6 +123,20 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                {/* Add SEO Settings menu item */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.includes("/dashboard/admin/seo")}
+                  >
+                    <Link href="/dashboard/admin/seo">
+                      <Search className="text-primary" />
+                      <span>SEO</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
                 <Collapsible className="group/collapsible">
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
