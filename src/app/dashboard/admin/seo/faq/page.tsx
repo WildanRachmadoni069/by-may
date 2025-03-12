@@ -26,7 +26,7 @@ export default function FaqPageSEO() {
         } else {
           // Create default SEO data if it doesn't exist
           const defaultData = {
-            title: "FAQ | Pertanyaan yang Sering Diajukan | By May Scarf",
+            title: "Pertanyaan yang Sering Diajukan",
             description:
               "Temukan jawaban atas pertanyaan umum seputar Al-Quran custom, sajadah, dan produk lainnya. Layanan pelanggan By May Scarf siap membantu.",
             keywords:

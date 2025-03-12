@@ -26,8 +26,7 @@ export default function HomePageSEO() {
         } else {
           // Create default SEO data if it doesn't exist
           const defaultData = {
-            title:
-              "By May Scarf | Al-Quran Custom Nama Murah di Cover Surabaya",
+            title: "Al-Quran Custom Nama Murah di Cover Surabaya",
             description:
               "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
             keywords:

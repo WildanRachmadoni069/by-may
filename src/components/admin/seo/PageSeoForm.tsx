@@ -89,7 +89,7 @@ export function PageSeoForm({
           <LabelWithTooltip
             htmlFor="title"
             label="Meta Title"
-            tooltip="The title that appears in search engine results. Ideally 50-60 characters."
+            tooltip="The title that appears in search engine results. You don't need to include 'By May Scarf' as it will be automatically added."
           />
           <Input
             id="title"
@@ -99,10 +99,15 @@ export function PageSeoForm({
           {formik.touched.title && formik.errors.title ? (
             <div className="text-red-500 text-sm">{formik.errors.title}</div>
           ) : null}
-          <CharacterCountSEO
-            current={formik.values.title.length}
-            type="title"
-          />
+          <div className="flex justify-between">
+            <CharacterCountSEO
+              current={formik.values.title.length}
+              type="title"
+            />
+            <span className="text-xs text-muted-foreground italic">
+              Will appear as: "{formik.values.title} | By May Scarf"
+            </span>
+          </div>
         </div>
 
         <div className="space-y-2">

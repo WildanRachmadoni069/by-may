@@ -26,7 +26,7 @@ export default function AboutPageSEO() {
         } else {
           // Create default SEO data if it doesn't exist
           const defaultData = {
-            title: "Tentang Kami | By May Scarf | Al-Quran Custom Surabaya",
+            title: "Tentang Kami | Al-Quran Custom Surabaya",
             description:
               "By May Scarf adalah spesialis Al-Quran custom nama dan perlengkapan ibadah berkualitas di Surabaya. Ketahui lebih lanjut tentang kami.",
             keywords:

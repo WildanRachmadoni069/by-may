@@ -8,13 +8,13 @@ export async function generateMetadata(): Promise<Metadata> {
     const seoData = await getSeoData("faq");
 
     return {
-      title: seoData?.title || "FAQ | By May Scarf",
+      title: seoData?.title || "FAQ", // Will become "FAQ | By May Scarf" with the template
       description:
         seoData?.description ||
         "Frequently Asked Questions about By May Scarf products",
       keywords: seoData?.keywords,
       openGraph: {
-        title: seoData?.title || "FAQ | By May Scarf",
+        title: seoData?.title || "FAQ",
         description: seoData?.description,
         images: seoData?.og_image ? [{ url: seoData.og_image }] : undefined,
       },
@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
-      title: "FAQ | By May Scarf",
+      title: "FAQ",
       description: "Frequently Asked Questions about By May Scarf products",
     };
   }

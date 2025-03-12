@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import Footer from "@/components/landingpage/Footer";
+import { getSeoData } from "@/lib/firebase/seo";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -17,62 +18,37 @@ const geistMono = localFont({
 });
 const jakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: {
-    default: "By May - Al-Qur'an Custom Cover & Perlengkapan Ibadah",
-    template: "%s | By May",
-  },
-  description:
-    "Temukan koleksi Al-Qur'an Custom Cover, Sajadah Custom, Tasbih, dan Hampers Islami berkualitas. Hadirkan keindahan dalam beribadah dengan sentuhan personal.",
-  keywords: [
-    "al quran custom",
-    "custom cover quran",
-    "sajadah custom",
-    "tasbih",
-    "hampers islami",
-    "hadiah islami",
-    "perlengkapan ibadah",
-    "hampers ramadhan",
-    "gift set muslim",
-    "kado islami",
-  ],
-  authors: [{ name: "By May" }],
-  creator: "By May",
-  openGraph: {
-    type: "website",
-    locale: "id_ID",
-    url: "https://bymay.com",
-    siteName: "By May - Al-Qur'an Custom Cover",
-    title: "By May - Spesialis Al-Qur'an Custom Cover & Islamic Gifts",
-    description:
-      "Hadirkan keindahan dalam beribadah dengan Al-Qur'an custom cover dan perlengkapan ibadah berkualitas dari By May",
-    images: [
-      {
-        url: "/images/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "By May - Al-Qur'an Custom Cover & Perlengkapan Ibadah",
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const seoData = await getSeoData("homepage");
+
+    return {
+      title: {
+        default: seoData?.title || "Al-Quran Custom Cover",
+        template: "%s | By May Scarf",
       },
-    ],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-  verification: {
-    google: "your-google-site-verification", // Add your Google verification code
-  },
-  alternates: {
-    canonical: "https://bymay.com",
-  },
-};
+      description:
+        seoData?.description ||
+        "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
+      keywords: seoData?.keywords,
+      openGraph: {
+        title: seoData?.title || "Al-Quran Custom Cover",
+        description: seoData?.description,
+        images: seoData?.og_image ? [{ url: seoData.og_image }] : undefined,
+      },
+    };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return {
+      title: {
+        default: "Al-Quran Custom Cover",
+        template: "%s | By May Scarf",
+      },
+      description:
+        "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
+    };
+  }
+}
 
 export default function RootLayout({
   children,
