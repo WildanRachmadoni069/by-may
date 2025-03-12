@@ -28,6 +28,7 @@ import {
   Users,
   Newspaper,
   Image,
+  HelpCircle, // Added HelpCircle icon for FAQ
 } from "lucide-react";
 import NextImage from "next/image";
 import Link from "next/link";
@@ -106,6 +107,18 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/dashboard/admin/artikel">
                       <Newspaper className="text-primary" />
                       <span>Artikel</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                {/* Add FAQ menu item */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.includes("/dashboard/admin/faq")}
+                  >
+                    <Link href="/dashboard/admin/faq">
+                      <HelpCircle className="text-primary" />
+                      <span>FAQ</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
