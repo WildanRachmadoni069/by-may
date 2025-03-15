@@ -1,7 +1,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebaseConfig";
 import { notFound } from "next/navigation";
-import EditArticleForm from "@/components/admin/article/EditArticleForm";
+import ArticleForm from "@/components/admin/article/ArticleForm";
 import type { ArticleData } from "@/types/article";
 
 function convertTimestampToISO(timestamp: any) {
@@ -16,7 +16,8 @@ export default async function ArticleEditPage({
 }) {
   const getArticle = async () => {
     try {
-      const docRef = doc(db, "articles", params.id);
+      const paramsId = await params.id;
+      const docRef = doc(db, "articles", paramsId);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
@@ -42,5 +43,16 @@ export default async function ArticleEditPage({
 
   const article = await getArticle();
 
-  return <EditArticleForm article={article} />;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Edit Artikel</h1>
+        <p className="text-muted-foreground">
+          Perbarui konten dan pengaturan artikel
+        </p>
+      </div>
+
+      <ArticleForm article={article} />
+    </div>
+  );
 }

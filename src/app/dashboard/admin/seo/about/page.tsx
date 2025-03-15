@@ -41,7 +41,7 @@ export default function AboutPageSEO() {
         }
       } catch (err) {
         console.error("Error fetching About Us SEO data:", err);
-        setError("Failed to load SEO data. Please try again.");
+        setError("Gagal memuat data SEO. Silakan coba lagi.");
       } finally {
         setLoading(false);
       }
@@ -75,9 +75,9 @@ export default function AboutPageSEO() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">About Us Page SEO</h1>
+          <h1 className="text-2xl font-bold">SEO Halaman Tentang Kami</h1>
           <p className="text-sm text-muted-foreground">
-            Optimize your About Us page for search engines
+            Optimalisasi halaman Tentang Kami untuk mesin pencari
           </p>
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function AboutPageSEO() {
           }}
           pageId="about"
           pageSlug="tentang-kami"
-          pageType="About Us"
+          pageType="Tentang Kami"
         />
       )}
     </div>

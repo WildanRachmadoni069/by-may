@@ -42,10 +42,10 @@ export function PageSeoForm({
   const formik = useFormik({
     initialValues,
     validationSchema: Yup.object({
-      title: Yup.string().required("Title is required"),
-      description: Yup.string().required("Description is required"),
+      title: Yup.string().required("Judul wajib diisi"),
+      description: Yup.string().required("Deskripsi wajib diisi"),
       keywords: Yup.string(),
-      og_image: Yup.string().url("Must be a valid URL").nullable(),
+      og_image: Yup.string().url("URL tidak valid").nullable(),
     }),
     onSubmit: async (values) => {
       try {
@@ -62,8 +62,8 @@ export function PageSeoForm({
         });
 
         toast({
-          title: "SEO settings updated",
-          description: `The SEO settings for the ${pageType} page have been successfully updated.`,
+          title: "Pengaturan SEO diperbarui",
+          description: `Pengaturan SEO untuk halaman ${pageType} telah berhasil diperbarui.`,
         });
 
         if (onSuccess) {
@@ -74,7 +74,7 @@ export function PageSeoForm({
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to update SEO settings. Please try again.",
+          description: "Gagal memperbarui pengaturan SEO. Silakan coba lagi.",
         });
       } finally {
         setIsSubmitting(false);
@@ -88,12 +88,12 @@ export function PageSeoForm({
         <div className="space-y-2">
           <LabelWithTooltip
             htmlFor="title"
-            label="Meta Title"
-            tooltip="The title that appears in search engine results. You don't need to include 'By May Scarf' as it will be automatically added."
+            label="Judul Meta"
+            tooltip="Judul yang muncul di hasil pencarian. Anda tidak perlu menyertakan 'By May Scarf' karena akan ditambahkan secara otomatis."
           />
           <Input
             id="title"
-            placeholder="Enter meta title"
+            placeholder="Masukkan judul meta"
             {...formik.getFieldProps("title")}
           />
           {formik.touched.title && formik.errors.title ? (
@@ -105,7 +105,7 @@ export function PageSeoForm({
               type="title"
             />
             <span className="text-xs text-muted-foreground italic">
-              Will appear as: "{formik.values.title} | By May Scarf"
+              Akan tampil sebagai: "{formik.values.title} | By May Scarf"
             </span>
           </div>
         </div>
@@ -113,12 +113,12 @@ export function PageSeoForm({
         <div className="space-y-2">
           <LabelWithTooltip
             htmlFor="description"
-            label="Meta Description"
-            tooltip="A brief summary that appears in search engine results. Ideally 150-160 characters."
+            label="Deskripsi Meta"
+            tooltip="Ringkasan singkat yang muncul di hasil pencarian. Idealnya 150-160 karakter."
           />
           <Textarea
             id="description"
-            placeholder="Enter meta description"
+            placeholder="Masukkan deskripsi meta"
             {...formik.getFieldProps("description")}
           />
           {formik.touched.description && formik.errors.description ? (
@@ -135,12 +135,12 @@ export function PageSeoForm({
         <div className="space-y-2">
           <LabelWithTooltip
             htmlFor="keywords"
-            label="Keywords"
-            tooltip="Comma-separated keywords related to your page. Less important for modern SEO but still useful for content organization."
+            label="Kata Kunci"
+            tooltip="Kata kunci yang dipisahkan koma terkait dengan halaman Anda. Kurang penting untuk SEO modern tetapi masih berguna untuk organisasi konten."
           />
           <Textarea
             id="keywords"
-            placeholder="e.g., al-quran custom, sajadah, tasbih, hampers islami"
+            placeholder="contoh: al-quran custom, sajadah, tasbih, hampers islami"
             {...formik.getFieldProps("keywords")}
           />
         </div>
@@ -148,8 +148,8 @@ export function PageSeoForm({
         <div className="space-y-2">
           <LabelWithTooltip
             htmlFor="og_image"
-            label="OG Image URL"
-            tooltip="The image that appears when your page is shared on social media. Recommended size: 1200 x 630 pixels."
+            label="URL Gambar OG"
+            tooltip="Gambar yang muncul ketika halaman Anda dibagikan di media sosial. Ukuran yang direkomendasikan: 1200 x 630 piksel."
           />
           <Input
             id="og_image"
@@ -166,7 +166,7 @@ export function PageSeoForm({
         <CardContent className="pt-6">
           <div className="border rounded-lg p-4 bg-white space-y-2">
             <h4 className="text-sm font-medium text-gray-500">
-              Google Search Preview
+              Pratinjau Pencarian Google
             </h4>
             <GoogleSearchPreview
               title={formik.values.title}
@@ -179,7 +179,7 @@ export function PageSeoForm({
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save SEO Settings"}
+          {isSubmitting ? "Menyimpan..." : "Simpan Pengaturan SEO"}
         </Button>
       </div>
     </form>

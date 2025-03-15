@@ -41,7 +41,7 @@ export default function HomePageSEO() {
         }
       } catch (err) {
         console.error("Error fetching homepage SEO data:", err);
-        setError("Failed to load SEO data. Please try again.");
+        setError("Gagal memuat data SEO. Silakan coba lagi.");
       } finally {
         setLoading(false);
       }
@@ -75,9 +75,9 @@ export default function HomePageSEO() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">Homepage SEO</h1>
+          <h1 className="text-2xl font-bold">SEO Halaman Beranda</h1>
           <p className="text-sm text-muted-foreground">
-            Optimize your homepage for search engines
+            Optimalisasi halaman beranda Anda untuk mesin pencari
           </p>
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function HomePageSEO() {
           }}
           pageId="homepage"
           pageSlug=""
-          pageType="homepage"
+          pageType="Beranda"
         />
       )}
     </div>

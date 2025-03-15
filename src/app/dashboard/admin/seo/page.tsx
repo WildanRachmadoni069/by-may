@@ -16,9 +16,9 @@ export default function SEODashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">SEO Settings</h1>
+        <h1 className="text-3xl font-bold mb-2">Pengaturan SEO</h1>
         <p className="text-muted-foreground">
-          Manage SEO settings for static pages of your website
+          Kelola pengaturan SEO untuk halaman statis website Anda
         </p>
       </div>
 
@@ -28,21 +28,21 @@ export default function SEODashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Home className="h-5 w-5" />
-              Homepage
+              Halaman Beranda
             </CardTitle>
             <CardDescription>
-              Configure SEO settings for your website's homepage
+              Konfigurasi pengaturan SEO untuk halaman beranda website Anda
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Set title, meta description, and optimize for search engines to
-              improve your homepage visibility.
+              Atur judul, meta deskripsi, dan optimalkan untuk mesin pencari untuk
+              meningkatkan visibilitas halaman beranda Anda.
             </p>
           </CardContent>
           <CardFooter>
             <Link href="/dashboard/admin/seo/home" className="w-full">
-              <Button className="w-full">Edit Homepage SEO</Button>
+              <Button className="w-full">Edit SEO Beranda</Button>
             </Link>
           </CardFooter>
         </Card>
@@ -52,21 +52,21 @@ export default function SEODashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <HelpCircle className="h-5 w-5" />
-              FAQ Page
+              Halaman FAQ
             </CardTitle>
             <CardDescription>
-              Configure SEO settings for your FAQ page
+              Konfigurasi pengaturan SEO untuk halaman FAQ Anda
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Optimize your FAQ page to help customers find answers to common
-              questions through search engines.
+              Optimalkan halaman FAQ Anda untuk membantu pelanggan menemukan jawaban
+              atas pertanyaan umum melalui mesin pencari.
             </p>
           </CardContent>
           <CardFooter>
             <Link href="/dashboard/admin/seo/faq" className="w-full">
-              <Button className="w-full">Edit FAQ Page SEO</Button>
+              <Button className="w-full">Edit SEO FAQ</Button>
             </Link>
           </CardFooter>
         </Card>
@@ -76,21 +76,21 @@ export default function SEODashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Info className="h-5 w-5" />
-              About Us
+              Halaman Tentang Kami
             </CardTitle>
             <CardDescription>
-              Configure SEO settings for your About Us page
+              Konfigurasi pengaturan SEO untuk halaman Tentang Kami Anda
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm">
-              Optimize your About Us page to help customers learn about your
-              business through search engines.
+              Optimalkan halaman Tentang Kami untuk membantu pelanggan mengenal 
+              bisnis Anda melalui mesin pencari.
             </p>
           </CardContent>
           <CardFooter>
             <Link href="/dashboard/admin/seo/about" className="w-full">
-              <Button className="w-full">Edit About Us SEO</Button>
+              <Button className="w-full">Edit SEO Tentang Kami</Button>
             </Link>
           </CardFooter>
         </Card>

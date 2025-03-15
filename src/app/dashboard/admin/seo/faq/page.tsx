@@ -41,7 +41,7 @@ export default function FaqPageSEO() {
         }
       } catch (err) {
         console.error("Error fetching FAQ SEO data:", err);
-        setError("Failed to load SEO data. Please try again.");
+        setError("Gagal memuat data SEO. Silakan coba lagi.");
       } finally {
         setLoading(false);
       }
@@ -75,9 +75,9 @@ export default function FaqPageSEO() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">FAQ Page SEO</h1>
+          <h1 className="text-2xl font-bold">SEO Halaman FAQ</h1>
           <p className="text-sm text-muted-foreground">
-            Optimize your FAQ page for search engines
+            Optimalisasi halaman FAQ Anda untuk mesin pencari
           </p>
         </div>
       </div>
