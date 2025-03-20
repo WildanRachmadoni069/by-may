@@ -27,8 +27,11 @@ export default function EditProductPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <div className="space-y-4 max-w-4xl mx-auto">
-        <Skeleton className="h-8 w-64" />
+      <div className="space-y-6">
+        <div>
+          <Skeleton className="h-10 w-64 mb-2" />
+          <Skeleton className="h-5 w-96" />
+        </div>
         <Skeleton className="h-[200px] w-full" />
         <Skeleton className="h-[400px] w-full" />
       </div>
@@ -36,8 +39,28 @@ export default function EditProductPage({ params }: PageProps) {
   }
 
   if (error || !product) {
-    return <div>Product not found</div>;
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Produk Tidak Ditemukan</h1>
+          <p className="text-muted-foreground">
+            Produk yang Anda cari tidak ditemukan atau telah dihapus
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  return <ProductForm productId={resolvedParams.id} initialData={product} />;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Edit Produk</h1>
+        <p className="text-muted-foreground">
+          Perbarui informasi produk yang sudah ada
+        </p>
+      </div>
+
+      <ProductForm productId={resolvedParams.id} initialData={product} />
+    </div>
+  );
 }

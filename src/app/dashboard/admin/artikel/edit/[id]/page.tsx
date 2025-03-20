@@ -1,8 +1,10 @@
+"use client";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebaseConfig";
 import { notFound } from "next/navigation";
 import ArticleForm from "@/components/admin/article/ArticleForm";
 import type { ArticleData } from "@/types/article";
+import { use } from "react";
 
 function convertTimestampToISO(timestamp: any) {
   if (!timestamp) return null;
@@ -12,12 +14,12 @@ function convertTimestampToISO(timestamp: any) {
 export default async function ArticleEditPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const getArticle = async () => {
     try {
-      const paramsId = await params.id;
-      const docRef = doc(db, "articles", paramsId);
+      const resolvedParams = use(params);
+      const docRef = doc(db, "articles", resolvedParams.id);
       const docSnap = await getDoc(docRef);
 
       if (!docSnap.exists()) {
