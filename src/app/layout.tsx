@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import Footer from "@/components/landingpage/Footer";
 import { getSeoData } from "@/lib/firebase/seo";
+import { AuthStateManager } from "@/components/AuthStateManager";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -60,8 +61,10 @@ export default function RootLayout({
       <body
         className={`${jakartaSans.className} antialiased min-h-screen bg-background flex flex-col`}
       >
-        <Toaster />
-        <main className="relative flex-grow">{children}</main>
+        <AuthStateManager>
+          <Toaster />
+          <main className="relative flex-grow">{children}</main>
+        </AuthStateManager>
       </body>
     </html>
   );
