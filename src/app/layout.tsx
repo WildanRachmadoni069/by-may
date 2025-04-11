@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Footer from "@/components/landingpage/Footer";
 import { getSeoData } from "@/lib/firebase/seo";
 import { AuthStateManager } from "@/components/AuthStateManager";
+import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -63,6 +64,7 @@ export default function RootLayout({
       >
         <AuthStateManager>
           <Toaster />
+          <LogoutDialog />
           <main className="relative flex-grow">{children}</main>
         </AuthStateManager>
       </body>

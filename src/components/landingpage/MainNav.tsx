@@ -22,7 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogoutButton } from "../dashboard/LogoutButton";
+import { LogOut } from "lucide-react";
+import { useLogoutDialog } from "@/components/dashboard/LogoutDialog";
 import useAuthStore from "@/store/useAuthStore";
 
 // Dynamically import CartButton with no SSR
@@ -31,6 +32,7 @@ const CartButton = dynamic(() => import("./CartButton"), { ssr: false });
 function MainNav() {
   const pathName = usePathname();
   const { currentUser, userData, isAdmin } = useAuthStore();
+  const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
 
   // Get initials from user's fullName
   const getInitials = (name: string) => {
@@ -220,9 +222,13 @@ function MainNav() {
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
-                    <div className="px-2">
-                      <LogoutButton />
-                    </div>
+                    <DropdownMenuItem
+                      onSelect={() => setLogoutDialogOpen(true)}
+                      className="text-destructive"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (

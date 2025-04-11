@@ -31,6 +31,7 @@ import {
   Search,
   Home,
   ChevronDown,
+  LogOut,
 } from "lucide-react";
 import NextImage from "next/image";
 import Link from "next/link";
@@ -38,21 +39,21 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { LogoutButton } from "@/components/dashboard/LogoutButton";
+import { useLogoutDialog } from "@/components/dashboard/LogoutDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import useAuthStore from "@/store/useAuthStore";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, userData, loading, isAdmin } = useAuthStore();
+  const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
 
   // Get initials from user's fullName
   const getInitials = (name: string) => {
@@ -116,43 +117,52 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
 
           <SidebarSeparator />
 
-          {/* Simplified Admin Profile Card */}
-          <div className="px-4 py-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="w-full">
-                <div className="flex items-center gap-3 p-2.5 rounded-lg transition-colors hover:bg-black/5 w-full text-left">
-                  <Avatar className="h-10 w-10 border-2 border-amber-100">
-                    <AvatarImage src="" alt={userData?.fullName || "Admin"} />
-                    <AvatarFallback className="bg-amber-500 text-white">
-                      {getInitials(userData?.fullName || "Admin")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      {userData?.fullName || "Admin"}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {userData?.email}
-                    </p>
+          {/* Simplified Admin Profile Card - REPLACED DROPDOWN WITH ACCORDION */}
+          <div className="px-4 py-2">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="account" className="border-none">
+                <AccordionTrigger className="p-2 rounded-lg hover:bg-black/5 transition-colors">
+                  <div className="flex items-center gap-3 w-full">
+                    <Avatar className="h-10 w-10 border-2 border-amber-100">
+                      <AvatarImage src="" alt={userData?.fullName || "Admin"} />
+                      <AvatarFallback className="bg-amber-500 text-white">
+                        {getInitials(userData?.fullName || "Admin")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="font-medium text-sm truncate">
+                        {userData?.fullName || "Admin"}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {userData?.email}
+                      </p>
+                    </div>
+                    {/* Chevron handled by AccordionTrigger */}
                   </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground ml-1" />
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <div className="px-2 pt-1 pb-2">
-                  <h3 className="font-medium text-sm">Admin Account</h3>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/" className="flex items-center cursor-pointer">
-                    <Home className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span>Kembali ke Beranda</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <LogoutButton />
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="flex flex-col gap-1 px-2 pt-1 pb-2">
+                    <div className="text-sm font-medium mb-1 text-muted-foreground">
+                      Admin Account
+                    </div>
+                    <Link
+                      href="/"
+                      className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-black/5 transition-colors"
+                    >
+                      <Home className="h-4 w-4 text-muted-foreground" />
+                      <span>Kembali ke Beranda</span>
+                    </Link>
+                    <button
+                      onClick={() => setLogoutDialogOpen(true)}
+                      className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-black/5 transition-colors text-destructive w-full text-left"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
 
           <SidebarSeparator className="mt-2" />
