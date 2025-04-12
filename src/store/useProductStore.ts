@@ -15,6 +15,7 @@ import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 
 interface ProductStore {
   products: Product[];
+  selectedProduct: Product | null; // Add selectedProduct to store
   lastDoc: QueryDocumentSnapshot<DocumentData> | null;
   hasMore: boolean;
   loading: boolean;
@@ -33,10 +34,12 @@ interface ProductStore {
     data: Partial<ProductFormValues>
   ) => Promise<Partial<Product>>;
   removeProduct: (id: string) => Promise<void>;
+  clearSelectedProduct: () => void; // Add method to clear selectedProduct
 }
 
 export const useProductStore = create<ProductStore>((set, get) => ({
   products: [],
+  selectedProduct: null, // Initialize selectedProduct as null
   lastDoc: null,
   hasMore: false,
   loading: false,
@@ -114,11 +117,19 @@ export const useProductStore = create<ProductStore>((set, get) => ({
     try {
       set({ loading: true, error: null });
       const product = await getProduct(id);
-      set({ loading: false });
+
+      // Store the fetched product in selectedProduct
+      set({
+        loading: false,
+        selectedProduct: product,
+        error: product ? null : "Product not found",
+      });
+
       return product;
     } catch (error) {
       set({
         loading: false,
+        selectedProduct: null,
         error: `Error fetching product: ${(error as Error).message}`,
       });
       return null;
@@ -181,5 +192,10 @@ export const useProductStore = create<ProductStore>((set, get) => ({
       });
       throw error;
     }
+  },
+
+  // Clear selected product
+  clearSelectedProduct: () => {
+    set({ selectedProduct: null });
   },
 }));

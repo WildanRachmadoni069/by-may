@@ -113,6 +113,18 @@ function AdminProductList() {
   // Handle product deletion
   const handleDelete = async (productId: string) => {
     try {
+      // Get product details to access image URLs
+      const productToDelete = products.find((p) => p.id === productId);
+
+      if (productToDelete) {
+        // Import deleteProductImages dari file products.ts
+        const { deleteProductImages } = await import("@/lib/firebase/products");
+
+        // Hapus gambar dari Cloudinary
+        await deleteProductImages(productToDelete);
+      }
+
+      // Delete product from database
       await removeProduct(productId);
       toast({
         title: "Sukses",
@@ -124,6 +136,7 @@ function AdminProductList() {
         title: "Error",
         description: "Gagal menghapus produk",
       });
+      console.error("Error deleting product:", error);
     }
   };
 
@@ -172,7 +185,7 @@ function AdminProductList() {
     const defaultFilters = {
       category: "all",
       collection: "all",
-      sortBy: "newest",
+      sortBy: "newest" as typeof filters.sortBy,
     };
 
     setLocalFilters(defaultFilters);
@@ -328,7 +341,10 @@ function AdminProductList() {
             <Select
               value={localFilters.sortBy}
               onValueChange={(value) =>
-                setLocalFilters({ ...localFilters, sortBy: value })
+                setLocalFilters({
+                  ...localFilters,
+                  sortBy: value as typeof filters.sortBy,
+                })
               }
             >
               <SelectTrigger className="h-9 w-[120px]">

@@ -5,14 +5,10 @@ import { useProductStore } from "@/store/useProductStore";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { use } from "react";
+import { useParams } from "next/navigation";
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function EditProductPage({ params }: PageProps) {
-  const resolvedParams = use(params);
+export default function EditProductPage() {
+  const { id } = useParams();
   const {
     selectedProduct: product,
     loading,
@@ -22,8 +18,11 @@ export default function EditProductPage({ params }: PageProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchProduct(resolvedParams.id);
-  }, [resolvedParams.id, fetchProduct]);
+    if (id) {
+      console.log("Fetching product with ID:", id);
+      fetchProduct(id as string);
+    }
+  }, [id, fetchProduct]);
 
   if (loading) {
     return (
@@ -44,7 +43,10 @@ export default function EditProductPage({ params }: PageProps) {
         <div>
           <h1 className="text-3xl font-bold mb-2">Produk Tidak Ditemukan</h1>
           <p className="text-muted-foreground">
-            Produk yang Anda cari tidak ditemukan atau telah dihapus
+            Produk yang Anda cari tidak ditemukan atau telah dihapus.
+            {error && (
+              <span className="text-red-500"> Detail error: {error}</span>
+            )}
           </p>
         </div>
       </div>
@@ -60,7 +62,7 @@ export default function EditProductPage({ params }: PageProps) {
         </p>
       </div>
 
-      <ProductForm productId={resolvedParams.id} initialData={product} />
+      <ProductForm productId={id as string} initialData={product} />
     </div>
   );
 }

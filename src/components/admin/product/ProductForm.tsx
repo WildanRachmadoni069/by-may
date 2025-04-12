@@ -31,6 +31,7 @@ import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import ProductDescriptionEditor from "@/components/editor/ProductDescriptionEditor";
+import { updateProduct } from "@/lib/firebase/products"; // Import updateProduct function
 
 interface ProductFormProps {
   productId?: string;
@@ -93,7 +94,7 @@ const ProductSchema = Yup.object().shape({
 
 const initialValues: ProductFormValues = {
   name: "",
-  slug: "", // Add initial value for slug
+  slug: "",
   description: "",
   category: "",
   specialLabel: "",
@@ -111,7 +112,7 @@ const initialValues: ProductFormValues = {
     description: "",
     keywords: [],
   },
-  collection: "none", // Change default value from undefined/empty to "none"
+  collection: "none",
 };
 
 export function ProductForm({ productId, initialData }: ProductFormProps) {
@@ -122,7 +123,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     loading: categoriesLoading,
     fetchCategories,
   } = useCategoryStore();
-  const { addProduct, editProduct } = useProductStore();
+  const { addProduct } = useProductStore();
   const {
     collections,
     loading: collectionsLoading,
@@ -149,6 +150,9 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     name: "",
     options: [{ id: Date.now().toString(), name: "" }],
   });
+  
+  // State to track submission status
+  const [submitting, setSubmitting] = useState(false);
 
   const formik = useFormik({
     initialValues: initialData || initialValues,
@@ -156,8 +160,11 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     enableReinitialize: true,
     onSubmit: async (values, actions) => {
       try {
+        setSubmitting(true);
+        
         if (productId) {
-          await editProduct(productId, values);
+          // Use the updateProduct function from products.ts
+          await updateProduct(productId, values);
           toast({
             title: "Produk berhasil diperbarui",
             description: "Perubahan telah disimpan",
@@ -175,9 +182,10 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
         toast({
           variant: "destructive",
           title: "Gagal menyimpan produk",
-          description: "Terjadi kesalahan. Silakan coba lagi.",
+          description: `Terjadi kesalahan: ${error instanceof Error ? error.message : 'Unknown error'}`,
         });
       } finally {
+        setSubmitting(false);
         actions.setSubmitting(false);
       }
     },
@@ -560,9 +568,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
             >
               <SelectTrigger>
                 <SelectValue
-                  placeholder={
-                    categoriesLoading ? "Memuat..." : "Pilih kategori"
-                  }
+                  placeholder={categoriesLoading ? "Memuat..." : "Pilih kategori"}
                 />
               </SelectTrigger>
               <SelectContent>
@@ -590,9 +596,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
             >
               <SelectTrigger>
                 <SelectValue
-                  placeholder={
-                    collectionsLoading ? "Memuat..." : "Pilih koleksi"
-                  }
+                  placeholder={collectionsLoading ? "Memuat..." : "Pilih koleksi"}
                 />
               </SelectTrigger>
               <SelectContent>
@@ -919,8 +923,8 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
           >
             Batal
           </Button>
-          <Button type="submit" disabled={formik.isSubmitting}>
-            {formik.isSubmitting
+          <Button type="submit" disabled={submitting || formik.isSubmitting}>
+            {submitting || formik.isSubmitting
               ? "Menyimpan..."
               : productId
               ? "Perbarui Produk"

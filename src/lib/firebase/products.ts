@@ -298,3 +298,61 @@ export const deleteProduct = async (id: string): Promise<void> => {
     throw error;
   }
 };
+
+/**
+ * Delete all images associated with a product from Cloudinary
+ * @param product - Product with images to delete
+ */
+export async function deleteProductImages(product: Product): Promise<void> {
+  try {
+    // Collect all images to delete
+    const imagesToDelete: string[] = [];
+
+    // Main image
+    if (product.mainImage) {
+      imagesToDelete.push(product.mainImage);
+    }
+
+    // Additional images
+    if (product.additionalImages && Array.isArray(product.additionalImages)) {
+      product.additionalImages.forEach((img) => {
+        if (img) imagesToDelete.push(img);
+      });
+    }
+
+    // Variation images (if available)
+    if (product.variations && Array.isArray(product.variations)) {
+      product.variations.forEach((variation) => {
+        if (variation.options && Array.isArray(variation.options)) {
+          variation.options.forEach((option) => {
+            if (option.imageUrl) imagesToDelete.push(option.imageUrl);
+          });
+        }
+      });
+    }
+
+    // Delete images from Cloudinary
+    await Promise.all(
+      imagesToDelete.map(async (imageUrl) => {
+        try {
+          await fetch("/api/delete", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url: imageUrl }),
+          });
+        } catch (error) {
+          console.error("Failed to delete image:", imageUrl, error);
+        }
+      })
+    );
+
+    console.log(
+      `Deleted ${imagesToDelete.length} images for product: ${product.id}`
+    );
+  } catch (error) {
+    console.error("Error deleting product images:", error);
+    throw error;
+  }
+}
