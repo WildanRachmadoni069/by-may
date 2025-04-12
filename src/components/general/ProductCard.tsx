@@ -22,9 +22,9 @@ function ProductCard({ product }: { product: ProductFormValues }) {
   return (
     <Link
       href={`/produk/${product.slug}`}
-      className="group relative block overflow-hidden w-full max-w-xs"
+      className="group relative block overflow-hidden w-full"
     >
-      <Card>
+      <Card className="shadow-sm border-0">
         <CardHeader className="p-0 overflow-hidden">
           <div className="relative aspect-square transition duration-500 group-hover:scale-105 ">
             <Image
@@ -36,11 +36,15 @@ function ProductCard({ product }: { product: ProductFormValues }) {
           </div>
         </CardHeader>
 
-        <CardContent className={cn("flex flex-col gap-1 pt-2 px-2")}>
-          <h3 className="text-lg font-semibold text-wrap min-h-[56px] line-clamp-2">
+        <CardContent
+          className={cn("flex flex-col gap-1 py-2 px-2 sm:pt-3 sm:px-3")}
+        >
+          <h3 className="text-sm sm:text-base font-medium text-wrap min-h-[40px] sm:min-h-[48px] line-clamp-2">
             {product.name}
           </h3>
-          <p className="text-gray-600">{getProductPrice()}</p>
+          <p className="text-sm sm:text-base font-semibold text-gray-800">
+            {getProductPrice()}
+          </p>
         </CardContent>
       </Card>
     </Link>
