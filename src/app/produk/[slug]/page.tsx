@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/store/useCartStore";
 import { toast } from "@/hooks/use-toast";
 import { isLegacyTimestampId } from "@/lib/utils";
+import RelatedProducts from "@/components/productpage/RelatedProducts";
 
 export default function ProductDetail() {
   const [product, setProduct] = useState<ProductFormValues | null>(null);
@@ -614,6 +615,13 @@ export default function ProductDetail() {
           </Button>
         </div>
       </Card>
+
+      {/* Related Products Section */}
+      <RelatedProducts
+        currentProductId={product.id || ""}
+        categoryId={product.category}
+        collectionId={product.collection}
+      />
     </div>
   );
 }
