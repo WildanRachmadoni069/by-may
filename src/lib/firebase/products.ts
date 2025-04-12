@@ -113,103 +113,112 @@ export const getFilteredProducts = async (
       searchQuery = "",
     } = options;
 
-    let q = query(collection(db, "products"));
-
-    // Apply category filter
-    if (category !== "all") {
-      q = query(q, where("category", "==", category));
-    }
-
-    // Apply collection filter
-    if (collectionFilter === "none") {
-      // Filter products without collection
-      q = query(q, where("collection", "in", ["none", null, undefined]));
-    } else if (collectionFilter !== "all") {
-      q = query(q, where("collection", "==", collectionFilter));
-    }
-
-    // Apply search query if provided
+    // For complex searches or when we need both search and filter/sort functionality
     if (searchQuery) {
-      // Normalize search query
+      // First, build a query with just the filters (no search constraints)
+      let q = query(collection(db, "products"));
+
+      // Apply category filter
+      if (category !== "all") {
+        q = query(q, where("category", "==", category));
+      }
+
+      // Apply collection filter
+      if (collectionFilter === "none") {
+        q = query(q, where("collection", "in", ["", "none", null]));
+      } else if (collectionFilter !== "all") {
+        q = query(q, where("collection", "==", collectionFilter));
+      }
+
+      // Apply sorting - ensure createdAt field is used for newest
+      if (sortBy === "newest") {
+        q = query(q, orderBy("createdAt", "desc"));
+      } else if (sortBy === "price-asc") {
+        q = query(q, orderBy("basePrice", "asc"));
+      } else if (sortBy === "price-desc") {
+        q = query(q, orderBy("basePrice", "desc"));
+      } else {
+        // Default sorting
+        q = query(q, orderBy("createdAt", "desc"));
+      }
+
+      // Get all matching documents (we'll filter and paginate in memory)
+      const querySnapshot = await getDocs(q);
+
+      const allFilteredProducts = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Product[];
+
+      // Now filter by search query in memory
       const normalizedQuery = searchQuery.toLowerCase().trim();
+      const filteredProducts = allFilteredProducts.filter((product) => {
+        // Check if product name contains the search query
+        const productName = product.name.toLowerCase();
+        return productName.includes(normalizedQuery);
+      });
 
-      // Search using searchKeywords field
-      q = query(q, where("searchKeywords", "array-contains", normalizedQuery));
-    } else {
-      // Apply sorting when not searching
-      const sortField =
-        sortBy === "priceAsc" || sortBy === "priceDesc"
-          ? "basePrice"
-          : "createdAt";
-
-      const sortDirection = sortBy === "priceDesc" ? "desc" : "asc";
-
-      q = query(
-        q,
-        orderBy(sortField, sortDirection === "desc" ? "desc" : "asc")
-      );
-    }
-
-    // Apply pagination
-    q = query(q, limit(itemsPerPage));
-
-    // Apply startAfter for pagination if lastDoc exists
-    if (lastDoc) {
-      q = query(q, startAfter(lastDoc));
-    }
-
-    const querySnapshot = await getDocs(q);
-    const products = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Product[];
-
-    // If no products found with exact match, try a more flexible search
-    if (products.length === 0 && searchQuery) {
-      // For more complex searches or partial matches, we need to fetch more data and filter in memory
-      const broadQuery = query(collection(db, "products"));
-      const allProducts = await getDocs(broadQuery);
-
-      const filteredProducts = allProducts.docs
-        .map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            } as Product)
-        )
-        .filter((product) => {
-          // Case insensitive search in the product name
-          const productName = product.name.toLowerCase();
-          const searchTerms = searchQuery.toLowerCase().split(" ");
-
-          // Check if all search terms are in the product name
-          return searchTerms.every((term) => productName.includes(term));
-        }) as Product[];
-
-      // Apply pagination to the filtered results
-      const paginatedProducts = filteredProducts.slice(0, itemsPerPage);
+      // Apply pagination in memory
+      const startIdx = lastDoc ? Number(lastDoc) : 0;
+      const endIdx = startIdx + itemsPerPage;
+      const paginatedProducts = filteredProducts.slice(startIdx, endIdx);
 
       return {
         products: paginatedProducts,
-        lastDoc:
-          paginatedProducts.length === itemsPerPage
-            ? allProducts.docs[itemsPerPage - 1]
-            : null,
-        hasMore:
-          paginatedProducts.length === itemsPerPage &&
-          paginatedProducts.length < filteredProducts.length,
+        lastDoc: endIdx < filteredProducts.length ? endIdx : null,
+        hasMore: endIdx < filteredProducts.length,
+      };
+    } else {
+      // When no search query, use standard Firestore queries with filters and sorting
+      let q = query(collection(db, "products"));
+
+      // Apply category filter
+      if (category !== "all") {
+        q = query(q, where("category", "==", category));
+      }
+
+      // Apply collection filter
+      if (collectionFilter === "none") {
+        q = query(q, where("collection", "in", ["", "none", null]));
+      } else if (collectionFilter !== "all") {
+        q = query(q, where("collection", "==", collectionFilter));
+      }
+
+      // Ensure "newest" sorting uses createdAt field and is properly sorted descending
+      if (sortBy === "newest") {
+        q = query(q, orderBy("createdAt", "desc"));
+      } else if (sortBy === "price-asc") {
+        q = query(q, orderBy("basePrice", "asc"));
+      } else if (sortBy === "price-desc") {
+        q = query(q, orderBy("basePrice", "desc"));
+      } else {
+        // Default sorting
+        q = query(q, orderBy("createdAt", "desc"));
+      }
+
+      // Apply pagination
+      q = query(q, limit(itemsPerPage));
+
+      // Apply startAfter for pagination if lastDoc exists
+      if (lastDoc) {
+        q = query(q, startAfter(lastDoc));
+      }
+
+      const querySnapshot = await getDocs(q);
+      const products = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Product[];
+
+      const newLastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+      const hasMore = querySnapshot.docs.length === itemsPerPage;
+
+      return {
+        products,
+        lastDoc: newLastDoc,
+        hasMore,
       };
     }
-
-    const newLastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
-    const hasMore = querySnapshot.docs.length === itemsPerPage;
-
-    return {
-      products,
-      lastDoc: newLastDoc,
-      hasMore,
-    };
   } catch (error) {
     console.error("Error getting filtered products: ", error);
     throw error;
@@ -240,9 +249,10 @@ export const createProduct = async (
   productData: ProductFormValues
 ): Promise<Product> => {
   try {
+    // Ensure createdAt is set to current timestamp for proper sorting
     const productWithTimestamp = {
       ...prepareProductData(productData),
-      createdAt: Timestamp.now(),
+      createdAt: Timestamp.now(), // This ensures all new products have a createdAt timestamp
     };
 
     const docRef = await addDoc(

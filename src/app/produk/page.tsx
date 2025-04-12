@@ -33,21 +33,45 @@ function ProductPage() {
   const filters = useProductFilterStore();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
-  // Effect for initial load and when filters change
+  // Effect for initial load
   useEffect(() => {
+    // Initialize search from URL if present
+    if (initialQuery) {
+      setSearchQuery(initialQuery);
+    }
+
     fetchFilteredProducts({
       category: filters.category,
       collection: filters.collection,
       sortBy: filters.sortBy,
       itemsPerPage: 12,
-      searchQuery,
+      searchQuery: initialQuery,
+    });
+  }, [initialQuery, fetchFilteredProducts]);
+
+  // Effect for when filters change
+  useEffect(() => {
+    if (
+      filters.category === "all" &&
+      filters.collection === "all" &&
+      filters.sortBy === "newest" &&
+      !searchQuery
+    ) {
+      return; // Avoid duplicate initial fetch
+    }
+
+    fetchFilteredProducts({
+      category: filters.category,
+      collection: filters.collection,
+      sortBy: filters.sortBy,
+      itemsPerPage: 12,
+      searchQuery: searchQuery, // Keep search query when changing filters
     });
   }, [
     fetchFilteredProducts,
     filters.category,
     filters.collection,
     filters.sortBy,
-    searchQuery,
   ]);
 
   const handleSearch = (query: string) => {
@@ -62,6 +86,15 @@ function ProductPage() {
     }
 
     router.replace(url.pathname + url.search);
+
+    // When specifically performing a search action, fetch with current filters
+    fetchFilteredProducts({
+      category: filters.category,
+      collection: filters.collection,
+      sortBy: filters.sortBy,
+      itemsPerPage: 12,
+      searchQuery: query,
+    });
   };
 
   const loadMore = () => {
@@ -70,7 +103,7 @@ function ProductPage() {
       collection: filters.collection,
       sortBy: filters.sortBy,
       itemsPerPage: 12,
-      searchQuery,
+      searchQuery: searchQuery, // Keep search query when loading more
     });
   };
 

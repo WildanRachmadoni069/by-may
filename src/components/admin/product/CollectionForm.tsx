@@ -6,7 +6,6 @@ import * as Yup from "yup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase/firebaseConfig";
 import { collection, addDoc } from "firebase/firestore";
@@ -18,7 +17,11 @@ const CollectionSchema = Yup.object().shape({
     .required("Nama koleksi wajib diisi"),
 });
 
-export default function CollectionForm() {
+interface CollectionFormProps {
+  onSuccess?: () => void;
+}
+
+export default function CollectionForm({ onSuccess }: CollectionFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -37,6 +40,9 @@ export default function CollectionForm() {
           description: "Koleksi baru telah berhasil ditambahkan.",
         });
         resetForm();
+        if (onSuccess) {
+          onSuccess();
+        }
       } catch (error) {
         console.error("Error adding collection:", error);
         toast({
@@ -51,24 +57,23 @@ export default function CollectionForm() {
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Tambah Koleksi Baru</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={formik.handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nama Koleksi</Label>
-            <Input id="name" {...formik.getFieldProps("name")} />
-            {formik.touched.name && formik.errors.name && (
-              <p className="text-sm text-red-500 mt-1">{formik.errors.name}</p>
-            )}
-          </div>
-          <Button type="submit" disabled={isSubmitting || !formik.isValid}>
-            {isSubmitting ? "Menyimpan..." : "Simpan Koleksi"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <form onSubmit={formik.handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="name">Nama Koleksi</Label>
+          <Input id="name" {...formik.getFieldProps("name")} />
+          {formik.touched.name && formik.errors.name && (
+            <p className="text-sm text-red-500 mt-1">{formik.errors.name}</p>
+          )}
+        </div>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting || !formik.isValid}
+        >
+          {isSubmitting ? "Menyimpan..." : "Simpan Koleksi"}
+        </Button>
+      </form>
+    </div>
   );
 }

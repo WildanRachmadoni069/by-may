@@ -10,7 +10,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, PlusCircle, Trash, Search, Eye } from "lucide-react"; // Add Eye icon
+import {
+  Pencil,
+  PlusCircle,
+  Trash,
+  Search,
+  Eye,
+  Filter,
+  X,
+} from "lucide-react"; // Add Eye, Filter, and X icons
 import Link from "next/link";
 import { formatRupiah } from "@/lib/utils";
 import {
@@ -73,27 +81,25 @@ function AdminProductList() {
   const { categories, fetchCategories } = useCategoryStore();
   const { collections, fetchCollections } = useCollectionStore();
 
+  // Add local filter state that will only be applied when the button is clicked
+  const [localFilters, setLocalFilters] = useState({
+    category: filters.category,
+    collection: filters.collection,
+    sortBy: filters.sortBy,
+  });
+
   // Fetch initial data
   useEffect(() => {
     fetchCategories();
     fetchCollections();
-  }, [fetchCategories, fetchCollections]);
 
-  // Fetch filtered products
-  useEffect(() => {
+    // Initial products fetch
     fetchFilteredProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
       itemsPerPage: 10,
     });
-  }, [
-    fetchFilteredProducts,
-    filters.category,
-    filters.collection,
-    filters.sortBy,
-  ]);
+  }, [fetchCategories, fetchCollections, fetchFilteredProducts]);
 
+  // Load more products for pagination
   const loadMore = () => {
     fetchMoreProducts({
       category: filters.category,
@@ -104,6 +110,7 @@ function AdminProductList() {
     });
   };
 
+  // Handle product deletion
   const handleDelete = async (productId: string) => {
     try {
       await removeProduct(productId);
@@ -120,18 +127,8 @@ function AdminProductList() {
     }
   };
 
+  // Handle search separately from filters
   const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      // Reset to initial state if search is empty
-      fetchFilteredProducts({
-        category: filters.category,
-        collection: filters.collection,
-        sortBy: filters.sortBy,
-        itemsPerPage: 10,
-      });
-      return;
-    }
-
     fetchFilteredProducts({
       category: filters.category,
       collection: filters.collection,
@@ -141,6 +138,7 @@ function AdminProductList() {
     });
   };
 
+  // Reset search but keep filters
   const handleResetSearch = () => {
     setSearchQuery("");
     fetchFilteredProducts({
@@ -148,7 +146,36 @@ function AdminProductList() {
       collection: filters.collection,
       sortBy: filters.sortBy,
       itemsPerPage: 10,
+      searchQuery: "", // Ensure empty string
     });
+  };
+
+  // Apply all filters at once
+  const handleApplyFilters = () => {
+    // Update the global filter store
+    filters.setCategory(localFilters.category);
+    filters.setCollection(localFilters.collection);
+    filters.setSortBy(localFilters.sortBy);
+
+    // Fetch with all the new filter values, maintaining search query
+    fetchFilteredProducts({
+      category: localFilters.category,
+      collection: localFilters.collection,
+      sortBy: localFilters.sortBy,
+      itemsPerPage: 10,
+      searchQuery: searchQuery.trim(),
+    });
+  };
+
+  // Reset filters to defaults but keep search
+  const handleResetFilters = () => {
+    const defaultFilters = {
+      category: "all",
+      collection: "all",
+      sortBy: "newest",
+    };
+
+    setLocalFilters(defaultFilters);
   };
 
   const getProductPrice = (product: Product) => {
@@ -197,172 +224,306 @@ function AdminProductList() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Daftar Produk</h1>
-        <p className="text-muted-foreground">
-          Kelola produk yang dijual di toko Anda
-        </p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari produk..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSearch();
-                }
-              }}
-            />
-          </div>
-          <Button onClick={handleSearch} disabled={productsLoading}>
-            {productsLoading ? (
-              <span className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                Mencari...
-              </span>
-            ) : (
-              "Cari"
-            )}
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Daftar Produk</h1>
+          <p className="text-muted-foreground">
+            Kelola produk yang dijual di toko Anda
+          </p>
+        </div>
+        <Link href="/dashboard/admin/product/add">
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" /> Tambah Produk
           </Button>
-          {searchQuery && (
-            <Button
-              variant="outline"
-              onClick={handleResetSearch}
-              disabled={productsLoading}
-            >
-              Reset
-            </Button>
-          )}
-        </div>
-
-        <div className="flex gap-2 sm:justify-end">
-          <Select value={filters.category} onValueChange={filters.setCategory}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Semua Kategori" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Kategori</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.value} value={category.value}>
-                  {category.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.collection}
-            onValueChange={filters.setCollection}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Semua Koleksi" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Koleksi</SelectItem>
-              <SelectItem value="none">Tanpa Koleksi</SelectItem>
-              {collections.map((collection) => (
-                <SelectItem key={collection.value} value={collection.value}>
-                  {collection.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Link href="/dashboard/admin/product/add">
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" /> Tambah
-            </Button>
-          </Link>
-        </div>
+        </Link>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nama Produk</TableHead>
-            <TableHead>Kategori</TableHead>
-            <TableHead>Harga</TableHead>
-            <TableHead>Stok</TableHead>
-            <TableHead className="text-right">Aksi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {products.length === 0 ? (
+      {/* Minimalist search and filter section without heading */}
+      <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+        {/* Search and filters in a single row on desktop */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search with compact styling */}
+          <div className="relative flex-1 flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari produk..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearch();
+                  }
+                }}
+              />
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleSearch}
+              disabled={productsLoading}
+              className="px-3 h-9"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            {searchQuery && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleResetSearch}
+                disabled={productsLoading}
+                className="px-3 h-9"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Compact filter dropdowns */}
+          <div className="flex flex-wrap gap-2 sm:w-auto w-full">
+            {/* Category filter */}
+            <Select
+              value={localFilters.category}
+              onValueChange={(value) =>
+                setLocalFilters({ ...localFilters, category: value })
+              }
+            >
+              <SelectTrigger className="h-9 w-[120px]">
+                <SelectValue placeholder="Kategori" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kategori</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.value} value={category.value}>
+                    {category.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Collection filter */}
+            <Select
+              value={localFilters.collection}
+              onValueChange={(value) =>
+                setLocalFilters({ ...localFilters, collection: value })
+              }
+            >
+              <SelectTrigger className="h-9 w-[120px]">
+                <SelectValue placeholder="Koleksi" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Koleksi</SelectItem>
+                <SelectItem value="none">Tanpa Koleksi</SelectItem>
+                {collections.map((collection) => (
+                  <SelectItem key={collection.value} value={collection.value}>
+                    {collection.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Sorting */}
+            <Select
+              value={localFilters.sortBy}
+              onValueChange={(value) =>
+                setLocalFilters({ ...localFilters, sortBy: value })
+              }
+            >
+              <SelectTrigger className="h-9 w-[120px]">
+                <SelectValue placeholder="Urutkan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Terbaru</SelectItem>
+                <SelectItem value="price-asc">Harga Terendah</SelectItem>
+                <SelectItem value="price-desc">Harga Tertinggi</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Button group with icons only */}
+            <div className="flex">
+              <Button
+                size="sm"
+                onClick={handleApplyFilters}
+                disabled={productsLoading}
+                className="h-9 px-3"
+                title="Terapkan Filter"
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  handleResetFilters();
+                  handleApplyFilters();
+                }}
+                disabled={productsLoading}
+                title="Reset Filter"
+                className="h-9 px-3 ml-1"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M3 12c0-5.5 5-10 11-10s11 4.5 11 10-5 10-11 10c-2.8 0-5.5-.9-7.5-2.5" />
+                  <path d="M3 12h6" />
+                  <path d="M6 15l-3-3 3-3" />
+                </svg>
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Search results feedback - more subtle */}
+        {searchQuery && (
+          <div className="mt-2 text-xs flex items-center gap-2 text-muted-foreground">
+            <Search className="h-3 w-3" />
+            Hasil untuk: <span className="font-medium">"{searchQuery}"</span>
+            {products.length === 0
+              ? " (tidak ditemukan)"
+              : `(${products.length} produk)`}
+          </div>
+        )}
+      </div>
+
+      {/* Products table - now more prominent */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="text-center">
-                {productsLoading ? "Memuat..." : "Tidak ada produk yang sesuai"}
-              </TableCell>
+              <TableHead>Nama Produk</TableHead>
+              <TableHead>Kategori</TableHead>
+              <TableHead>Harga</TableHead>
+              <TableHead>Stok</TableHead>
+              <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
-          ) : (
-            products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>{product.name}</TableCell>
-                <TableCell>
-                  {categories.find((c) => c.value === product.category)
-                    ?.label || "-"}
-                </TableCell>
-                <TableCell>{getProductPrice(product)}</TableCell>
-                <TableCell>{getProductStock(product)}</TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Link href={`/produk/${product.slug}`} target="_blank">
-                    <Button variant="outline" size="sm" className="mr-2">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link href={`/dashboard/admin/product/edit/${product.id}`}>
-                    <Button variant="outline" size="sm" className="mr-2">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="default" size="sm">
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Apakah Anda yakin ingin menghapus produk ini? Tindakan
-                          ini tidak dapat dibatalkan.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(product.id)}
-                        >
-                          Hapus
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+          </TableHeader>
+          <TableBody>
+            {products.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  {productsLoading ? (
+                    <div className="flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Search className="h-8 w-8" />
+                      <p>Tidak ada produk yang sesuai</p>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              products.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {categories.find((c) => c.value === product.category)
+                        ?.label || "-"}
+                    </span>
+                  </TableCell>
+                  <TableCell>{getProductPrice(product)}</TableCell>
+                  <TableCell>{getProductStock(product)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/produk/${product.slug}`} target="_blank">
+                        <Button variant="ghost" size="sm" title="Lihat Produk">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Link
+                        href={`/dashboard/admin/product/edit/${product.id}`}
+                      >
+                        <Button variant="ghost" size="sm" title="Edit Produk">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600"
+                            title="Hapus Produk"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Apakah Anda yakin ingin menghapus produk ini?
+                              Tindakan ini tidak dapat dibatalkan.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(product.id)}
+                            >
+                              Hapus
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
-      {hasMore && (
-        <div className="mt-4 flex justify-center">
-          <Button
-            variant="outline"
-            onClick={loadMore}
-            disabled={productsLoading}
-          >
-            {productsLoading ? "Memuat..." : "Tampilkan Lebih Banyak"}
-          </Button>
-        </div>
-      )}
+        {/* Load more pagination */}
+        {hasMore && (
+          <div className="py-3 flex justify-center border-t">
+            <Button
+              variant="outline"
+              onClick={loadMore}
+              disabled={productsLoading}
+              className="gap-2 h-9"
+            >
+              {productsLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                  Memuat...
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Tampilkan Lebih Banyak
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
