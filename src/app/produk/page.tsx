@@ -1,7 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import ProductCard from "@/components/general/ProductCard";
-import { ChevronRight, ShoppingBag, X, SlidersHorizontal } from "lucide-react";
+import {
+  ChevronRight,
+  ShoppingBag,
+  X,
+  SlidersHorizontal,
+  AlertCircle,
+} from "lucide-react";
 import ProductSidebar from "@/components/productpage/ProductSidebar";
 import {
   Sheet,
@@ -48,6 +54,9 @@ function ProductPage() {
   const filters = useProductFilterStore();
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
+  // Define a consistent itemsPerPage value
+  const itemsPerPage = 4; // For testing pagination
+
   // Effect for initial load
   useEffect(() => {
     // Initialize search from URL if present
@@ -59,7 +68,7 @@ function ProductPage() {
       category: filters.category,
       collection: filters.collection,
       sortBy: filters.sortBy,
-      itemsPerPage: 12,
+      itemsPerPage: itemsPerPage, // Use the consistent itemsPerPage value
       searchQuery: initialQuery,
     });
   }, [fetchFilteredProducts, initialQuery]);
@@ -89,7 +98,7 @@ function ProductPage() {
       category: filters.category,
       collection: filters.collection,
       sortBy: filters.sortBy,
-      itemsPerPage: 12,
+      itemsPerPage: 4, // Changed from 12 to 4 for testing pagination
       searchQuery: query,
     });
   };
@@ -109,19 +118,37 @@ function ProductPage() {
       category: filters.category,
       collection: filters.collection,
       sortBy: filters.sortBy,
-      itemsPerPage: 12,
+      itemsPerPage: 4, // Changed from 12 to 4 for testing pagination
       searchQuery: "",
     });
   };
 
   const loadMore = () => {
+    // Don't attempt to load more if already loading
+    if (loading) return;
+
+    // fetchMoreProducts already sets loading state internally in the store
     fetchMoreProducts({
       category: filters.category,
       collection: filters.collection,
       sortBy: filters.sortBy,
-      itemsPerPage: 12,
+      itemsPerPage: 4, // Changed from 12 to 4 for testing pagination
       searchQuery: filters.searchQuery,
     });
+  };
+
+  // Product card skeleton loader for loading state
+  const renderProductSkeletons = () => {
+    return Array(4) // Changed from 12 to 4 to match itemsPerPage
+      .fill(null)
+      .map((_, index) => (
+        <li key={`skeleton-${index}`} className="animate-pulse">
+          <div className="bg-gray-200 aspect-square rounded-lg w-full"></div>
+          <div className="mt-2 h-4 bg-gray-200 rounded w-2/3"></div>
+          <div className="mt-1 h-4 bg-gray-200 rounded w-1/3"></div>
+          <div className="mt-2 h-6 bg-gray-200 rounded w-1/2"></div>
+        </li>
+      ));
   };
 
   // Empty state component enhanced with search information
@@ -162,7 +189,9 @@ function ProductPage() {
     );
   };
 
+  // Improved pagination component with better loading state
   const renderPagination = () => {
+    if (loading && !products.length) return null;
     if (!hasMore) return null;
 
     return (
@@ -192,8 +221,35 @@ function ProductPage() {
     );
   };
 
+  // Better error handling
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <AlertCircle className="h-16 w-16 text-destructive mb-4" />
+            <h3 className="text-lg font-medium">Terjadi Kesalahan</h3>
+            <p className="text-muted-foreground mt-2">{error}</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => {
+                fetchFilteredProducts({
+                  category: filters.category,
+                  collection: filters.collection,
+                  sortBy: filters.sortBy,
+                  itemsPerPage: 12,
+                  searchQuery: filters.searchQuery,
+                });
+              }}
+            >
+              Coba Lagi
+            </Button>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
   }
 
   return (
@@ -280,14 +336,25 @@ function ProductPage() {
             )}
 
             <h2 className="sr-only">Koleksi Produk</h2>
+
+            {/* Show skeletons when loading and no products are available yet */}
             {loading && products.length === 0 ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
+              <ul className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                {renderProductSkeletons()}
+              </ul>
             ) : (
               <>
+                {/* Show stable UI with data */}
                 {renderEmptyState()}
-                {renderPagination()}
+
+                {/* Fade-in effect for pagination when loading more */}
+                <div
+                  className={`transition-opacity duration-300 ${
+                    loading ? "opacity-70" : "opacity-100"
+                  }`}
+                >
+                  {renderPagination()}
+                </div>
               </>
             )}
           </div>

@@ -93,7 +93,7 @@ function AdminProductList() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
 
   // Fetch initial data
   useEffect(() => {
@@ -137,32 +137,14 @@ function AdminProductList() {
         searchQuery: searchQuery.trim(),
       });
     } else {
-      // Next pages - load more until we reach the desired page
-      let currentPageData = page;
-
-      // Reset if we're going backwards
-      if (currentPageData < currentPage) {
-        await fetchFilteredProducts({
-          category: filters.category,
-          collection: filters.collection,
-          sortBy: filters.sortBy,
-          itemsPerPage: itemsPerPage,
-          searchQuery: searchQuery.trim(),
-        });
-        currentPageData = 1;
-      }
-
-      // Load more until we reach the desired page
-      while (currentPageData < page) {
-        await fetchMoreProducts({
-          category: filters.category,
-          collection: filters.collection,
-          sortBy: filters.sortBy,
-          itemsPerPage: itemsPerPage,
-          searchQuery: searchQuery.trim(),
-        });
-        currentPageData++;
-      }
+      // For subsequent pages, fetch from the beginning with more items
+      await fetchFilteredProducts({
+        category: filters.category,
+        collection: filters.collection,
+        sortBy: filters.sortBy,
+        itemsPerPage: itemsPerPage * page, // Fetch enough items to cover all pages up to current
+        searchQuery: searchQuery.trim(),
+      });
     }
   };
 
@@ -364,9 +346,48 @@ function AdminProductList() {
     return items;
   };
 
+  const loadMore = () => {
+    fetchMoreProducts({
+      category: filters.category,
+      collection: filters.collection,
+      sortBy: filters.sortBy,
+      itemsPerPage: itemsPerPage,
+      searchQuery: searchQuery.trim(),
+    });
+  };
+
+  // Add product table skeleton loader
+  const renderProductSkeletons = () => {
+    return Array(itemsPerPage)
+      .fill(null)
+      .map((_, index) => (
+        <TableRow key={`skeleton-${index}`} className="animate-pulse">
+          <TableCell>
+            <Skeleton className="h-5 w-3/4" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-5 w-24" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-5 w-12" />
+          </TableCell>
+          <TableCell className="text-right">
+            <div className="flex justify-end gap-2">
+              <Skeleton className="h-8 w-8 rounded-md" />
+              <Skeleton className="h-8 w-8 rounded-md" />
+              <Skeleton className="h-8 w-8 rounded-md" />
+            </div>
+          </TableCell>
+        </TableRow>
+      ));
+  };
+
   // Render empty or not found state
   const renderEmptyState = () => {
-    if (productsLoading) {
+    if (productsLoading && products.length === 0) {
       return (
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -602,7 +623,7 @@ function AdminProductList() {
       </div>
 
       {/* Products table - now more prominent */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 relative">
         <Table>
           <TableHeader>
             <TableRow>
@@ -614,7 +635,9 @@ function AdminProductList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.length === 0 ? (
+            {productsLoading && products.length === 0 ? (
+              renderProductSkeletons()
+            ) : products.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
                   {renderEmptyState()}
@@ -692,10 +715,24 @@ function AdminProductList() {
                   </TableRow>
                 ))
             )}
+
+            {/* Add inline loading indicator within proper TableRow and TableCell structure */}
+            {productsLoading && products.length > 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      Memuat data...
+                    </span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
 
-        {/* New pagination UI */}
+        {/* New pagination UI with inline loading indicator */}
         {products.length > 0 && (
           <div className="py-4 border-t">
             <Pagination>
@@ -708,12 +745,34 @@ function AdminProductList() {
                         handlePageChange(currentPage - 1);
                       }
                     }}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${
+                      productsLoading || currentPage === 1
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
                     aria-disabled={currentPage === 1 || productsLoading}
-                  />
+                  >
+                    {productsLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
+                        Prev
+                      </>
+                    ) : (
+                      "Prev"
+                    )}
+                  </PaginationPrevious>
                 </PaginationItem>
 
-                {renderPaginationItems()}
+                {/* If loading, show spinner in pagination */}
+                {productsLoading ? (
+                  <PaginationItem>
+                    <div className="flex items-center justify-center px-4">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    </div>
+                  </PaginationItem>
+                ) : (
+                  renderPaginationItems()
+                )}
 
                 <PaginationItem>
                   <PaginationNext
@@ -726,18 +785,35 @@ function AdminProductList() {
                         handlePageChange(currentPage + 1);
                       }
                     }}
-                    className="cursor-pointer"
+                    className={`cursor-pointer ${
+                      productsLoading ||
+                      currentPage === totalPages ||
+                      (!hasMore && currentPage === totalPages)
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
                     aria-disabled={
                       currentPage === totalPages ||
                       productsLoading ||
                       (!hasMore && currentPage === totalPages)
                     }
-                  />
+                  >
+                    {productsLoading ? (
+                      <>
+                        Next
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current ml-1"></div>
+                      </>
+                    ) : (
+                      "Next"
+                    )}
+                  </PaginationNext>
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
           </div>
         )}
+
+        {/* Remove the full-page loading overlay */}
       </div>
     </div>
   );
