@@ -25,8 +25,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/store/useCartStore";
 import { toast } from "@/hooks/use-toast";
-import { isLegacyTimestampId } from "@/lib/utils";
 import RelatedProducts from "@/components/productpage/RelatedProducts";
+import Footer from "@/components/landingpage/Footer";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 export default function ProductDetail() {
   const [product, setProduct] = useState<ProductFormValues | null>(null);
@@ -349,6 +358,14 @@ export default function ProductDetail() {
   if (loading) {
     return (
       <div className="container mx-auto p-6 space-y-6">
+        {/* Breadcrumb skeleton */}
+        <div className="flex items-center space-x-2">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-4" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-4" />
+          <Skeleton className="h-4 w-24" />
+        </div>
         <Skeleton className="h-8 w-[200px]" />
         <Skeleton className="h-[400px] w-full" />
         <Skeleton className="h-24 w-full" />
@@ -362,6 +379,27 @@ export default function ProductDetail() {
 
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/">Beranda</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/produk">Produk</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{product.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Main Product Section */}
       <div className="flex flex-col md:flex-row gap-6">
         {/* Image Carousel Section - Now using allImages instead of images */}
@@ -622,6 +660,7 @@ export default function ProductDetail() {
         categoryId={product.category}
         collectionId={product.collection}
       />
+      <Footer />
     </div>
   );
 }

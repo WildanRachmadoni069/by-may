@@ -20,6 +20,15 @@ import {
 import { useSearchParams } from "next/navigation";
 import { SearchBar } from "@/components/productpage/SearchBar";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
 
 function ProductPage() {
@@ -188,8 +197,23 @@ function ProductPage() {
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-background">
       <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8 pb-20 md:pb-12">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">Beranda</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Produk</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <header>
           <h1 className="text-xl font-bold text-foreground sm:text-3xl">
             Produk Kami
@@ -281,7 +305,7 @@ function ProductPage() {
       </div>
 
       <Footer />
-    </>
+    </div>
   );
 }
 

@@ -4,6 +4,16 @@ import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebaseConfig";
 import type { ArticleData } from "@/types/article";
 import React from "react";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import Footer from "@/components/landingpage/Footer";
 
 export const metadata: Metadata = {
   title: "Artikel",
@@ -73,6 +83,21 @@ export default async function ArticlePage() {
   return (
     <>
       <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">Beranda</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Artikel</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <div className="max-w-3xl mx-auto text-center mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-gray-900">
             Artikel Islami
@@ -104,6 +129,7 @@ export default async function ArticlePage() {
           </div>
         )}
       </section>
+      <Footer />
     </>
   );
 }
