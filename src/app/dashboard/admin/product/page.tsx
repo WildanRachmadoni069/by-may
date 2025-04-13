@@ -18,7 +18,9 @@ import {
   Eye,
   Filter,
   X,
-} from "lucide-react"; // Add Eye, Filter, and X icons
+  PackageOpen,
+  CircleSlashed,
+} from "lucide-react";
 import Link from "next/link";
 import { formatRupiah } from "@/lib/utils";
 import {
@@ -88,6 +90,11 @@ function AdminProductList() {
     sortBy: filters.sortBy,
   });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 10;
+
   // Fetch initial data
   useEffect(() => {
     fetchCategories();
@@ -95,19 +102,68 @@ function AdminProductList() {
 
     // Initial products fetch
     fetchFilteredProducts({
-      itemsPerPage: 10,
+      itemsPerPage: itemsPerPage,
     });
   }, [fetchCategories, fetchCollections, fetchFilteredProducts]);
 
-  // Load more products for pagination
-  const loadMore = () => {
-    fetchMoreProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: 10,
-      searchQuery: searchQuery.trim(),
-    });
+  // Update total pages when products or hasMore changes
+  useEffect(() => {
+    // If we have hasMore true, add at least one more page
+    // This is an estimate since we don't know the exact count
+    if (hasMore) {
+      setTotalPages(Math.max(2, currentPage + 1));
+    } else if (products.length === 0) {
+      setTotalPages(1);
+    } else {
+      // When we're on the last page, calculate based on current products
+      const estimatedTotal = Math.ceil(products.length / itemsPerPage);
+      setTotalPages(Math.max(currentPage, estimatedTotal));
+    }
+  }, [products, hasMore, currentPage]);
+
+  // Handle page change
+  const handlePageChange = async (page: number) => {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+
+    setCurrentPage(page);
+
+    if (page === 1) {
+      // First page - fetch fresh
+      await fetchFilteredProducts({
+        category: filters.category,
+        collection: filters.collection,
+        sortBy: filters.sortBy,
+        itemsPerPage: itemsPerPage,
+        searchQuery: searchQuery.trim(),
+      });
+    } else {
+      // Next pages - load more until we reach the desired page
+      let currentPageData = page;
+
+      // Reset if we're going backwards
+      if (currentPageData < currentPage) {
+        await fetchFilteredProducts({
+          category: filters.category,
+          collection: filters.collection,
+          sortBy: filters.sortBy,
+          itemsPerPage: itemsPerPage,
+          searchQuery: searchQuery.trim(),
+        });
+        currentPageData = 1;
+      }
+
+      // Load more until we reach the desired page
+      while (currentPageData < page) {
+        await fetchMoreProducts({
+          category: filters.category,
+          collection: filters.collection,
+          sortBy: filters.sortBy,
+          itemsPerPage: itemsPerPage,
+          searchQuery: searchQuery.trim(),
+        });
+        currentPageData++;
+      }
+    }
   };
 
   // Handle product deletion
@@ -130,6 +186,18 @@ function AdminProductList() {
         title: "Sukses",
         description: "Produk berhasil dihapus",
       });
+
+      // Refresh product list if needed
+      if (products.length <= 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+        await fetchFilteredProducts({
+          category: filters.category,
+          collection: filters.collection,
+          sortBy: filters.sortBy,
+          itemsPerPage: itemsPerPage * (currentPage - 1),
+          searchQuery: searchQuery.trim(),
+        });
+      }
     } catch (error) {
       toast({
         variant: "destructive",
@@ -142,11 +210,12 @@ function AdminProductList() {
 
   // Handle search separately from filters
   const handleSearch = () => {
+    setCurrentPage(1); // Reset to first page on new search
     fetchFilteredProducts({
       category: filters.category,
       collection: filters.collection,
       sortBy: filters.sortBy,
-      itemsPerPage: 10,
+      itemsPerPage: itemsPerPage,
       searchQuery: searchQuery.trim(),
     });
   };
@@ -154,17 +223,20 @@ function AdminProductList() {
   // Reset search but keep filters
   const handleResetSearch = () => {
     setSearchQuery("");
+    setCurrentPage(1); // Reset to first page
     fetchFilteredProducts({
       category: filters.category,
       collection: filters.collection,
       sortBy: filters.sortBy,
-      itemsPerPage: 10,
+      itemsPerPage: itemsPerPage,
       searchQuery: "", // Ensure empty string
     });
   };
 
   // Apply all filters at once
   const handleApplyFilters = () => {
+    setCurrentPage(1); // Reset to first page on filter change
+
     // Update the global filter store
     filters.setCategory(localFilters.category);
     filters.setCollection(localFilters.collection);
@@ -175,7 +247,7 @@ function AdminProductList() {
       category: localFilters.category,
       collection: localFilters.collection,
       sortBy: localFilters.sortBy,
-      itemsPerPage: 10,
+      itemsPerPage: itemsPerPage,
       searchQuery: searchQuery.trim(),
     });
   };
@@ -185,7 +257,7 @@ function AdminProductList() {
     const defaultFilters = {
       category: "all",
       collection: "all",
-      sortBy: "newest" as typeof filters.sortBy,
+      sortBy: "newest" as typeof localFilters.sortBy,
     };
 
     setLocalFilters(defaultFilters);
@@ -218,7 +290,123 @@ function AdminProductList() {
     );
   };
 
-  if (productsLoading) {
+  // Generate pagination items
+  const renderPaginationItems = () => {
+    const items = [];
+
+    // Always show first page
+    items.push(
+      <PaginationItem key="first">
+        <PaginationLink
+          isActive={currentPage === 1}
+          onClick={() => handlePageChange(1)}
+          className="cursor-pointer"
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    );
+
+    // Add ellipsis if needed
+    if (currentPage > 3) {
+      items.push(
+        <PaginationItem key="ellipsis-1">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+
+    // Show current page and neighbors
+    for (
+      let i = Math.max(2, currentPage - 1);
+      i <= Math.min(totalPages - 1, currentPage + 1);
+      i++
+    ) {
+      if (i <= 1 || i >= totalPages) continue; // Skip first and last page as they're always shown
+
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            isActive={currentPage === i}
+            onClick={() => handlePageChange(i)}
+            className="cursor-pointer"
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    // Add ellipsis if needed
+    if (currentPage < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis-2">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+
+    // Always show last page if more than 1 page
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key="last">
+          <PaginationLink
+            isActive={currentPage === totalPages}
+            onClick={() => handlePageChange(totalPages)}
+            className="cursor-pointer"
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    return items;
+  };
+
+  // Render empty or not found state
+  const renderEmptyState = () => {
+    if (productsLoading) {
+      return (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      );
+    }
+
+    if (searchQuery) {
+      // Show "not found" message for empty search results
+      return (
+        <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+          <CircleSlashed className="h-8 w-8" />
+          <p>Tidak ada produk yang sesuai dengan pencarian "{searchQuery}"</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResetSearch}
+            className="mt-2"
+          >
+            Hapus Pencarian
+          </Button>
+        </div>
+      );
+    }
+
+    // Show "no products" message when there are no products at all
+    return (
+      <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+        <PackageOpen className="h-8 w-8" />
+        <p>Belum ada produk</p>
+        <Link href="/dashboard/admin/product/add">
+          <Button size="sm" className="mt-2">
+            <PlusCircle className="h-4 w-4 mr-2" /> Tambah Produk
+          </Button>
+        </Link>
+      </div>
+    );
+  };
+
+  if (productsLoading && !products.length) {
     return (
       <div className="space-y-4">
         <div className="w-full flex justify-between items-center mb-6">
@@ -343,7 +531,7 @@ function AdminProductList() {
               onValueChange={(value) =>
                 setLocalFilters({
                   ...localFilters,
-                  sortBy: value as typeof filters.sortBy,
+                  sortBy: value as typeof localFilters.sortBy,
                 })
               }
             >
@@ -428,115 +616,126 @@ function AdminProductList() {
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  {productsLoading ? (
-                    <div className="flex justify-center items-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <Search className="h-8 w-8" />
-                      <p>Tidak ada produk yang sesuai</p>
-                    </div>
-                  )}
+                <TableCell colSpan={5} className="text-center">
+                  {renderEmptyState()}
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {categories.find((c) => c.value === product.category)
-                        ?.label || "-"}
-                    </span>
-                  </TableCell>
-                  <TableCell>{getProductPrice(product)}</TableCell>
-                  <TableCell>{getProductStock(product)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/produk/${product.slug}`} target="_blank">
-                        <Button variant="ghost" size="sm" title="Lihat Produk">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                      <Link
-                        href={`/dashboard/admin/product/edit/${product.id}`}
-                      >
-                        <Button variant="ghost" size="sm" title="Edit Produk">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
+              // Show products for the current page only
+              products
+                .slice(
+                  (currentPage - 1) * itemsPerPage,
+                  currentPage * itemsPerPage
+                )
+                .map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">
+                      {product.name}
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {categories.find((c) => c.value === product.category)
+                          ?.label || "-"}
+                      </span>
+                    </TableCell>
+                    <TableCell>{getProductPrice(product)}</TableCell>
+                    <TableCell>{getProductStock(product)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/produk/${product.slug}`} target="_blank">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-500 hover:text-red-600"
-                            title="Hapus Produk"
+                            title="Lihat Produk"
                           >
-                            <Trash className="h-4 w-4" />
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Apakah Anda yakin ingin menghapus produk ini?
-                              Tindakan ini tidak dapat dibatalkan.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Batal</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(product.id)}
+                        </Link>
+                        <Link
+                          href={`/dashboard/admin/product/edit/${product.id}`}
+                        >
+                          <Button variant="ghost" size="sm" title="Edit Produk">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-600"
+                              title="Hapus Produk"
                             >
-                              Hapus
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Apakah Anda yakin ingin menghapus produk ini?
+                                Tindakan ini tidak dapat dibatalkan.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Batal</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(product.id)}
+                              >
+                                Hapus
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>
 
-        {/* Load more pagination */}
-        {hasMore && (
-          <div className="py-3 flex justify-center border-t">
-            <Button
-              variant="outline"
-              onClick={loadMore}
-              disabled={productsLoading}
-              className="gap-2 h-9"
-            >
-              {productsLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                  Memuat...
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  Tampilkan Lebih Banyak
-                </>
-              )}
-            </Button>
+        {/* New pagination UI */}
+        {products.length > 0 && (
+          <div className="py-4 border-t">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => {
+                      const isDisabled = currentPage === 1 || productsLoading;
+                      if (!isDisabled) {
+                        handlePageChange(currentPage - 1);
+                      }
+                    }}
+                    className="cursor-pointer"
+                    aria-disabled={currentPage === 1 || productsLoading}
+                  />
+                </PaginationItem>
+
+                {renderPaginationItems()}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => {
+                      const isDisabled =
+                        currentPage === totalPages ||
+                        productsLoading ||
+                        (!hasMore && currentPage === totalPages);
+                      if (!isDisabled) {
+                        handlePageChange(currentPage + 1);
+                      }
+                    }}
+                    className="cursor-pointer"
+                    aria-disabled={
+                      currentPage === totalPages ||
+                      productsLoading ||
+                      (!hasMore && currentPage === totalPages)
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>
