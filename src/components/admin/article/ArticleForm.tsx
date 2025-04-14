@@ -22,32 +22,33 @@ import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
 import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
 import { useToast } from "@/hooks/use-toast";
-import type { ArticleData } from "@/types/article";
+import type { ArticleData, ArticleFormData } from "@/types/article";
 // Import PostgreSQL article API functions
-import { createArticle, updateArticle } from "@/lib/api/articles";
+import { Article, createArticle, updateArticle } from "@/lib/api/articles";
 
 const QuillEditor = dynamic(() => import("@/components/editor/QuillEditor"), {
   ssr: false,
 });
 
+// Updated validation schema with better typing
 const validationSchema = Yup.object({
   title: Yup.string().required("Judul wajib diisi"),
   slug: Yup.string().required("Slug wajib diisi"),
   content: Yup.string().required("Konten wajib diisi"),
-  excerpt: Yup.string().required("Ringkasan wajib diisi"),
+  excerpt: Yup.string().nullable(),
   featured_image: Yup.object({
-    url: Yup.string().url("URL tidak valid").nullable(),
-    alt: Yup.string().when("url", ([url]) => {
-      return url && url.length > 0
-        ? Yup.string().required("Teks alt wajib diisi")
-        : Yup.string().nullable();
+    url: Yup.string().nullable(),
+    alt: Yup.string().when("url", {
+      is: (val: any) => val && val.length > 0,
+      then: () => Yup.string().required("Teks alt wajib diisi"),
+      otherwise: () => Yup.string().nullable(),
     }),
   }).nullable(),
   status: Yup.string().oneOf(["draft", "published"]).required(),
   meta: Yup.object({
     title: Yup.string().required("Meta title wajib diisi"),
     description: Yup.string().required("Meta description wajib diisi"),
-    og_image: Yup.string().url("URL tidak valid"),
+    og_image: Yup.string().nullable(),
   }),
 });
 
@@ -81,17 +82,22 @@ interface ArticleFormProps {
   article?: ArticleData; // Optional for create, required for edit
 }
 
-const getDefaultInitialValues = () => ({
+// Properly typed default values
+const getDefaultInitialValues = (): ArticleFormData => ({
   title: "",
   slug: "",
   content: "",
   excerpt: "",
   featured_image: { url: "", alt: "" },
-  status: "draft",
-  meta: { title: "", description: "", og_image: "" },
+  status: "draft" as const,
+  meta: {
+    title: "",
+    description: "",
+    og_image: "",
+  },
 });
 
-function validateArticleData(data: any) {
+function validateArticleData(data: ArticleFormData) {
   // Check required fields
   const errors: string[] = [];
 
@@ -102,8 +108,6 @@ function validateArticleData(data: any) {
   // Check data types
   if (data.meta && typeof data.meta !== "object")
     errors.push("Meta must be an object");
-  if (data.author && typeof data.author !== "object")
-    errors.push("Author must be an object");
   if (data.featured_image && typeof data.featured_image !== "object")
     errors.push("Featured image must be an object");
 
@@ -120,18 +124,28 @@ export default function ArticleForm({ article }: ArticleFormProps) {
   const { toast } = useToast();
   const isEditMode = !!article;
 
-  const formik = useFormik({
-    initialValues: article
-      ? {
-          title: article.title,
-          slug: article.slug,
-          content: article.content,
-          excerpt: article.excerpt,
-          featured_image: article.featured_image,
-          status: article.status,
-          meta: article.meta,
-        }
-      : getDefaultInitialValues(),
+  // Create properly typed initial form values
+  const initialValues: ArticleFormData = React.useMemo(() => {
+    if (article) {
+      return {
+        title: article.title,
+        slug: article.slug,
+        content: article.content,
+        excerpt: article.excerpt || "",
+        featured_image: article.featured_image || { url: "", alt: "" },
+        status: article.status,
+        meta: {
+          title: article.meta?.title || "",
+          description: article.meta?.description || "",
+          og_image: article.meta?.og_image || "",
+        },
+      };
+    }
+    return getDefaultInitialValues();
+  }, [article]);
+
+  const formik = useFormik<ArticleFormData>({
+    initialValues,
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
@@ -150,12 +164,11 @@ export default function ArticleForm({ article }: ArticleFormProps) {
         // Log the data being sent
         console.log("Submitting article data:", values);
 
-        if (isEditMode) {
+        if (isEditMode && article) {
           // Update existing article using PostgreSQL API
-          // Cast the status to the correct type
           await updateArticle(article.slug, {
             ...values,
-            status: values.status as "draft" | "published",
+            status: values.status,
           });
 
           toast({
@@ -166,7 +179,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
           // Create new article using PostgreSQL API
           const articleData = {
             ...values,
-            status: values.status as "draft" | "published", // Cast status to the correct type
+            status: values.status,
             author: {
               id: "admin", // This could be dynamic based on the authenticated user
               name: "Admin",
@@ -204,7 +217,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
   const [slugManuallyEdited, setSlugManuallyEdited] = React.useState(false);
 
   React.useEffect(() => {
-    if (!slugManuallyEdited) {
+    if (!slugManuallyEdited && formik.values.title) {
       const slug = generateSlug(formik.values.title);
       formik.setFieldValue("slug", slug);
     }
@@ -212,8 +225,10 @@ export default function ArticleForm({ article }: ArticleFormProps) {
 
   // Auto-generate excerpt when content changes
   React.useEffect(() => {
-    const excerpt = generateExcerpt(formik.values.content);
-    formik.setFieldValue("excerpt", excerpt);
+    if (formik.values.content) {
+      const excerpt = generateExcerpt(formik.values.content);
+      formik.setFieldValue("excerpt", excerpt);
+    }
   }, [formik.values.content]);
 
   // Sync featured image URL to og_image
@@ -221,17 +236,18 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     if (formik.values.featured_image?.url) {
       formik.setFieldValue("meta.og_image", formik.values.featured_image.url);
     }
-  }, [formik.values.featured_image]);
+  }, [formik.values.featured_image?.url]);
 
   // Sync title to meta title if meta.title is empty or same as previous title
   React.useEffect(() => {
     if (
-      !formik.values.meta.title ||
-      formik.values.meta.title === formik.values.title
+      formik.values.title &&
+      (!formik.values.meta.title ||
+        formik.values.meta.title === formik.initialValues.title)
     ) {
       formik.setFieldValue("meta.title", formik.values.title);
     }
-  }, [formik.values.title]);
+  }, [formik.values.title, formik.initialValues.title]);
 
   // Handle title change with automatic meta title update
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -253,6 +269,28 @@ export default function ArticleForm({ article }: ArticleFormProps) {
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSlugManuallyEdited(true);
     formik.handleChange(e);
+  };
+
+  // For type-safe access to nested errors
+  const getNestedError = (path: string) => {
+    const parts = path.split(".");
+    let error: any = formik.errors;
+    for (const part of parts) {
+      if (!error[part]) return undefined;
+      error = error[part];
+    }
+    return error;
+  };
+
+  // For type-safe checking if a field is touched
+  const isFieldTouched = (path: string) => {
+    const parts = path.split(".");
+    let touched: any = formik.touched;
+    for (const part of parts) {
+      if (!touched || !touched[part]) return false;
+      touched = touched[part];
+    }
+    return true;
   };
 
   return (
@@ -333,7 +371,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
               <Textarea
                 id="excerpt"
                 disabled
-                {...formik.getFieldProps("excerpt")}
+                value={formik.values.excerpt ?? ""}
                 readOnly
                 className="bg-gray-50"
               />
@@ -347,7 +385,9 @@ export default function ArticleForm({ article }: ArticleFormProps) {
               />
               <Select
                 value={formik.values.status}
-                onValueChange={(value) => formik.setFieldValue("status", value)}
+                onValueChange={(value: "draft" | "published") =>
+                  formik.setFieldValue("status", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih status" />
@@ -372,10 +412,11 @@ export default function ArticleForm({ article }: ArticleFormProps) {
                 formik.setFieldValue("featured_image", imageData)
               }
             />
-            {formik.touched.featured_image?.url &&
-              formik.errors.featured_image?.url && (
+            {/* Handle nested form errors better */}
+            {isFieldTouched("featured_image.url") &&
+              (formik.errors.featured_image as any)?.url && (
                 <p className="text-sm text-red-500">
-                  {formik.errors.featured_image.url}
+                  {(formik.errors.featured_image as any).url}
                 </p>
               )}
           </CardContent>
@@ -395,12 +436,21 @@ export default function ArticleForm({ article }: ArticleFormProps) {
                 />
                 <Input
                   id="meta.title"
-                  {...formik.getFieldProps("meta.title")}
+                  name="meta.title"
+                  value={formik.values.meta.title}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 />
                 <CharacterCountSEO
                   current={formik.values.meta.title.length}
                   type="title"
                 />
+                {isFieldTouched("meta.title") &&
+                  getNestedError("meta.title") && (
+                    <p className="text-sm text-red-500">
+                      {getNestedError("meta.title")}
+                    </p>
+                  )}
               </div>
 
               <div className="space-y-2">
@@ -411,19 +461,29 @@ export default function ArticleForm({ article }: ArticleFormProps) {
                 />
                 <Textarea
                   id="meta.description"
-                  {...formik.getFieldProps("meta.description")}
+                  name="meta.description"
+                  value={formik.values.meta.description}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
                 />
                 <CharacterCountSEO
                   current={formik.values.meta.description.length}
                   type="description"
                 />
+                {isFieldTouched("meta.description") &&
+                  getNestedError("meta.description") && (
+                    <p className="text-sm text-red-500">
+                      {getNestedError("meta.description")}
+                    </p>
+                  )}
               </div>
 
               {/* Hidden OG Image field */}
-              <Input
+              <input
                 type="hidden"
                 id="meta.og_image"
-                {...formik.getFieldProps("meta.og_image")}
+                name="meta.og_image"
+                value={formik.values.meta.og_image || ""}
               />
             </div>
 
