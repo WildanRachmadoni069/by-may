@@ -36,7 +36,7 @@ function ImageUploadPreview({
         formData.append("image", file);
 
         if (preview) {
-          await fetch("/api/delete", {
+          await fetch("/api/product/delete-image", {
             method: "POST",
             body: JSON.stringify({ url: preview }),
             headers: {
@@ -65,7 +65,8 @@ function ImageUploadPreview({
 
   const handleRemove = async () => {
     if (preview) {
-      await fetch("/api/delete", {
+      // Update to use better endpoint
+      await fetch("/api/product/delete-image", {
         method: "POST",
         body: JSON.stringify({ url: preview }),
         headers: {

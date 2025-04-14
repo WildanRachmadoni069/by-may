@@ -322,7 +322,8 @@ export async function deleteProductImages(product: Product): Promise<void> {
     await Promise.all(
       imagesToDelete.map(async (imageUrl) => {
         try {
-          await fetch("/api/delete", {
+          await fetch("/api/product/delete-image", {
+            // <-- Update this line
             method: "POST",
             headers: {
               "Content-Type": "application/json",
