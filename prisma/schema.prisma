@@ -35,13 +35,11 @@ model Product {
     slug             String   @unique
     description      String?  @db.Text
     mainImage        String?
-    additionalImages String[]
+    additionalImages String[] // Pastikan array string murni, tidak boleh null
     basePrice        Float?
     baseStock        Int?
     hasVariations    Boolean  @default(false)
-    specialLabel     String?
-    featured         Boolean  @default(false)
-    new              Boolean  @default(false)
+    specialLabel     String? // Bisa digunakan untuk "featured", "new", dll
     weight           Int? // in grams
     dimensions       Json? // {width, length, height}
     seo              Json? // {title, description, keywords, og_image}
@@ -75,8 +73,6 @@ model Product {
     @@index([specialLabel])
     @@index([name])
     @@index([basePrice])
-    @@index([featured])
-    @@index([new])
     @@index([searchKeywords])
 }
 
@@ -250,7 +246,7 @@ model PriceVariant {
     stock           Int
     combinationKey  String // Contoh: "color-1_size-2" untuk kombinasi unik
     descriptiveName String? // contoh: "Merah - XL"
-    options         PriceVariantToOption[]
+    options         PriceVariantToOption[] // Pastikan relasi ini didefinisikan dengan benar
     createdAt       DateTime               @default(now())
     updatedAt       DateTime               @updatedAt
 

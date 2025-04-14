@@ -1,6 +1,10 @@
 import { create } from "zustand";
-import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
+import {
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from "@/utils/category";
 
 interface Category {
   id: string;
@@ -13,36 +17,75 @@ interface CategoryState {
   categories: Category[];
   loading: boolean;
   error: string | null;
-  fetchCategories: () => void;
+  fetchCategories: () => Promise<void>;
+  addCategory: (name: string) => Promise<void>;
+  updateCategory: (id: string, name: string) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 }
 
 export const useCategoryStore = create<CategoryState>((set) => ({
   categories: [],
   loading: false,
   error: null,
-  fetchCategories: () => {
+
+  fetchCategories: async () => {
     set({ loading: true });
+    try {
+      const categoriesData = await getCategories();
+      set({ categories: categoriesData, loading: false, error: null });
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      set({ error: "Failed to fetch categories", loading: false });
+    }
+  },
 
-    const q = query(collection(db, "categories"), orderBy("name", "asc"));
+  addCategory: async (name: string) => {
+    set({ loading: true });
+    try {
+      const newCategory = await createCategory(name);
+      set((state) => ({
+        categories: [...state.categories, newCategory],
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      console.error("Error adding category:", error);
+      set({ error: "Failed to add category", loading: false });
+      throw error;
+    }
+  },
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const categoriesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: doc.data().name,
-          value: doc.id, // For select component
-          label: doc.data().name, // For select component
-        }));
-        set({ categories: categoriesData, loading: false, error: null });
-      },
-      (error) => {
-        console.error("Error fetching categories:", error);
-        set({ error: "Failed to fetch categories", loading: false });
-      }
-    );
+  updateCategory: async (id: string, name: string) => {
+    set({ loading: true });
+    try {
+      const updatedCategory = await updateCategory(id, name);
+      set((state) => ({
+        categories: state.categories.map((c) =>
+          c.id === id ? updatedCategory : c
+        ),
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      console.error("Error updating category:", error);
+      set({ error: "Failed to update category", loading: false });
+      throw error;
+    }
+  },
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+  deleteCategory: async (id: string) => {
+    set({ loading: true });
+    try {
+      await deleteCategory(id);
+      set((state) => ({
+        categories: state.categories.filter((c) => c.id !== id),
+        loading: false,
+        error: null,
+      }));
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      set({ error: "Failed to delete category", loading: false });
+      throw error;
+    }
   },
 }));

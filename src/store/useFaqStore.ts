@@ -7,7 +7,7 @@ import {
   deleteFAQ,
   getFilteredFAQs,
   reorderFAQs,
-} from "@/lib/firebase/faqs";
+} from "@/utils/faq";
 import { FAQ, FAQFormValues, GetFAQsOptions } from "@/types/faq";
 
 interface FAQState {
@@ -53,37 +53,39 @@ export const useFaqStore = create<FAQState>((set, get) => ({
   },
 
   fetchFilteredFAQs: async (options: GetFAQsOptions) => {
-    set({ loading: true, faqs: [] }); // Reset FAQs when filters change
+    set({ loading: true });
     try {
-      const result = await getFilteredFAQs(options);
+      const response = await getFilteredFAQs(options);
       set({
-        faqs: result.faqs,
-        lastDoc: result.lastDoc,
-        hasMore: result.hasMore,
+        faqs: response.faqs,
+        lastDoc: response.lastDoc,
+        hasMore: response.hasMore,
         error: null,
       });
     } catch (error) {
       set({ error: "Failed to fetch FAQs" });
-      console.error("Error fetching filtered FAQs:", error);
+      console.error("Error fetching FAQs:", error);
     } finally {
       set({ loading: false });
     }
   },
 
   fetchMoreFAQs: async (options: GetFAQsOptions) => {
-    const { lastDoc, loading } = get();
-    if (loading || !lastDoc) return;
+    const { lastDoc, hasMore } = get();
+
+    if (!hasMore) return;
 
     set({ loading: true });
     try {
-      const result = await getFilteredFAQs({
+      const response = await getFilteredFAQs({
         ...options,
         lastDoc,
       });
+
       set((state) => ({
-        faqs: [...state.faqs, ...result.faqs],
-        lastDoc: result.lastDoc,
-        hasMore: result.hasMore,
+        faqs: [...state.faqs, ...response.faqs],
+        lastDoc: response.lastDoc,
+        hasMore: response.hasMore,
         error: null,
       }));
     } catch (error) {
@@ -99,9 +101,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
     try {
       const faq = await getFAQ(id);
       if (faq) {
-        set({ selectedFAQ: faq, error: null });
-      } else {
-        set({ error: "FAQ not found" });
+        set({ selectedFAQ: faq });
       }
     } catch (error) {
       set({ error: "Failed to fetch FAQ" });
@@ -111,34 +111,30 @@ export const useFaqStore = create<FAQState>((set, get) => ({
     }
   },
 
-  addFAQ: async (faqData: FAQFormValues) => {
+  addFAQ: async (faq: FAQFormValues) => {
     set({ loading: true });
     try {
-      const newFAQ = await createFAQ(faqData);
-      set((state) => ({
-        faqs: [newFAQ, ...state.faqs],
-        error: null,
-      }));
+      const newFAQ = await createFAQ(faq);
+      set((state) => ({ faqs: [...state.faqs, newFAQ], error: null }));
     } catch (error) {
       set({ error: "Failed to add FAQ" });
-      throw error;
+      console.error("Error adding FAQ:", error);
     } finally {
       set({ loading: false });
     }
   },
 
-  editFAQ: async (id: string, faqData: Partial<FAQFormValues>) => {
+  editFAQ: async (id: string, faq: Partial<FAQFormValues>) => {
     set({ loading: true });
     try {
-      const updatedFAQ = await updateFAQ(id, faqData);
+      const updatedFAQ = await updateFAQ(id, faq);
       set((state) => ({
         faqs: state.faqs.map((f) => (f.id === id ? updatedFAQ : f)),
-        selectedFAQ: null,
         error: null,
       }));
     } catch (error) {
       set({ error: "Failed to update FAQ" });
-      throw error;
+      console.error("Error updating FAQ:", error);
     } finally {
       set({ loading: false });
     }
@@ -154,7 +150,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: "Failed to delete FAQ" });
-      throw error;
+      console.error("Error deleting FAQ:", error);
     } finally {
       set({ loading: false });
     }
@@ -184,14 +180,14 @@ export const useFaqStore = create<FAQState>((set, get) => ({
         };
       });
     } catch (error) {
-      set({ error: "Failed to reorder FAQs" });
-      throw error;
+      set({ error: "Failed to update FAQ order" });
+      console.error("Error updating FAQ order:", error);
     } finally {
       set({ loading: false });
     }
   },
 
-  setSelectedFAQ: (faq: FAQ | null) => {
+  setSelectedFAQ: (faq) => {
     set({ selectedFAQ: faq });
   },
 }));

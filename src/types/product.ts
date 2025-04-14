@@ -53,7 +53,7 @@ export interface ProductFormValues {
   slug: string;
   description: string;
   category: string;
-  specialLabel: string;
+  specialLabel: string; // Digunakan untuk "featured", "new", dll
   mainImage: string | null;
   additionalImages: (string | null)[];
   hasVariations: boolean;
@@ -66,6 +66,7 @@ export interface ProductFormValues {
   seo: ProductSEO;
   collection?: string;
   searchKeywords?: string[];
+  // featured dan new sudah dihapus karena menggunakan specialLabel
 }
 
 export interface GetProductsOptions {

@@ -1,201 +1,141 @@
 import { create } from "zustand";
 import {
+  getProducts,
+  getProductBySlug,
   getFilteredProducts,
-  getProduct,
-  createProduct,
-  updateProduct as updateProductApi,
-  deleteProduct,
-} from "@/lib/firebase/products";
-import {
+  addProduct,
+  updateProduct,
+} from "@/utils/product";
+import type {
   Product,
   ProductFormValues,
   GetProductsOptions,
+  FilteredProductsResponse,
 } from "@/types/product";
-import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 
-interface ProductStore {
+interface ProductState {
   products: Product[];
-  selectedProduct: Product | null; // Add selectedProduct to store
-  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
-  hasMore: boolean;
+  selectedProduct: Product | null;
   loading: boolean;
   error: string | null;
-  currentSearchQuery: string; // Add this to track the current search query
+  lastDoc: any | null;
+  hasMore: boolean;
 
-  // Fetch filtered products
-  fetchFilteredProducts: (options?: GetProductsOptions) => Promise<void>;
-  fetchMoreProducts: (options?: GetProductsOptions) => Promise<void>;
-
-  // CRUD operations
-  fetchProduct: (id: string) => Promise<Product | null>;
-  addProduct: (data: ProductFormValues) => Promise<Product>;
-  updateProduct: (
-    id: string,
-    data: Partial<ProductFormValues>
-  ) => Promise<Partial<Product>>;
-  removeProduct: (id: string) => Promise<void>;
-  clearSelectedProduct: () => void; // Add method to clear selectedProduct
+  // Actions
+  fetchProducts: () => Promise<Product[]>;
+  fetchProductBySlug: (slug: string) => Promise<Product | null>;
+  fetchFilteredProducts: (
+    options: GetProductsOptions
+  ) => Promise<FilteredProductsResponse>;
+  addProduct: (product: ProductFormValues) => Promise<Product>;
+  updateProduct: (id: string, product: ProductFormValues) => Promise<Product>;
+  setSelectedProduct: (product: Product | null) => void;
 }
 
-export const useProductStore = create<ProductStore>((set, get) => ({
+export const useProductStore = create<ProductState>((set, get) => ({
   products: [],
-  selectedProduct: null, // Initialize selectedProduct as null
-  lastDoc: null,
-  hasMore: false,
+  selectedProduct: null,
   loading: false,
   error: null,
-  currentSearchQuery: "", // Initialize with empty string
+  lastDoc: null,
+  hasMore: true,
 
-  // Fetch filtered products (first page)
-  fetchFilteredProducts: async (options?: GetProductsOptions) => {
+  fetchProducts: async () => {
+    set({ loading: true, error: null });
     try {
-      set({ loading: true, error: null });
+      const products = await getProducts();
+      set({ products, loading: false });
+      return products;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch products";
+      console.error("Error fetching products:", error);
+      set({ error: errorMessage, loading: false });
+      return [];
+    }
+  },
 
-      // Clear currentSearchQuery if searchQuery is explicitly empty string
-      const searchQuery =
-        options?.searchQuery !== undefined
-          ? options.searchQuery
-          : get().currentSearchQuery;
+  fetchProductBySlug: async (slug: string) => {
+    set({ loading: true, error: null });
+    try {
+      const product = await getProductBySlug(slug);
+      if (product) {
+        set({ selectedProduct: product });
+      }
+      set({ loading: false });
+      return product;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch product";
+      console.error("Error fetching product by slug:", error);
+      set({ error: errorMessage, loading: false });
+      return null;
+    }
+  },
 
-      const response = await getFilteredProducts({
-        ...options,
-        searchQuery,
-      });
-
+  fetchFilteredProducts: async (options: GetProductsOptions) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await getFilteredProducts(options);
       set({
         products: response.products,
         lastDoc: response.lastDoc,
         hasMore: response.hasMore,
         loading: false,
-        currentSearchQuery: searchQuery, // Update current search query in state
       });
+      return response;
     } catch (error) {
-      set({
-        loading: false,
-        error: `Error fetching products: ${(error as Error).message}`,
-      });
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch filtered products";
+      console.error("Error fetching filtered products:", error);
+      set({ error: errorMessage, loading: false });
+      return { products: [], lastDoc: null, hasMore: false };
     }
   },
 
-  // Fetch more products (pagination)
-  fetchMoreProducts: async (options?: GetProductsOptions) => {
+  addProduct: async (productData: ProductFormValues) => {
+    set({ loading: true, error: null });
     try {
-      const { lastDoc, hasMore, products } = get();
-
-      if (!hasMore) return;
-
-      set({ loading: true, error: null });
-
-      // Use provided search query or current one
-      const searchQuery =
-        options?.searchQuery !== undefined
-          ? options.searchQuery
-          : get().currentSearchQuery;
-
-      const response = await getFilteredProducts({
-        ...options,
-        lastDoc,
-        searchQuery,
-      });
-
-      set({
-        products: [...products, ...response.products],
-        lastDoc: response.lastDoc,
-        hasMore: response.hasMore,
-        loading: false,
-      });
-    } catch (error) {
-      set({
-        loading: false,
-        error: `Error fetching more products: ${(error as Error).message}`,
-      });
-    }
-  },
-
-  // Fetch a single product
-  fetchProduct: async (id: string) => {
-    try {
-      set({ loading: true, error: null });
-      const product = await getProduct(id);
-
-      // Store the fetched product in selectedProduct
-      set({
-        loading: false,
-        selectedProduct: product,
-        error: product ? null : "Product not found",
-      });
-
-      return product;
-    } catch (error) {
-      set({
-        loading: false,
-        selectedProduct: null,
-        error: `Error fetching product: ${(error as Error).message}`,
-      });
-      return null;
-    }
-  },
-
-  // Add a new product
-  addProduct: async (data: ProductFormValues) => {
-    try {
-      set({ loading: true, error: null });
-      const product = await createProduct(data);
+      const newProduct = await addProduct(productData);
       set((state) => ({
-        products: [product, ...state.products],
+        products: [newProduct, ...state.products],
         loading: false,
       }));
-      return product;
+      return newProduct;
     } catch (error) {
-      set({
-        loading: false,
-        error: `Error adding product: ${(error as Error).message}`,
-      });
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to add product";
+      console.error("Error adding product:", error);
+      set({ error: errorMessage, loading: false });
       throw error;
     }
   },
 
-  // Update a product
-  updateProduct: async (id: string, data: Partial<ProductFormValues>) => {
+  updateProduct: async (id: string, productData: ProductFormValues) => {
+    set({ loading: true, error: null });
     try {
-      set({ loading: true, error: null });
-      const updatedProduct = await updateProductApi(id, data);
+      const updatedProduct = await updateProduct(id, productData);
       set((state) => ({
-        products: state.products.map((product) =>
-          product.id === id ? { ...product, ...updatedProduct } : product
-        ),
+        products: state.products.map((p) => (p.id === id ? updatedProduct : p)),
+        selectedProduct:
+          state.selectedProduct?.id === id
+            ? updatedProduct
+            : state.selectedProduct,
         loading: false,
       }));
       return updatedProduct;
     } catch (error) {
-      set({
-        loading: false,
-        error: `Error updating product: ${(error as Error).message}`,
-      });
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update product";
+      console.error("Error updating product:", error);
+      set({ error: errorMessage, loading: false });
       throw error;
     }
   },
 
-  // Delete a product
-  removeProduct: async (id: string) => {
-    try {
-      set({ loading: true, error: null });
-      await deleteProduct(id);
-      set((state) => ({
-        products: state.products.filter((product) => product.id !== id),
-        loading: false,
-      }));
-    } catch (error) {
-      set({
-        loading: false,
-        error: `Error deleting product: ${(error as Error).message}`,
-      });
-      throw error;
-    }
-  },
-
-  // Clear selected product
-  clearSelectedProduct: () => {
-    set({ selectedProduct: null });
+  setSelectedProduct: (product) => {
+    set({ selectedProduct: product });
   },
 }));
