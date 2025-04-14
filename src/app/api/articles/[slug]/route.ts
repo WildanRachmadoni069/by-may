@@ -1,13 +1,16 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
+// GET handler - fetch article by slug
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
+    const slug = params.slug;
     const article = await db.article.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
     });
 
     if (!article) {
@@ -16,78 +19,83 @@ export async function GET(
 
     return NextResponse.json(article);
   } catch (error) {
-    console.error("Failed to fetch article:", error);
+    console.error("Error fetching article:", error);
     return NextResponse.json(
-      { error: "Failed to fetch article" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
+// PATCH handler - update article
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    const data = await req.json();
+    const slug = params.slug;
+    const body = await req.json();
 
-    // Check if article exists
+    // Find the article first to make sure it exists
     const existingArticle = await db.article.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
     });
 
     if (!existingArticle) {
       return NextResponse.json({ error: "Article not found" }, { status: 404 });
     }
 
-    // Handle publishing status change
-    if (data.status === "published" && existingArticle.status !== "published") {
-      data.publishedAt = new Date();
+    // Check if article is being published for the first time
+    let publishedAt = existingArticle.publishedAt;
+    if (body.status === "published" && !existingArticle.publishedAt) {
+      publishedAt = new Date();
     }
 
     // Update the article
     const updatedArticle = await db.article.update({
-      where: { slug: params.slug },
-      data,
+      where: { slug },
+      data: {
+        ...body,
+        publishedAt,
+      },
     });
+
+    // Revalidate the article pages
+    revalidatePath(`/artikel/${slug}`);
+    revalidatePath("/artikel");
 
     return NextResponse.json(updatedArticle);
   } catch (error) {
-    console.error("Failed to update article:", error);
+    console.error("Error updating article:", error);
     return NextResponse.json(
-      { error: "Failed to update article" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
+// DELETE handler - delete article
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    // Check if article exists
-    const article = await db.article.findUnique({
-      where: { slug: params.slug },
-    });
-
-    if (!article) {
-      return NextResponse.json({ error: "Article not found" }, { status: 404 });
-    }
+    const slug = params.slug;
 
     // Delete the article
     await db.article.delete({
-      where: { slug: params.slug },
+      where: { slug },
     });
 
-    return NextResponse.json(
-      { message: "Article deleted successfully" },
-      { status: 200 }
-    );
+    // Revalidate the article pages
+    revalidatePath(`/artikel/${slug}`);
+    revalidatePath("/artikel");
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete article:", error);
+    console.error("Error deleting article:", error);
     return NextResponse.json(
-      { error: "Failed to delete article" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

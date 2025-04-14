@@ -1,0 +1,56 @@
+import { getArticleBySlug } from "@/lib/api/articles-server";
+import { notFound } from "next/navigation";
+import ArticleForm from "@/components/admin/article/ArticleForm";
+import type { ArticleData } from "@/types/article";
+import { Suspense } from "react";
+import { LoaderCircle } from "lucide-react";
+
+// Convert database article model to ArticleData format expected by the form
+const mapArticleToFormData = (article: any): ArticleData => {
+  return {
+    id: article.id,
+    title: article.title,
+    slug: article.slug,
+    content: article.content,
+    excerpt: article.excerpt || "",
+    featured_image: article.featured_image || { url: "", alt: "" },
+    status: article.status,
+    meta: article.meta || { title: "", description: "", og_image: "" },
+    author: article.author || { id: "", name: "" },
+    created_at: article.createdAt?.toISOString() || null,
+    updated_at: article.updatedAt?.toISOString() || null,
+  };
+};
+
+export default async function ArticleEditPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  // Make sure params is a non-promise object
+  const resolvedParams = params;
+  const { slug } = await resolvedParams;
+
+  const article = await getArticleBySlug(slug);
+
+  if (!article) {
+    notFound();
+  }
+
+  const articleData = mapArticleToFormData(article);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Edit Artikel</h1>
+        <p className="text-muted-foreground">
+          Perbarui konten dan pengaturan artikel
+        </p>
+      </div>
+
+      <Suspense fallback={<LoaderCircle className="animate-spin" />}>
+        <ArticleForm article={articleData} />
+      </Suspense>
+    </div>
+  );
+}

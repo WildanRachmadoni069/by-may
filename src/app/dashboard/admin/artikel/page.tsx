@@ -212,7 +212,7 @@ function ArtikelAdminPage() {
                     <Eye className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href={`/dashboard/admin/artikel/edit/${article.id}`}>
+                <Link href={`/dashboard/admin/artikel/edit/${article.slug}`}>
                   <Button variant="outline" size="icon">
                     <Pencil className="h-4 w-4" />
                   </Button>
