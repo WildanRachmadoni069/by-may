@@ -1,148 +1,159 @@
 import { create } from "zustand";
 import {
-  getPublishedArticles,
-  getAllArticles,
+  Article,
+  ArticleCreateInput,
+  ArticleUpdateInput,
+  getArticles,
   getArticleBySlug,
   createArticle,
   updateArticle,
   deleteArticle,
-} from "@/utils/article";
-import type { ArticleData } from "@/types/article";
+  PaginationResult,
+} from "@/lib/api/articles";
 
 interface ArticleState {
-  articles: ArticleData[];
-  selectedArticle: ArticleData | null;
-  loading: boolean;
+  // Articles data
+  articles: Article[];
+  currentArticle: Article | null;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+
+  // Loading and error states
+  isLoading: boolean;
   error: string | null;
 
   // Actions
-  fetchPublishedArticles: () => Promise<ArticleData[]>;
-  fetchAllArticles: () => Promise<ArticleData[]>;
-  fetchArticleBySlug: (slug: string) => Promise<ArticleData | null>;
-  createArticle: (
-    article: Omit<ArticleData, "id" | "created_at" | "updated_at">
-  ) => Promise<ArticleData>;
-  updateArticle: (
-    id: string,
-    article: Partial<ArticleData>
-  ) => Promise<ArticleData>;
-  deleteArticle: (id: string) => Promise<void>;
-  setSelectedArticle: (article: ArticleData | null) => void;
+  fetchArticles: (options?: {
+    status?: "draft" | "published";
+    tag?: string;
+    page?: number;
+    limit?: number;
+  }) => Promise<void>;
+  fetchArticleBySlug: (slug: string) => Promise<Article | null>;
+  addArticle: (data: ArticleCreateInput) => Promise<Article | null>;
+  editArticle: (
+    slug: string,
+    data: ArticleUpdateInput
+  ) => Promise<Article | null>;
+  removeArticle: (slug: string) => Promise<boolean>;
+  clearCurrentArticle: () => void;
+  setError: (error: string | null) => void;
 }
 
-export const useArticleStore = create<ArticleState>((set, get) => ({
+const useArticleStore = create<ArticleState>((set, get) => ({
+  // Initial state
   articles: [],
-  selectedArticle: null,
-  loading: false,
+  currentArticle: null,
+  pagination: {
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  },
+  isLoading: false,
   error: null,
 
-  fetchPublishedArticles: async () => {
-    set({ loading: true });
+  // Actions
+  fetchArticles: async (options = {}) => {
+    set({ isLoading: true, error: null });
     try {
-      const articles = await getPublishedArticles();
-      set({ articles, error: null });
-      return articles;
+      const result = await getArticles(options);
+      set({
+        articles: result.data,
+        pagination: result.pagination,
+        isLoading: false,
+      });
     } catch (error) {
-      console.error("Error fetching published articles:", error);
-      set({ error: "Failed to fetch articles" });
-      return [];
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  fetchAllArticles: async () => {
-    set({ loading: true });
-    try {
-      const articles = await getAllArticles();
-      set({ articles, error: null });
-      return articles;
-    } catch (error) {
-      console.error("Error fetching all articles:", error);
-      set({ error: "Failed to fetch articles" });
-      return [];
-    } finally {
-      set({ loading: false });
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch articles";
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
   fetchArticleBySlug: async (slug: string) => {
-    set({ loading: true });
+    set({ isLoading: true, error: null });
     try {
       const article = await getArticleBySlug(slug);
-      if (article) {
-        set({ selectedArticle: article });
-      }
+      set({ currentArticle: article, isLoading: false });
       return article;
     } catch (error) {
-      console.error("Error fetching article by slug:", error);
-      set({ error: "Failed to fetch article" });
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch article";
+      set({ error: errorMessage, isLoading: false });
       return null;
-    } finally {
-      set({ loading: false });
     }
   },
 
-  createArticle: async (articleData) => {
-    set({ loading: true });
+  addArticle: async (data: ArticleCreateInput) => {
+    set({ isLoading: true, error: null });
     try {
-      const newArticle = await createArticle(articleData);
+      const newArticle = await createArticle(data);
       set((state) => ({
         articles: [newArticle, ...state.articles],
-        error: null,
+        isLoading: false,
       }));
       return newArticle;
     } catch (error) {
-      console.error("Error creating article:", error);
-      set({ error: "Failed to create article" });
-      throw error;
-    } finally {
-      set({ loading: false });
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create article";
+      set({ error: errorMessage, isLoading: false });
+      return null;
     }
   },
 
-  updateArticle: async (id, articleData) => {
-    set({ loading: true });
+  editArticle: async (slug: string, data: ArticleUpdateInput) => {
+    set({ isLoading: true, error: null });
     try {
-      const updatedArticle = await updateArticle(id, articleData);
+      const updatedArticle = await updateArticle(slug, data);
       set((state) => ({
-        articles: state.articles.map((a) => (a.id === id ? updatedArticle : a)),
-        selectedArticle:
-          state.selectedArticle?.id === id
+        articles: state.articles.map((article) =>
+          article.slug === slug ? updatedArticle : article
+        ),
+        currentArticle:
+          state.currentArticle?.slug === slug
             ? updatedArticle
-            : state.selectedArticle,
-        error: null,
+            : state.currentArticle,
+        isLoading: false,
       }));
       return updatedArticle;
     } catch (error) {
-      console.error("Error updating article:", error);
-      set({ error: "Failed to update article" });
-      throw error;
-    } finally {
-      set({ loading: false });
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update article";
+      set({ error: errorMessage, isLoading: false });
+      return null;
     }
   },
 
-  deleteArticle: async (id) => {
-    set({ loading: true });
+  removeArticle: async (slug: string) => {
+    set({ isLoading: true, error: null });
     try {
-      await deleteArticle(id);
+      await deleteArticle(slug);
       set((state) => ({
-        articles: state.articles.filter((a) => a.id !== id),
-        selectedArticle:
-          state.selectedArticle?.id === id ? null : state.selectedArticle,
-        error: null,
+        articles: state.articles.filter((article) => article.slug !== slug),
+        currentArticle:
+          state.currentArticle?.slug === slug ? null : state.currentArticle,
+        isLoading: false,
       }));
+      return true;
     } catch (error) {
-      console.error("Error deleting article:", error);
-      set({ error: "Failed to delete article" });
-      throw error;
-    } finally {
-      set({ loading: false });
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete article";
+      set({ error: errorMessage, isLoading: false });
+      return false;
     }
   },
 
-  setSelectedArticle: (article) => {
-    set({ selectedArticle: article });
+  clearCurrentArticle: () => {
+    set({ currentArticle: null });
+  },
+
+  setError: (error: string | null) => {
+    set({ error });
   },
 }));
+
+export default useArticleStore;

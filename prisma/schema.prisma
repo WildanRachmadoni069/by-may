@@ -117,16 +117,13 @@ model Article {
     status         String // "draft", "published"
     meta           Json? // {title: string, description: string, og_image: string}
     author         Json? // {id: string, name: string}
-    createdAt      DateTime @default(now()) // Diubah dari created_at untuk konsistensi penamaan
-    updatedAt      DateTime @updatedAt // Diubah dari updated_at untuk konsistensi penamaan
-    // Tambahan: kategori artikel untuk pengelompokan
-    category       String?
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
 
     @@index([slug])
     @@index([status])
-    @@index([title]) // Tambahan untuk SEO optimization
-    @@index([category])
-    @@index([createdAt]) // Diubah dari created_at untuk konsistensi penamaan
+    @@index([title])
+    @@index([createdAt])
 }
 
 // Banners

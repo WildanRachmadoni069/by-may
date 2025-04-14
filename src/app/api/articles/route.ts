@@ -1,0 +1,76 @@
+import { db } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+    const tag = searchParams.get("tag");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const page = parseInt(searchParams.get("page") || "1");
+    const skip = (page - 1) * limit;
+
+    // Build query filters
+    const filters: any = {};
+    if (status) filters.status = status;
+    if (tag) filters.tags = { has: tag };
+
+    // Get articles with pagination
+    const articles = await db.article.findMany({
+      where: filters,
+      take: limit,
+      skip,
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Get total count for pagination
+    const totalCount = await db.article.count({ where: filters });
+
+    return NextResponse.json({
+      data: articles,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch articles:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const data = await req.json();
+
+    // Generate slug if not provided
+    if (!data.slug) {
+      data.slug = data.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    // Set published date if status is "published"
+    if (data.status === "published" && !data.publishedAt) {
+      data.publishedAt = new Date();
+    }
+
+    const article = await db.article.create({
+      data,
+    });
+
+    return NextResponse.json(article, { status: 201 });
+  } catch (error) {
+    console.error("Failed to create article:", error);
+    return NextResponse.json(
+      { error: "Failed to create article" },
+      { status: 500 }
+    );
+  }
+}
