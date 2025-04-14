@@ -26,9 +26,10 @@ export function ArticlePagination({
   const createPageURL = (pageNumber: number) => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
-    params.set("page", pageNumber.toString());
+    if (pageNumber > 1) params.set("page", pageNumber.toString());
 
-    return `/artikel?${params.toString()}`;
+    const queryString = params.toString();
+    return `/artikel${queryString ? `?${queryString}` : ""}`;
   };
 
   // Generate array of page numbers to show
@@ -53,13 +54,13 @@ export function ArticlePagination({
       );
     }
 
-    // Add pages around current page
+    // Show current page and neighbors
     for (
       let i = Math.max(2, currentPage - 1);
       i <= Math.min(totalPages - 1, currentPage + 1);
       i++
     ) {
-      if (i <= 1 || i >= totalPages) continue; // Skip first and last pages as they're always shown
+      if (i <= 1 || i >= totalPages) continue; // Skip first and last page as they're always shown
 
       items.push(
         <PaginationItem key={i}>

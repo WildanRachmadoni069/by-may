@@ -39,14 +39,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function ArticlePage({
-  searchParams,
-}: {
-  searchParams: { page?: string; search?: string };
-}) {
+interface ArticlePageProps {
+  searchParams: {
+    page?: string;
+    search?: string;
+  };
+}
+
+export default async function ArticlePage({ searchParams }: ArticlePageProps) {
+  // Await the searchParams object
+  const params = await Promise.resolve(searchParams);
+
   // Parse search parameters with defaults
-  const page = Number(searchParams.page) || 1;
-  const search = searchParams.search || "";
+  const page = Number(params.page) || 1;
+  const search = params.search || "";
   const ITEMS_PER_PAGE = 9; // Show 9 articles per page (3x3 grid)
 
   // Fetch articles with server-side pagination and search
@@ -121,9 +127,7 @@ export default async function ArticlePage({
                   title={article.title}
                   excerpt={article.excerpt || ""}
                   slug={article.slug}
-                  featured_image={
-                    article.featured_image || { url: "", alt: "" }
-                  }
+                  featured_image={article.featured_image || null}
                   created_at={
                     article.publishedAt?.toString() ||
                     article.createdAt.toString()
