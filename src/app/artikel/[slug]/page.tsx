@@ -3,16 +3,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Facebook,
-  Twitter,
-  Share2,
-  MessageCircle,
-  CalendarIcon,
-  ClockIcon,
-} from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -22,259 +14,213 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
-import { Metadata } from "next";
-import { getAppUrl } from "@/lib/utils/url";
+import { Metadata, ResolvingMetadata } from "next";
+import {
+  getArticleAction,
+  getArticlesAction,
+} from "@/app/actions/article-actions";
+import { formatDate } from "@/lib/utils";
+import { getBaseUrl } from "@/lib/utils/url";
+import { ArticleContent } from "@/components/article/ArticleContent";
+import { ArticleShare } from "@/components/article/ArticleShare";
+import { ArticleAuthorCard } from "@/components/article/ArticleAuthorCard";
+import { RelatedArticlesSection } from "@/components/article/RelatedArticlesSection";
 
-interface Props {
-  params: {
-    slug: string;
+// Generate dynamic metadata for each article
+export async function generateMetadata(
+  { params }: { params: { slug: string } },
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  // Await params to resolve the TypeScript error
+  const resolvedParams = await Promise.resolve(params);
+  const slug = resolvedParams.slug;
+
+  // Fetch article data
+  const article = await getArticleAction(slug);
+
+  if (!article) {
+    return {
+      title: "Article Not Found",
+      description: "The requested article could not be found.",
+    };
+  }
+
+  // Use metadata from article or fallback to defaults
+  const baseUrl = getBaseUrl();
+
+  return {
+    title: article.meta?.title || article.title,
+    description: article.meta?.description || article.excerpt || undefined,
+    openGraph: {
+      url: `${baseUrl}/artikel/${slug}`,
+      title: article.meta?.title || article.title,
+      description: article.meta?.description || article.excerpt || undefined,
+      images: article.featured_image?.url
+        ? [
+            {
+              url: article.featured_image.url,
+              width: 1200,
+              height: 630,
+              alt: article.featured_image.alt || article.title,
+            },
+          ]
+        : undefined,
+      publishedTime: article.publishedAt?.toString(),
+      modifiedTime: article.updatedAt?.toString(),
+      authors: article.author?.name ? [`${article.author.name}`] : undefined,
+    },
   };
 }
 
-// Server component data fetching
-async function getArticleData(slug: string) {
-  try {
-    const res = await fetch(`${getAppUrl()}/api/articles/${slug}`, {
-      next: {
-        tags: [`article-${slug}`],
-        revalidate: 3600, // Revalidate once per hour
-      },
-    });
-
-    if (!res.ok) {
-      if (res.status === 404) return null;
-      throw new Error(`Failed to fetch article: ${res.statusText}`);
-    }
-
-    return res.json();
-  } catch (error) {
-    console.error(`Error fetching article with slug ${slug}:`, error);
-    return null;
-  }
-}
-
-// Helper components remain unchanged
-const ShareButton = ({ url, title }: { url: string; title: string }) => {
-  const shareButtons = [
-    {
-      icon: <Facebook size={18} />,
-      label: "Facebook",
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-        url
-      )}`,
-    },
-    {
-      icon: <Twitter size={18} />,
-      label: "Twitter",
-      href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-        url
-      )}&text=${encodeURIComponent(title)}`,
-    },
-    {
-      icon: <MessageCircle size={18} />,
-      label: "WhatsApp",
-      href: `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`,
-    },
-  ];
-
-  return (
-    <div className="flex items-center gap-3">
-      <Share2 size={16} className="text-gray-400" />
-      <div className="flex gap-1">
-        {shareButtons.map((btn) => (
-          <Button
-            key={btn.label}
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 hover:text-blue-600"
-            asChild
-          >
-            <Link
-              href={btn.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Share on ${btn.label}`}
-            >
-              {btn.icon}
-            </Link>
-          </Button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const ReadingTime = ({ content }: { content: string }) => {
-  const wordsPerMinute = 200;
-  const words = content.trim().split(/\s+/).length;
-  const minutes = Math.ceil(words / wordsPerMinute);
-
-  return `${minutes} menit membaca`;
-};
-
+// Also update the main component function to await params
 export default async function ArticleDetailPage({
   params,
 }: {
   params: { slug: string };
 }) {
-  // Use server component data fetching
-  const resolvedParams = await params;
-  const article = await getArticleData(resolvedParams.slug);
+  // Await params to resolve the TypeScript error
+  const resolvedParams = await Promise.resolve(params);
+  const slug = resolvedParams.slug;
 
-  // If article doesn't exist, show 404 page
-  if (!article) {
+  // Fetch article data
+  const article = await getArticleAction(slug);
+
+  // If article is not found or not published, return 404
+  if (!article || article.status !== "published") {
     notFound();
   }
 
-  // Format the date for display (publishedAt or createdAt)
-  // Ensure date objects are properly handled
-  const displayDate = article.publishedAt
-    ? new Date(article.publishedAt)
-    : new Date(article.createdAt);
+  // Fetch related articles (latest articles excluding current)
+  const relatedArticlesResult = await getArticlesAction({
+    status: "published",
+    limit: 3, // Get 3 latest articles
+  });
+
+  // Filter out the current article
+  const relatedArticles = relatedArticlesResult.data
+    .filter((a) => a.slug !== article.slug)
+    .slice(0, 3); // Ensure we only have at most 3
+
+  // Format date
+  const publishedDate = article.publishedAt || article.createdAt;
+  const formattedDate = formatDate(publishedDate);
+
+  // Estimated reading time
+  const wordCount = article.content.replace(/<[^>]*>/g, "").split(/\s+/).length;
+  const readingMinutes = Math.ceil(wordCount / 250); // Assuming average reading speed of 250 words per minute
+
+  // Featured image
+  const hasValidImage =
+    article.featured_image?.url && article.featured_image.url.trim() !== "";
+  const placeholderImage = "/img/placeholder.png"; // Fallback image
 
   return (
     <>
-      <article className="min-h-screen">
-        {/* Hero Section */}
-        <div className="relative h-[70vh] bg-gray-900">
-          {/* Featured Image as Background */}
-          <Image
-            src={(article.featured_image as any)?.url || "/placeholder.jpg"}
-            alt={(article.featured_image as any)?.alt || article.title}
-            fill
-            className="object-cover opacity-40"
-            priority
-          />
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">Beranda</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/artikel">Artikel</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{article.title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40" />
+        <article className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          {/* Featured Image */}
+          <div className="relative w-full aspect-[16/9]">
+            {hasValidImage ? (
+              <Image
+                src={article.featured_image!.url}
+                alt={article.featured_image!.alt || article.title}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1200px"
+                priority
+                className="object-cover"
+              />
+            ) : (
+              <Image
+                src={placeholderImage}
+                alt={article.title}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1200px"
+                priority
+                className="object-cover"
+              />
+            )}
+          </div>
 
-          {/* Content Container */}
-          <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Breadcrumb */}
-            <div className="pt-6">
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link href="/" className="text-gray-300 hover:text-white">
-                        Beranda
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="text-gray-400" />
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link
-                        href="/artikel"
-                        className="text-gray-300 hover:text-white"
-                      >
-                        Artikel
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="text-gray-400" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="text-white">
-                      {article.title}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-
+          <div className="p-6 md:p-8">
             {/* Article Header */}
-            <div className="absolute bottom-0 max-w-3xl mb-12">
-              <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
-                <Link
-                  href="/artikel"
-                  className="bg-blue-600/10 text-blue-400 px-3 py-1 rounded-full border border-blue-400/20 hover:bg-blue-600/20 transition-colors"
-                >
-                  Artikel
-                </Link>
-                <span>•</span>
-                <div className="flex items-center gap-1">
-                  <ClockIcon size={14} />
-                  <span>{ReadingTime({ content: article.content })}</span>
-                </div>
-              </div>
-
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+            <header className="mb-6">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-gray-900">
                 {article.title}
               </h1>
 
-              {/* Author & Date */}
-              <div className="flex items-center gap-4">
-                <Avatar className="h-12 w-12 border-2 border-white/10">
-                  <AvatarImage
-                    src={`https://ui-avatars.com/api/?name=${
-                      (article.author as any)?.name || "Admin"
-                    }`}
-                    alt={(article.author as any)?.name || "Admin"}
-                  />
-                  <AvatarFallback>
-                    {((article.author as any)?.name || "Admin")
-                      .split(" ")
-                      .map((n: string) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-medium text-white">
-                    {(article.author as any)?.name || "Admin"}
+              <div className="flex flex-wrap justify-between items-center text-sm text-gray-500 gap-4">
+                {/* Author and Date */}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center">
+                    <Avatar className="h-8 w-8 mr-2">
+                      <AvatarImage
+                        src="/img/avatar-placeholder.png"
+                        alt="Admin"
+                      />
+                      <AvatarFallback>A</AvatarFallback>
+                    </Avatar>
+                    <span>{article.author?.name || "Admin"}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <CalendarIcon size={14} />
-                    <time dateTime={displayDate.toISOString()}>
-                      {displayDate.toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </time>
+
+                  <div className="flex items-center">
+                    <CalendarIcon className="mr-1 h-4 w-4" />
+                    <span>{formattedDate}</span>
+                  </div>
+
+                  <div className="flex items-center">
+                    <span>{readingMinutes} menit membaca</span>
                   </div>
                 </div>
+
+                {/* Share buttons */}
+                <ArticleShare title={article.title} slug={article.slug} />
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Main Content */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Article Content */}
-          <div
-            className="prose prose-lg max-w-none
-              prose-headings:font-bold prose-headings:tracking-tight
-              prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6
-              prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4
-              prose-p:text-gray-600 prose-p:leading-relaxed prose-p:mb-6
-              prose-a:text-blue-600 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
-              prose-blockquote:border-l-4 prose-blockquote:border-blue-500/50
-              prose-blockquote:bg-blue-50 prose-blockquote:p-6 prose-blockquote:rounded-lg
-              prose-strong:text-gray-900
-              prose-img:rounded-lg prose-img:shadow-lg
-              prose-ul:list-disc prose-ol:list-decimal
-              prose-li:text-gray-600 prose-li:mb-2"
-            dangerouslySetInnerHTML={{ __html: article.content }}
-          />
+              <Separator className="my-6" />
+            </header>
 
-          {/* Share Section */}
-          <div className="mt-12">
-            <Separator className="mb-8" />
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Bagikan artikel ini
-              </h3>
-              <ShareButton
-                url={`${
-                  process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com"
-                }/artikel/${article.slug}`}
-                title={article.title}
+            {/* Article Content */}
+            <ArticleContent content={article.content} />
+
+            {/* Author Card */}
+            <div className="mt-10">
+              <ArticleAuthorCard
+                name={article.author?.name || "Admin"}
+                role="Penulis"
+                bio="Bekerja di By May Scarf, gemar menulis artikel seputar tips, inspirasi, dan pengetahuan tentang islami."
               />
             </div>
           </div>
-        </div>
-      </article>
+        </article>
+
+        {/* Related Articles */}
+        {relatedArticles.length > 0 && (
+          <section className="mt-12">
+            <RelatedArticlesSection articles={relatedArticles} />
+          </section>
+        )}
+      </div>
       <Footer />
     </>
   );

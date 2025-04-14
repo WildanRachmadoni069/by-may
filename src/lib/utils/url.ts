@@ -1,16 +1,32 @@
 /**
- * Get the full URL to the application, using the NEXT_PUBLIC_APP_URL environment variable
- * or falling back to localhost in development.
+ * Get the base URL for the application
+ * In development: http://localhost:3000
+ * In production: https://bymayscarf.com (or whatever the domain is)
  */
-export function getAppUrl(path = ""): string {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : "https://by-may-scarf.com");
+export function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    // Client-side
+    return window.location.origin;
+  }
 
-  // Make sure path starts with a slash if it's not empty
-  const normalizedPath = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+  // Server-side
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
 
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+
+  // Fallback for local development
+  return "http://localhost:3000";
+}
+
+/**
+ * Get the full app URL including the base URL and path
+ */
+export function getAppUrl(path: string = ""): string {
+  const baseUrl = getBaseUrl();
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${baseUrl}${normalizedPath}`;
 }
