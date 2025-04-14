@@ -1,3 +1,13 @@
+/**
+ * Halaman Manajemen Artikel (Admin)
+ *
+ * Halaman ini menyediakan antarmuka untuk admin mengelola artikel:
+ * - Melihat daftar semua artikel dengan paginasi
+ * - Mencari dan memfilter artikel
+ * - Menambah, mengedit, dan menghapus artikel
+ *
+ * Menggunakan Zustand untuk state management dan server-side pagination.
+ */
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -59,12 +69,16 @@ import { useArticleStore } from "@/store/useArticleStore";
 
 function ArtikelAdminPage() {
   const { toast } = useToast();
+
+  // State untuk menandai artikel yang sedang dihapus
   const [deletingArticles, setDeletingArticles] = useState<
     Record<string, boolean>
   >({});
+
+  // State untuk input pencarian
   const [searchInput, setSearchInput] = useState("");
 
-  // Use Zustand store
+  // Menggunakan Zustand store untuk artikel
   const {
     articles,
     isLoading,
@@ -77,26 +91,35 @@ function ArtikelAdminPage() {
     resetFilters,
   } = useArticleStore();
 
-  // Initial load
+  // Load data awal saat komponen pertama kali dimuat
   useEffect(() => {
     fetchArticles();
   }, [fetchArticles]);
 
+  /**
+   * Mengubah arah pengurutan artikel
+   */
   const toggleSort = () => {
     const newDirection = filters.sortDirection === "desc" ? "asc" : "desc";
     setFilter("sortDirection", newDirection);
     fetchArticles({
       page: 1,
-      sort: newDirection, // Pastikan parameter name "sort" sesuai dengan API
+      sort: newDirection,
     });
   };
 
+  /**
+   * Menangani perpindahan halaman
+   */
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages || page === pagination.page)
       return;
     fetchArticles({ page });
   };
 
+  /**
+   * Menangani pencarian artikel
+   */
   const handleSearch = () => {
     setFilter("searchQuery", searchInput);
     fetchArticles({
@@ -105,12 +128,18 @@ function ArtikelAdminPage() {
     });
   };
 
+  /**
+   * Mengatur ulang pencarian
+   */
   const handleResetSearch = () => {
     setSearchInput("");
     setFilter("searchQuery", "");
     fetchArticles({ page: 1, searchQuery: "" });
   };
 
+  /**
+   * Menangani filter berdasarkan status artikel
+   */
   const handleFilterStatus = (status: "all" | "draft" | "published") => {
     setFilter("status", status);
     fetchArticles({
@@ -119,10 +148,12 @@ function ArtikelAdminPage() {
     });
   };
 
+  /**
+   * Menangani penghapusan artikel
+   */
   const handleDelete = async (slug: string) => {
     try {
       setDeletingArticles((prev) => ({ ...prev, [slug]: true }));
-
       const success = await deleteArticle(slug);
 
       if (success) {
@@ -131,10 +162,10 @@ function ArtikelAdminPage() {
           description: "Artikel telah dihapus dari database.",
         });
       } else {
-        throw new Error("Failed to delete article");
+        throw new Error("Gagal menghapus artikel");
       }
     } catch (error) {
-      console.error("Error deleting article:", error);
+      console.error("Error menghapus artikel:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -145,6 +176,7 @@ function ArtikelAdminPage() {
     }
   };
 
+  // Fungsi format tanggal
   const formatDate = (date: Date | string) => {
     if (!date) return "N/A";
     return new Date(date).toLocaleDateString("id-ID", {
@@ -154,6 +186,7 @@ function ArtikelAdminPage() {
     });
   };
 
+  // Mendapatkan badge status artikel
   const getStatusBadge = (status: "draft" | "published") => {
     if (status === "published") {
       return <Badge className="bg-green-500">Terbit</Badge>;
@@ -161,7 +194,7 @@ function ArtikelAdminPage() {
     return <Badge variant="secondary">Draft</Badge>;
   };
 
-  // Add article table skeleton loader
+  // Render skeleton loader untuk tabel artikel
   const renderArticleSkeletons = () => {
     return Array(pagination.itemsPerPage)
       .fill(null)
@@ -190,7 +223,7 @@ function ArtikelAdminPage() {
       ));
   };
 
-  // Render empty or not found state
+  // Render state kosong atau tidak ditemukan
   const renderEmptyState = () => {
     if (isLoading && articles.length === 0) {
       return (
@@ -201,7 +234,7 @@ function ArtikelAdminPage() {
     }
 
     if (filters.searchQuery) {
-      // Show "not found" message for empty search results
+      // Tampilkan pesan "tidak ditemukan" untuk hasil pencarian kosong
       return (
         <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
           <CircleSlashed className="h-8 w-8" />
@@ -221,7 +254,7 @@ function ArtikelAdminPage() {
       );
     }
 
-    // Show "no articles" message when there are no articles at all
+    // Tampilkan pesan "tidak ada artikel" saat belum ada artikel
     return (
       <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
         <FileText className="h-8 w-8" />
@@ -235,6 +268,7 @@ function ArtikelAdminPage() {
     );
   };
 
+  // Tampilkan skeleton loader saat loading pertama kali
   if (isLoading && !articles.length) {
     return (
       <div className="space-y-4">
@@ -249,12 +283,12 @@ function ArtikelAdminPage() {
     );
   }
 
-  // Generate pagination items
+  // Menghasilkan item paginasi
   const renderPaginationItems = () => {
     const items = [];
     const { page, totalPages } = pagination;
 
-    // Always show first page
+    // Selalu tampilkan halaman pertama
     items.push(
       <PaginationItem key="first">
         <PaginationLink
@@ -267,7 +301,7 @@ function ArtikelAdminPage() {
       </PaginationItem>
     );
 
-    // Add ellipsis if needed
+    // Tambahkan ellipsis jika diperlukan
     if (page > 3) {
       items.push(
         <PaginationItem key="ellipsis-1">
@@ -276,13 +310,13 @@ function ArtikelAdminPage() {
       );
     }
 
-    // Show current page and neighbors
+    // Tampilkan halaman saat ini dan tetangganya
     for (
       let i = Math.max(2, page - 1);
       i <= Math.min(totalPages - 1, page + 1);
       i++
     ) {
-      if (i <= 1 || i >= totalPages) continue; // Skip first and last page as they're always shown
+      if (i <= 1 || i >= totalPages) continue; // Lewati halaman pertama dan terakhir
 
       items.push(
         <PaginationItem key={i}>
@@ -297,7 +331,7 @@ function ArtikelAdminPage() {
       );
     }
 
-    // Add ellipsis if needed
+    // Tambahkan ellipsis jika diperlukan
     if (page < totalPages - 2) {
       items.push(
         <PaginationItem key="ellipsis-2">
@@ -306,7 +340,7 @@ function ArtikelAdminPage() {
       );
     }
 
-    // Always show last page if more than 1 page
+    // Selalu tampilkan halaman terakhir jika lebih dari 1 halaman
     if (totalPages > 1) {
       items.push(
         <PaginationItem key="last">
@@ -326,6 +360,7 @@ function ArtikelAdminPage() {
 
   return (
     <div className="space-y-4">
+      {/* Header halaman */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold mb-2">Manajemen Artikel</h1>
@@ -340,10 +375,10 @@ function ArtikelAdminPage() {
         </Link>
       </div>
 
-      {/* Search and filter section - styled like product page */}
+      {/* Bagian pencarian dan filter - mirip halaman produk */}
       <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search with compact styling */}
+          {/* Pencarian dengan styling ringkas */}
           <div className="relative flex-1 flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -381,7 +416,7 @@ function ArtikelAdminPage() {
             )}
           </div>
 
-          {/* Status filter */}
+          {/* Filter status */}
           <div className="flex flex-wrap gap-2 sm:w-auto w-full">
             <Select
               value={filters.status}
@@ -401,7 +436,7 @@ function ArtikelAdminPage() {
           </div>
         </div>
 
-        {/* Search results feedback */}
+        {/* Feedback hasil pencarian */}
         {filters.searchQuery && (
           <div className="mt-2 text-xs flex items-center gap-2 text-muted-foreground">
             <Search className="h-3 w-3" />
@@ -414,7 +449,7 @@ function ArtikelAdminPage() {
         )}
       </div>
 
-      {/* Articles table */}
+      {/* Tabel artikel */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 relative">
         <Table>
           <TableHeader>
@@ -521,7 +556,7 @@ function ArtikelAdminPage() {
               ))
             )}
 
-            {/* Inline loading indicator */}
+            {/* Indikator loading inline */}
             {isLoading && articles.length > 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-4">
@@ -537,7 +572,7 @@ function ArtikelAdminPage() {
           </TableBody>
         </Table>
 
-        {/* Pagination - updated to match product page style */}
+        {/* Paginasi - diperbarui sesuai gaya halaman produk */}
         {articles.length > 0 && (
           <div className="py-4 border-t">
             <Pagination>
@@ -568,7 +603,7 @@ function ArtikelAdminPage() {
                   </PaginationPrevious>
                 </PaginationItem>
 
-                {/* If loading, show spinner in pagination */}
+                {/* Jika loading, tampilkan spinner di paginasi */}
                 {isLoading ? (
                   <PaginationItem>
                     <div className="flex items-center justify-center px-4">

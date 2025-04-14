@@ -1,3 +1,7 @@
+/**
+ * API route untuk mengupload gambar konten artikel ke Cloudinary
+ * Digunakan oleh editor rich text untuk menyisipkan gambar
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -35,14 +39,11 @@ export async function POST(req: NextRequest) {
         .end(buffer);
     });
 
-    // Log info tentang upload untuk debugging
-    console.log("Uploaded image with public_id:", (result as any).public_id);
-
     return NextResponse.json(result);
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Error uploading content image" },
+      { error: "Error mengupload gambar konten" },
       { status: 500 }
     );
   }

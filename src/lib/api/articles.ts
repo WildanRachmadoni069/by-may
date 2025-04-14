@@ -1,3 +1,11 @@
+/**
+ * API Artikel untuk Client Components
+ *
+ * File ini berisi tipe data dan fungsi untuk interaksi dengan API artikel
+ * dari client components. Untuk operasi server, gunakan article-actions.ts.
+ */
+
+// Tipe-tipe data artikel
 export type ArticleMeta = {
   title: string;
   description: string;
@@ -45,7 +53,11 @@ export type PaginationResult<T> = {
   };
 };
 
-// Fetch all articles with optional filtering
+/**
+ * Mengambil semua artikel dengan filter opsional
+ * @param options Opsi filter dan paginasi
+ * @returns Hasil artikel terpaginasi
+ */
 export async function getArticles(
   options: {
     status?: "draft" | "published";
@@ -69,13 +81,17 @@ export async function getArticles(
   });
 
   if (!res.ok) {
-    throw new Error("Failed to fetch articles");
+    throw new Error("Gagal mengambil artikel");
   }
 
   return res.json();
 }
 
-// Fetch a single article by slug
+/**
+ * Mengambil artikel berdasarkan slug
+ * @param slug Slug artikel yang dicari
+ * @returns Artikel atau null jika tidak ditemukan
+ */
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
   const res = await fetch(`/api/articles/${slug}`, {
     next: { tags: [`article-${slug}`] },
@@ -86,13 +102,17 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   }
 
   if (!res.ok) {
-    throw new Error("Failed to fetch article");
+    throw new Error("Gagal mengambil artikel");
   }
 
   return res.json();
 }
 
-// Create a new article
+/**
+ * Membuat artikel baru
+ * @param data Data artikel yang akan dibuat
+ * @returns Artikel yang dibuat
+ */
 export async function createArticle(
   data: ArticleCreateInput
 ): Promise<Article> {
@@ -105,13 +125,18 @@ export async function createArticle(
   });
 
   if (!res.ok) {
-    throw new Error("Failed to create article");
+    throw new Error("Gagal membuat artikel");
   }
 
   return res.json();
 }
 
-// Update an existing article
+/**
+ * Memperbarui artikel yang sudah ada
+ * @param slug Slug artikel yang akan diperbarui
+ * @param data Data artikel yang diperbarui
+ * @returns Artikel yang diperbarui
+ */
 export async function updateArticle(
   slug: string,
   data: ArticleUpdateInput
@@ -125,27 +150,30 @@ export async function updateArticle(
   });
 
   if (!res.ok) {
-    throw new Error("Failed to update article");
+    throw new Error("Gagal memperbarui artikel");
   }
 
   return res.json();
 }
 
-// Delete an article
+/**
+ * Menghapus artikel
+ * @param slug Slug artikel yang akan dihapus
+ */
 export async function deleteArticle(slug: string): Promise<void> {
-  // First, get the article to extract featured image URL
+  // Ambil artikel terlebih dahulu untuk mengekstrak URL gambar featured
   const article = await getArticleBySlug(slug);
 
-  // Delete the article from database
+  // Hapus artikel dari database
   const res = await fetch(`/api/articles/${slug}`, {
     method: "DELETE",
   });
 
   if (!res.ok) {
-    throw new Error("Failed to delete article");
+    throw new Error("Gagal menghapus artikel");
   }
 
-  // If article had a featured image, delete it from Cloudinary
+  // Jika artikel memiliki gambar featured, hapus dari Cloudinary
   if (article && article.featured_image && article.featured_image.url) {
     try {
       await fetch("/api/cloudinary/delete-image", {
@@ -156,9 +184,9 @@ export async function deleteArticle(slug: string): Promise<void> {
         body: JSON.stringify({ url: article.featured_image.url }),
       });
     } catch (error) {
-      console.error("Failed to delete image from Cloudinary:", error);
-      // Continue execution even if image deletion fails
-      // The article is already deleted from the database
+      console.error("Gagal menghapus gambar dari Cloudinary:", error);
+      // Lanjutkan eksekusi meskipun penghapusan gambar gagal
+      // Artikel sudah dihapus dari database
     }
   }
 }

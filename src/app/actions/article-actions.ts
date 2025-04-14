@@ -1,5 +1,13 @@
 "use server";
 
+/**
+ * Server Actions untuk Artikel
+ *
+ * File ini berisi server actions untuk operasi artikel.
+ * Fungsi-fungsi ini digunakan untuk operasi server-side langsung dari
+ * Server dan Client Components.
+ */
+
 import { revalidatePath } from "next/cache";
 import {
   Article,
@@ -10,58 +18,57 @@ import {
 import { ArticleService } from "@/lib/services/article-service";
 
 /**
- * Server action untuk membuat artikel baru
+ * Membuat artikel baru
+ * @param data Data artikel yang akan dibuat
+ * @returns Artikel yang dibuat
  */
 export async function createArticleAction(
   data: ArticleCreateInput
 ): Promise<Article> {
-  // Gunakan service untuk membuat artikel
   const article = await ArticleService.createArticle(data);
-
-  // Revalidate paths
   revalidatePath("/artikel");
   revalidatePath(`/artikel/${article.slug}`);
-
   return article;
 }
 
 /**
- * Server action untuk memperbarui artikel
+ * Memperbarui artikel yang sudah ada
+ * @param slug Slug artikel yang akan diperbarui
+ * @param data Data artikel yang diperbarui
+ * @returns Artikel yang diperbarui
  */
 export async function updateArticleAction(
   slug: string,
   data: ArticleUpdateInput
 ): Promise<Article> {
-  // Gunakan service untuk memperbarui artikel
   const updatedArticle = await ArticleService.updateArticle(slug, data);
-
-  // Revalidate paths
   revalidatePath("/artikel");
   revalidatePath(`/artikel/${slug}`);
-
   return updatedArticle;
 }
 
 /**
- * Server action untuk menghapus artikel
+ * Menghapus artikel dan gambar terkait
+ * @param slug Slug artikel yang akan dihapus
  */
 export async function deleteArticleAction(slug: string): Promise<void> {
-  // Gunakan service untuk menghapus artikel
   await ArticleService.deleteArticle(slug);
-
-  // Revalidate paths
   revalidatePath("/artikel");
 }
 
 /**
- * Server action untuk mengambil artikel berdasarkan slug
+ * Mengambil artikel berdasarkan slug
+ * @param slug Slug artikel yang dicari
+ * @returns Artikel atau null jika tidak ditemukan
  */
 export async function getArticleAction(slug: string): Promise<Article | null> {
   return await ArticleService.getArticleBySlug(slug);
 }
 
 /**
- * Server action untuk mengambil daftar artikel
+ * Mengambil artikel terpaginasi dengan opsi filter
+ * @param options Opsi filter dan paginasi
+ * @returns Artikel terpaginasi dan metadata
  */
 export async function getArticlesAction(
   options: {

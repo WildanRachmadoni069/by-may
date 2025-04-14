@@ -1,3 +1,9 @@
+/**
+ * Halaman Daftar Artikel (Public)
+ *
+ * Halaman ini menampilkan daftar artikel yang telah dipublikasikan untuk pengunjung website.
+ * Termasuk fitur pencarian dan paginasi server-side untuk performa optimal.
+ */
 import { Metadata } from "next";
 import { ArticleCard } from "@/components/general/ArticleCard";
 import Link from "next/link";
@@ -18,7 +24,7 @@ import { ArticleEmptyState } from "@/components/article/ArticleEmptyState";
 import { Suspense } from "react";
 import { ArticleSkeletons } from "@/components/article/ArticleSkeletons";
 
-// Metadata remains the same
+// Metadata untuk SEO halaman
 export const metadata: Metadata = {
   title: "Artikel",
   description:
@@ -47,17 +53,17 @@ interface ArticlePageProps {
 }
 
 export default async function ArticlePage({ searchParams }: ArticlePageProps) {
-  // Await the searchParams object
+  // Await searchParams untuk menghindari error "searchParams should be awaited"
   const params = await Promise.resolve(searchParams);
 
-  // Parse search parameters with defaults
+  // Parse parameter pencarian dengan nilai default
   const page = Number(params.page) || 1;
   const search = params.search || "";
-  const ITEMS_PER_PAGE = 9; // Show 9 articles per page (3x3 grid)
+  const ITEMS_PER_PAGE = 9; // 9 artikel per halaman (grid 3x3)
 
-  // Fetch articles with server-side pagination and search
+  // Fetch artikel dengan paginasi dan pencarian server-side
   const articlesResult = await getArticlesAction({
-    status: "published",
+    status: "published", // Hanya tampilkan artikel yang sudah dipublikasikan
     page,
     limit: ITEMS_PER_PAGE,
     search,
@@ -67,40 +73,48 @@ export default async function ArticlePage({ searchParams }: ArticlePageProps) {
   const { total, totalPages } = articlesResult.pagination;
   const hasArticles = articles.length > 0;
 
-  return (
-    <>
-      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Breadcrumb */}
-        <Breadcrumb className="mb-6">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link href="/">Beranda</Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>Artikel</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+  // Judul halaman yang SEO-friendly dan sesuai dengan pencarian
+  const pageTitle = search
+    ? `Hasil Pencarian "${search}" - Artikel Islami`
+    : "Artikel Islami";
 
-        <div className="max-w-3xl mx-auto text-center mb-8">
+  return (
+    <main className="min-h-screen">
+      <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Breadcrumb - Penting untuk SEO dan aksesibilitas */}
+        <nav aria-label="breadcrumb" className="mb-6">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">Beranda</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Artikel</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </nav>
+
+        <header className="max-w-3xl mx-auto text-center mb-8">
+          {/* H1 untuk judul utama halaman - penting untuk SEO */}
           <h1 className="text-3xl sm:text-4xl font-bold mb-4 text-gray-900">
-            Artikel Islami
+            {pageTitle}
           </h1>
           <p className="text-base sm:text-lg text-gray-600 mb-6">
             Temukan inspirasi, pengetahuan, dan wawasan seputar Al-Qur'an,
             perlengkapan ibadah, dan kehidupan islami.
           </p>
 
-          {/* Search Bar */}
+          {/* Fitur Pencarian Artikel */}
           <SearchArticles currentSearch={search} />
-        </div>
+        </header>
 
-        {/* Search Feedback */}
+        {/* Feedback hasil pencarian untuk UX yang lebih baik */}
         {search && (
-          <div className="mb-6 text-center">
+          <div className="mb-6 text-center" aria-live="polite">
             <p className="text-gray-600">
               {hasArticles ? (
                 <>
@@ -117,22 +131,28 @@ export default async function ArticlePage({ searchParams }: ArticlePageProps) {
           </div>
         )}
 
+        {/* Konten artikel dengan Suspense untuk loading state */}
         <Suspense fallback={<ArticleSkeletons count={ITEMS_PER_PAGE} />}>
-          {/* Articles Grid */}
+          {/* Grid artikel dengan tag semantik untuk SEO */}
           {hasArticles ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
+            <div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-8"
+              role="feed"
+              aria-busy="false"
+            >
               {articles.map((article) => (
-                <ArticleCard
-                  key={article.id}
-                  title={article.title}
-                  excerpt={article.excerpt || ""}
-                  slug={article.slug}
-                  featured_image={article.featured_image || null}
-                  created_at={
-                    article.publishedAt?.toString() ||
-                    article.createdAt.toString()
-                  }
-                />
+                <article key={article.id} className="h-full">
+                  <ArticleCard
+                    title={article.title}
+                    excerpt={article.excerpt || ""}
+                    slug={article.slug}
+                    featured_image={article.featured_image || null}
+                    created_at={
+                      article.publishedAt?.toString() ||
+                      article.createdAt.toString()
+                    }
+                  />
+                </article>
               ))}
             </div>
           ) : (
@@ -140,18 +160,21 @@ export default async function ArticlePage({ searchParams }: ArticlePageProps) {
           )}
         </Suspense>
 
-        {/* Pagination Controls */}
+        {/* Kontrol paginasi dengan label ARIA yang tepat */}
         {totalPages > 1 && (
-          <div className="flex justify-center mt-12">
+          <nav
+            aria-label="Navigasi halaman artikel"
+            className="flex justify-center mt-12"
+          >
             <ArticlePagination
               currentPage={page}
               totalPages={totalPages}
               search={search}
             />
-          </div>
+          </nav>
         )}
       </section>
       <Footer />
-    </>
+    </main>
   );
 }

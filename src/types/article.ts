@@ -1,3 +1,14 @@
+/**
+ * Tipe Data untuk Artikel
+ *
+ * File ini berisi definisi tipe data yang digunakan untuk artikel
+ * di seluruh aplikasi, termasuk data yang diterima dari API, data formulir,
+ * dan struktur untuk penyimpanan di database.
+ */
+
+/**
+ * Data artikel yang berasal dari API atau database
+ */
 export interface ArticleData {
   id: string;
   title: string;
@@ -23,7 +34,9 @@ export interface ArticleData {
   publishedAt?: string | null;
 }
 
-// Add compatibility types to help with database integration
+/**
+ * Data formulir artikel yang digunakan untuk membuat dan mengupdate artikel
+ */
 export interface ArticleFormData {
   title: string;
   slug: string;

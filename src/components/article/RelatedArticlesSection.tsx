@@ -14,8 +14,7 @@ export function RelatedArticlesSection({
 
   return (
     <div className="py-8">
-      <h2 className="text-2xl font-bold mb-6 text-center">Artikel Terbaru</h2>
-
+      {/* Menghapus heading disini karena sudah ada heading di parent component */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {articles.map((article) => (
           <ArticleCard
