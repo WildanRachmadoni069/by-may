@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import type { ArticleData } from "@/types/article";
 
 export const generateSlug = (title: string): string => {

@@ -33,29 +33,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  collection,
-  getDocs,
-  deleteDoc,
-  doc,
-  Timestamp,
-  getDoc,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { Article } from "@/lib/api/articles";
 
 function ArtikelAdminPage() {
-  interface Article {
-    id: string;
-    title: string;
-    slug: string;
-    status: "draft" | "published"; // Add status to interface
-    created_at: Timestamp;
-    featured_image?: {
-      url: string;
-    };
-  }
+  const { toast } = useToast();
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,35 +50,45 @@ function ArtikelAdminPage() {
   useEffect(() => {
     const fetchArticles = async () => {
       try {
-        const articlesRef = collection(db, "articles");
-        const snapshot = await getDocs(articlesRef);
-        const articlesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Article[];
+        setIsLoading(true);
+        const res = await fetch(`/api/articles`);
 
-        // Sort articles by created_at
-        const sortedArticles = articlesData.sort((a, b) => {
-          const dateA = a.created_at?.toDate?.() || new Date(0);
-          const dateB = b.created_at?.toDate?.() || new Date(0);
-          return sortDirection === "desc"
-            ? dateB.getTime() - dateA.getTime()
-            : dateA.getTime() - dateB.getTime();
-        });
+        if (!res.ok) {
+          throw new Error("Failed to fetch articles");
+        }
 
-        setArticles(sortedArticles);
+        const data = await res.json();
+        setArticles(data.data);
       } catch (error) {
         console.error("Error fetching articles:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load articles",
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchArticles();
-  }, [sortDirection]);
+  }, [toast]);
+
+  const toggleSort = () => {
+    setSortDirection(sortDirection === "desc" ? "asc" : "desc");
+  };
+
+  // Apply sort and search to the articles
+  const sortedArticles = [...articles].sort((a, b) => {
+    const dateA = new Date(a.createdAt);
+    const dateB = new Date(b.createdAt);
+    return sortDirection === "desc"
+      ? dateB.getTime() - dateA.getTime()
+      : dateA.getTime() - dateB.getTime();
+  });
 
   // Filter articles based on search query
-  const filteredArticles = articles.filter((article) =>
+  const filteredArticles = sortedArticles.filter((article) =>
     article.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -109,46 +103,36 @@ function ArtikelAdminPage() {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const toggleSort = () => {
-    setSortDirection((prev) => (prev === "desc" ? "asc" : "desc"));
-  };
-
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (slug: string) => {
     try {
-      // Get article data to get the image URL
-      const articleDoc = doc(db, "articles", id);
-      const articleSnapshot = await getDoc(articleDoc);
-      const articleData = articleSnapshot.data();
+      const res = await fetch(`/api/articles/${slug}`, {
+        method: "DELETE",
+      });
 
-      // If there's a featured image, delete it from Cloudinary
-      if (articleData?.featured_image?.url) {
-        const response = await fetch("/api/delete", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url: articleData.featured_image.url }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to delete image from Cloudinary");
-        }
+      if (!res.ok) {
+        throw new Error("Failed to delete article");
       }
 
-      // Delete the article from Firebase
-      await deleteDoc(articleDoc);
-      setArticles(articles.filter((article) => article.id !== id));
+      // Remove the deleted article from state
+      setArticles(articles.filter((article) => article.slug !== slug));
+
+      toast({
+        title: "Article deleted",
+        description: "The article has been successfully deleted.",
+      });
     } catch (error) {
       console.error("Error deleting article:", error);
-      // You might want to show an error message to the user here
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete article",
+      });
     }
   };
 
-  const formatDate = (timestamp: Timestamp) => {
-    if (!timestamp || !timestamp.toDate) {
-      return "Tanggal tidak tersedia";
-    }
-    return timestamp.toDate().toLocaleDateString("id-ID", {
+  const formatDate = (date: Date | string) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -221,7 +205,7 @@ function ArtikelAdminPage() {
               <TableCell>{startIndex + index + 1}</TableCell>
               <TableCell>{article.title}</TableCell>
               <TableCell>{getStatusBadge(article.status)}</TableCell>
-              <TableCell>{formatDate(article.created_at)}</TableCell>
+              <TableCell>{formatDate(article.createdAt)}</TableCell>
               <TableCell className="flex gap-2">
                 <Link href={`/artikel/${article.slug}`} target="_blank">
                   <Button variant="outline" size="icon">
@@ -250,7 +234,7 @@ function ArtikelAdminPage() {
                     <AlertDialogFooter>
                       <AlertDialogCancel>Batal</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={() => handleDelete(article.id)}
+                        onClick={() => handleDelete(article.slug)}
                       >
                         Hapus
                       </AlertDialogAction>

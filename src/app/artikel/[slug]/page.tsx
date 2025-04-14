@@ -1,5 +1,4 @@
 import React from "react";
-import { getArticleBySlug } from "@/lib/article";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,6 +22,7 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
+import { getArticleAction } from "@/app/actions/article-actions";
 
 interface Props {
   params: {
@@ -93,13 +93,19 @@ export default async function ArticleDetailPage({
 }: {
   params: { slug: string };
 }) {
-  const getParams = await params;
-  const { slug } = getParams;
-  const article = await getArticleBySlug(slug);
+  // Use the server action instead of the direct Prisma function
+  const article = await getArticleAction(params.slug);
 
+  // If article doesn't exist, show 404 page
   if (!article) {
     notFound();
   }
+
+  // Format the date for display (publishedAt or createdAt)
+  // Ensure date objects are properly handled
+  const displayDate = article.publishedAt
+    ? new Date(article.publishedAt)
+    : new Date(article.createdAt);
 
   return (
     <>
@@ -108,8 +114,8 @@ export default async function ArticleDetailPage({
         <div className="relative h-[70vh] bg-gray-900">
           {/* Featured Image as Background */}
           <Image
-            src={article.featured_image.url}
-            alt={article.featured_image.alt}
+            src={(article.featured_image as any)?.url || "/placeholder.jpg"}
+            alt={(article.featured_image as any)?.alt || article.title}
             fill
             className="object-cover opacity-40"
             priority
@@ -176,35 +182,29 @@ export default async function ArticleDetailPage({
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12 border-2 border-white/10">
                   <AvatarImage
-                    src={`https://ui-avatars.com/api/?name=${article.author.name}`}
-                    alt={article.author.name}
+                    src={`https://ui-avatars.com/api/?name=${
+                      (article.author as any)?.name || "Admin"
+                    }`}
+                    alt={(article.author as any)?.name || "Admin"}
                   />
                   <AvatarFallback>
-                    {article.author.name
+                    {((article.author as any)?.name || "Admin")
                       .split(" ")
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="font-medium text-white">
-                    {article.author.name}
+                    {(article.author as any)?.name || "Admin"}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-300">
                     <CalendarIcon size={14} />
-                    <time
-                      dateTime={new Date(
-                        //@ts-ignore
-                        article.created_at.seconds * 1000
-                      ).toISOString()}
-                    >
-                      {new Date(
-                        //@ts-ignore
-                        article.created_at.seconds * 1000
-                      ).toLocaleDateString("id-ID", {
-                        year: "numeric",
-                        month: "long",
+                    <time dateTime={displayDate.toISOString()}>
+                      {displayDate.toLocaleDateString("id-ID", {
                         day: "numeric",
+                        month: "long",
+                        year: "numeric",
                       })}
                     </time>
                   </div>
@@ -241,7 +241,9 @@ export default async function ArticleDetailPage({
                 Bagikan artikel ini
               </h3>
               <ShareButton
-                url={`${process.env.NEXT_PUBLIC_SITE_URL}/artikel/${article.slug}`}
+                url={`${
+                  process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com"
+                }/artikel/${article.slug}`}
                 title={article.title}
               />
             </div>

@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/prisma";
+// SERVER-SIDE ONLY - do not import in client components
+import { prisma } from "@/lib/db";
 import { Prisma } from "@prisma/client"; // Import Prisma namespace
 import type {
   FAQ,

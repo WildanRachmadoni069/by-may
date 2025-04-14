@@ -4,11 +4,12 @@ import BannerLandingpage from "@/components/landingpage/BannerLandingpage";
 import HeroLandingpage from "@/components/landingpage/HeroLandingpage";
 import MainNav from "@/components/landingpage/MainNav";
 import Footer from "@/components/landingpage/Footer";
+import { Navbar } from "@/components/landingpage/Navbar";
 
 export default function Home() {
   return (
     <>
-      <MainNav />
+      <Navbar />
       <main>
         <HeroLandingpage />
         <BannerLandingpage />

@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-// Get a single article by slug
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
@@ -19,13 +18,12 @@ export async function GET(
   } catch (error) {
     console.error("Failed to fetch article:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to fetch article" },
       { status: 500 }
     );
   }
 }
 
-// Update an article
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { slug: string } }
@@ -57,13 +55,12 @@ export async function PATCH(
   } catch (error) {
     console.error("Failed to update article:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to update article" },
       { status: 500 }
     );
   }
 }
 
-// Delete an article
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { slug: string } }
@@ -90,7 +87,7 @@ export async function DELETE(
   } catch (error) {
     console.error("Failed to delete article:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to delete article" },
       { status: 500 }
     );
   }

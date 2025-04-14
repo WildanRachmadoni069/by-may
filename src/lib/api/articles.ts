@@ -24,6 +24,7 @@ export type Article = {
   status: "draft" | "published";
   meta?: ArticleMeta | null;
   author?: ArticleAuthor | null;
+  publishedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -48,20 +49,20 @@ export type PaginationResult<T> = {
 export async function getArticles(
   options: {
     status?: "draft" | "published";
-    tag?: string;
     page?: number;
     limit?: number;
   } = {}
 ): Promise<PaginationResult<Article>> {
-  const { status, tag, page = 1, limit = 10 } = options;
+  const { status, page = 1, limit = 10 } = options;
 
   const params = new URLSearchParams();
   if (status) params.append("status", status);
-  if (tag) params.append("tag", tag);
   params.append("page", page.toString());
   params.append("limit", limit.toString());
 
-  const res = await fetch(`/api/articles?${params.toString()}`);
+  const res = await fetch(`/api/articles?${params.toString()}`, {
+    next: { tags: ["articles"] },
+  });
 
   if (!res.ok) {
     throw new Error("Failed to fetch articles");
@@ -71,8 +72,14 @@ export async function getArticles(
 }
 
 // Fetch a single article by slug
-export async function getArticleBySlug(slug: string): Promise<Article> {
-  const res = await fetch(`/api/articles/${slug}`);
+export async function getArticleBySlug(slug: string): Promise<Article | null> {
+  const res = await fetch(`/api/articles/${slug}`, {
+    next: { tags: [`article-${slug}`] },
+  });
+
+  if (res.status === 404) {
+    return null;
+  }
 
   if (!res.ok) {
     throw new Error("Failed to fetch article");
@@ -94,8 +101,7 @@ export async function createArticle(
   });
 
   if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.error || "Failed to create article");
+    throw new Error("Failed to create article");
   }
 
   return res.json();
@@ -115,8 +121,7 @@ export async function updateArticle(
   });
 
   if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.error || "Failed to update article");
+    throw new Error("Failed to update article");
   }
 
   return res.json();
@@ -129,7 +134,6 @@ export async function deleteArticle(slug: string): Promise<void> {
   });
 
   if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.error || "Failed to delete article");
+    throw new Error("Failed to delete article");
   }
 }

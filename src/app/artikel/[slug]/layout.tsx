@@ -1,8 +1,9 @@
 import type { Metadata, ResolvingMetadata } from "next";
-import { getArticleBySlug } from "@/lib/article";
+// Replace direct DB import with server-side data fetching
+import { getArticleBySlug } from "@/lib/api/articles-server";
 
 type Props = {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
   children: React.ReactNode;
 };
 
@@ -11,12 +12,8 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   try {
-    // Read route params
-    const getParams = await params;
-    const { slug } = getParams;
-
-    // Fetch article data
-    const article = await getArticleBySlug(slug);
+    // Fetch article using server component data fetching
+    const article = await getArticleBySlug(params.slug);
 
     if (!article) {
       return {
@@ -24,24 +21,30 @@ export async function generateMetadata(
       };
     }
 
+    // Get the meta data from the article
+    const meta = (article.meta as any) || {};
+
     // Optionally access and extend parent metadata
     const previousImages = (await parent).openGraph?.images || [];
 
     return {
-      title: article.meta.title,
-      description: article.meta.description,
+      title: meta.title || article.title,
+      description: meta.description || article.excerpt || "",
       openGraph: {
-        title: article.meta.title,
-        description: article.meta.description,
-        images: [
-          {
-            url: article.meta.og_image || article.featured_image.url,
-            width: 1200,
-            height: 630,
-            alt: article.title,
-          },
-          ...previousImages,
-        ],
+        title: meta.title || article.title,
+        description: meta.description || article.excerpt || "",
+        images:
+          meta.og_image || (article.featured_image as any)?.url
+            ? [
+                {
+                  url: meta.og_image || (article.featured_image as any)?.url,
+                  width: 1200,
+                  height: 630,
+                  alt: article.title,
+                },
+                ...previousImages,
+              ]
+            : [...previousImages],
       },
     };
   } catch (error) {

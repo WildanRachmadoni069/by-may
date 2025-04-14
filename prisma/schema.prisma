@@ -108,22 +108,24 @@ model FAQ {
 
 // Articles
 model Article {
-    id             String   @id @default(uuid())
+    id             String    @id @default(uuid())
     title          String
-    slug           String   @unique
-    content        String   @db.Text
-    excerpt        String?  @db.Text
+    slug           String    @unique
+    content        String    @db.Text
+    excerpt        String?   @db.Text
     featured_image Json? // {url: string, alt: string}
     status         String // "draft", "published"
     meta           Json? // {title: string, description: string, og_image: string}
     author         Json? // {id: string, name: string}
-    createdAt      DateTime @default(now())
-    updatedAt      DateTime @updatedAt
+    publishedAt    DateTime?
+    createdAt      DateTime  @default(now())
+    updatedAt      DateTime  @updatedAt
 
     @@index([slug])
     @@index([status])
     @@index([title])
     @@index([createdAt])
+    @@index([publishedAt])
 }
 
 // Banners

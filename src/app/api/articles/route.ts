@@ -5,26 +5,24 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
-    const tag = searchParams.get("tag");
-    const limit = parseInt(searchParams.get("limit") || "10");
     const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
     // Build query filters
-    const filters: any = {};
-    if (status) filters.status = status;
-    if (tag) filters.tags = { has: tag };
+    const where: any = {};
+    if (status) where.status = status;
 
     // Get articles with pagination
     const articles = await db.article.findMany({
-      where: filters,
+      where,
       take: limit,
       skip,
       orderBy: { createdAt: "desc" },
     });
 
     // Get total count for pagination
-    const totalCount = await db.article.count({ where: filters });
+    const totalCount = await db.article.count({ where });
 
     return NextResponse.json({
       data: articles,
@@ -38,7 +36,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error("Failed to fetch articles:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to fetch articles" },
       { status: 500 }
     );
   }
@@ -57,10 +55,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Set published date if status is "published"
-    if (data.status === "published" && !data.publishedAt) {
+    if (data.status === "published") {
       data.publishedAt = new Date();
     }
 
+    // Create the article
     const article = await db.article.create({
       data,
     });

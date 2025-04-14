@@ -1,9 +1,5 @@
 import { Metadata } from "next";
 import { ArticleCard } from "@/components/general/ArticleCard";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
-import type { ArticleData } from "@/types/article";
-import React from "react";
 import Link from "next/link";
 import {
   Breadcrumb,
@@ -14,7 +10,10 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
+// Replace direct DB import with server-side data fetching
+import { getArticles } from "@/lib/api/articles-server";
 
+// Metadata remains the same
 export const metadata: Metadata = {
   title: "Artikel",
   description:
@@ -35,50 +34,10 @@ export const metadata: Metadata = {
   },
 };
 
-function formatFirebaseTimestamp(timestamp: any) {
-  if (!timestamp) return null;
-  if (typeof timestamp === "string") return timestamp;
-  if (timestamp.seconds) {
-    return new Date(timestamp.seconds * 1000).toISOString();
-  }
-  return null;
-}
-
-async function getPublishedArticles() {
-  try {
-    const articlesRef = collection(db, "articles");
-    // This query requires a composite index
-    const q = query(
-      articlesRef,
-      where("status", "==", "published"),
-      orderBy("created_at", "desc")
-    );
-
-    const snapshot = await getDocs(q);
-    const articles = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        created_at: formatFirebaseTimestamp(data.created_at),
-        updated_at: formatFirebaseTimestamp(data.updated_at),
-      };
-    }) as ArticleData[];
-
-    return articles;
-  } catch (error: any) {
-    if (error.code === "failed-precondition") {
-      console.error(
-        "This query requires an index. Please create it in Firebase Console:",
-        error.details
-      );
-    }
-    return [];
-  }
-}
-
 export default async function ArticlePage() {
-  const articles = await getPublishedArticles();
+  // Use server component data fetching instead of direct DB access
+  const articlesResult = await getArticles({ status: "published" });
+  const articles = articlesResult.data || [];
 
   return (
     <>
@@ -114,10 +73,15 @@ export default async function ArticlePage() {
               <ArticleCard
                 key={article.id}
                 title={article.title}
-                excerpt={article.excerpt}
+                excerpt={article.excerpt || ""}
                 slug={article.slug}
-                featured_image={article.featured_image}
-                created_at={article.created_at ?? undefined}
+                featured_image={
+                  (article.featured_image as any) || { url: "", alt: "" }
+                }
+                created_at={
+                  article.publishedAt?.toString() ||
+                  article.createdAt.toString()
+                }
               />
             ))}
           </div>

@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/prisma";
+// SERVER-SIDE ONLY - do not import in client components
+import { prisma } from "@/lib/db";
 import type { CartItem } from "@/types/cart";
 
 // Get cart items for a user

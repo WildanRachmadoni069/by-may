@@ -21,16 +21,10 @@ import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
 import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
-import { db } from "@/lib/firebase/firebaseConfig";
-import {
-  collection,
-  addDoc,
-  updateDoc,
-  doc,
-  Timestamp,
-} from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import type { ArticleData } from "@/types/article";
+// Import PostgreSQL article API functions
+import { createArticle, updateArticle } from "@/lib/api/articles";
 
 const QuillEditor = dynamic(() => import("@/components/editor/QuillEditor"), {
   ssr: false,
@@ -97,6 +91,29 @@ const getDefaultInitialValues = () => ({
   meta: { title: "", description: "", og_image: "" },
 });
 
+function validateArticleData(data: any) {
+  // Check required fields
+  const errors: string[] = [];
+
+  if (!data.title) errors.push("Title is required");
+  if (!data.content) errors.push("Content is required");
+  if (!data.status) errors.push("Status is required");
+
+  // Check data types
+  if (data.meta && typeof data.meta !== "object")
+    errors.push("Meta must be an object");
+  if (data.author && typeof data.author !== "object")
+    errors.push("Author must be an object");
+  if (data.featured_image && typeof data.featured_image !== "object")
+    errors.push("Featured image must be an object");
+
+  // Return validation results
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
 export default function ArticleForm({ article }: ArticleFormProps) {
   const quillRef = React.useRef<Quill>(null);
   const router = useRouter();
@@ -118,12 +135,27 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
+        // Validate data
+        const validation = validateArticleData(values);
+        if (!validation.isValid) {
+          console.error("Article data validation failed:", validation.errors);
+          toast({
+            variant: "destructive",
+            title: "Validation Error",
+            description: validation.errors.join(", "),
+          });
+          return;
+        }
+
+        // Log the data being sent
+        console.log("Submitting article data:", values);
+
         if (isEditMode) {
-          // Update existing article
-          const docRef = doc(db, "articles", article.id);
-          await updateDoc(docRef, {
+          // Update existing article using PostgreSQL API
+          // Cast the status to the correct type
+          await updateArticle(article.slug, {
             ...values,
-            updated_at: Timestamp.now(),
+            status: values.status as "draft" | "published",
           });
 
           toast({
@@ -131,20 +163,17 @@ export default function ArticleForm({ article }: ArticleFormProps) {
             description: "Perubahan telah berhasil disimpan",
           });
         } else {
-          // Create new article
+          // Create new article using PostgreSQL API
           const articleData = {
             ...values,
+            status: values.status as "draft" | "published", // Cast status to the correct type
             author: {
               id: "admin", // This could be dynamic based on the authenticated user
               name: "Admin",
             },
-            created_at: Timestamp.now(),
-            updated_at: Timestamp.now(),
           };
 
-          // Save to Firestore
-          const articlesRef = collection(db, "articles");
-          await addDoc(articlesRef, articleData);
+          await createArticle(articleData);
 
           toast({
             title: "Artikel berhasil dibuat",

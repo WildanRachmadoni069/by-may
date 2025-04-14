@@ -3,10 +3,9 @@ import localFont from "next/font/local";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import Footer from "@/components/landingpage/Footer";
-import { getSeoData } from "@/lib/firebase/seo";
-import { AuthStateManager } from "@/components/AuthStateManager";
-import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
+// Remove auth-related imports
+// import { AuthStateManager } from "@/components/AuthStateManager";
+// import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -21,35 +20,15 @@ const geistMono = localFont({
 const jakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
 export async function generateMetadata(): Promise<Metadata> {
-  try {
-    const seoData = await getSeoData("homepage");
-
-    return {
-      title: {
-        default: seoData?.title || "Al-Quran Custom Cover",
-        template: "%s | By May Scarf",
-      },
-      description:
-        seoData?.description ||
-        "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
-      keywords: seoData?.keywords,
-      openGraph: {
-        title: seoData?.title || "Al-Quran Custom Cover",
-        description: seoData?.description,
-        images: seoData?.og_image ? [{ url: seoData.og_image }] : undefined,
-      },
-    };
-  } catch (error) {
-    console.error("Error generating metadata:", error);
-    return {
-      title: {
-        default: "Al-Quran Custom Cover",
-        template: "%s | By May Scarf",
-      },
-      description:
-        "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
-    };
-  }
+  // Simplify metadata - remove Firebase dependency
+  return {
+    title: {
+      default: "Al-Quran Custom Cover",
+      template: "%s | By May Scarf",
+    },
+    description:
+      "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
+  };
 }
 
 export default function RootLayout({
@@ -62,11 +41,12 @@ export default function RootLayout({
       <body
         className={`${jakartaSans.className} antialiased min-h-screen bg-background flex flex-col`}
       >
-        <AuthStateManager>
-          <Toaster />
-          <LogoutDialog />
-          <main className="relative flex-grow">{children}</main>
-        </AuthStateManager>
+        <Toaster />
+        {/* Add a simple admin access banner */}
+        <div className="bg-blue-500 text-white text-center py-1 text-sm">
+          <span>Development Mode: Authentication bypassed</span>
+        </div>
+        <main className="relative flex-grow">{children}</main>
       </body>
     </html>
   );
