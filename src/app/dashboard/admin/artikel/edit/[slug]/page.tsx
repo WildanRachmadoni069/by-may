@@ -3,31 +3,7 @@ import ArticleForm from "@/components/admin/article/ArticleForm";
 import type { ArticleData } from "@/types/article";
 import { Suspense } from "react";
 import { LoaderCircle } from "lucide-react";
-
-// Server component data fetching
-async function getArticleData(slug: string) {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/articles/${slug}`,
-      {
-        next: {
-          tags: [`article-${slug}`],
-          revalidate: 60, // Revalidate more frequently in admin context
-        },
-      }
-    );
-
-    if (!res.ok) {
-      if (res.status === 404) return null;
-      throw new Error(`Failed to fetch article: ${res.statusText}`);
-    }
-
-    return res.json();
-  } catch (error) {
-    console.error(`Error fetching article with slug ${slug}:`, error);
-    return null;
-  }
-}
+import { getArticleAction } from "@/app/actions/article-actions";
 
 // Convert database article model to ArticleData format expected by the form
 const mapArticleToFormData = (article: any): ArticleData => {
@@ -56,7 +32,8 @@ export default async function ArticleEditPage({
   const resolvedParams = params;
   const { slug } = await resolvedParams;
 
-  const article = await getArticleData(slug);
+  // Use server action instead of direct database call or separate function
+  const article = await getArticleAction(slug);
 
   if (!article) {
     notFound();

@@ -1,27 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ArticleService } from "@/lib/services/article-service";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
 
 export async function POST(req: NextRequest) {
-  try {
-    const { url } = await req.json();
+  const { url } = await req.json();
 
-    if (!url) {
+  if (!url) {
+    return NextResponse.json(
+      { error: "Image URL is required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // Extract public ID from Cloudinary URL
+    const urlParts = url.split("/");
+    const publicIdWithExtension = urlParts.pop();
+
+    if (!publicIdWithExtension) {
       return NextResponse.json(
-        { error: "Image URL is required" },
+        { error: "Invalid Cloudinary URL format" },
         { status: 400 }
       );
     }
 
-    const success = await ArticleService.deleteCloudinaryImage(url);
+    const publicId = publicIdWithExtension.split(".")[0];
 
-    if (success) {
+    // Delete the image from Cloudinary
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    if (result.result === "ok" || result.result === "not found") {
       return NextResponse.json({
         success: true,
-        message: "Image deleted successfully",
+        message:
+          result.result === "ok"
+            ? "Image deleted successfully"
+            : "Image not found",
       });
     } else {
       return NextResponse.json(
-        { error: "Failed to delete image" },
+        { error: `Failed to delete image: ${result.result}` },
         { status: 500 }
       );
     }
