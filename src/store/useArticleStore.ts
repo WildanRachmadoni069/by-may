@@ -1,159 +1,147 @@
 import { create } from "zustand";
 import {
   Article,
-  ArticleCreateInput,
-  ArticleUpdateInput,
-  getArticles,
-  getArticleBySlug,
-  createArticle,
-  updateArticle,
-  deleteArticle,
   PaginationResult,
+  getArticles,
+  deleteArticle as deleteArticleApi,
 } from "@/lib/api/articles";
 
 interface ArticleState {
-  // Articles data
   articles: Article[];
-  currentArticle: Article | null;
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-
-  // Loading and error states
   isLoading: boolean;
   error: string | null;
+  pagination: {
+    page: number;
+    itemsPerPage: number; // Renamed from limit for consistency
+    total: number;
+    totalPages: number;
+  };
+  filters: {
+    status: "all" | "draft" | "published";
+    sortDirection: "asc" | "desc";
+    searchQuery: string;
+  };
 
   // Actions
   fetchArticles: (options?: {
-    status?: "draft" | "published";
-    tag?: string;
     page?: number;
     limit?: number;
+    status?: "draft" | "published";
+    searchQuery?: string;
+    sort?: "asc" | "desc"; // Add this parameter
   }) => Promise<void>;
-  fetchArticleBySlug: (slug: string) => Promise<Article | null>;
-  addArticle: (data: ArticleCreateInput) => Promise<Article | null>;
-  editArticle: (
-    slug: string,
-    data: ArticleUpdateInput
-  ) => Promise<Article | null>;
-  removeArticle: (slug: string) => Promise<boolean>;
-  clearCurrentArticle: () => void;
-  setError: (error: string | null) => void;
+  deleteArticle: (slug: string) => Promise<boolean>;
+  setFilter: (key: keyof ArticleState["filters"], value: string) => void;
+  resetFilters: () => void;
 }
 
-const useArticleStore = create<ArticleState>((set, get) => ({
-  // Initial state
+export const useArticleStore = create<ArticleState>((set, get) => ({
   articles: [],
-  currentArticle: null,
-  pagination: {
-    total: 0,
-    page: 1,
-    limit: 10,
-    totalPages: 0,
-  },
   isLoading: false,
   error: null,
+  pagination: {
+    page: 1,
+    itemsPerPage: 10,
+    total: 0,
+    totalPages: 0,
+  },
+  filters: {
+    status: "all",
+    sortDirection: "desc",
+    searchQuery: "",
+  },
 
-  // Actions
   fetchArticles: async (options = {}) => {
+    const { filters, pagination } = get();
+
     set({ isLoading: true, error: null });
+
     try {
-      const result = await getArticles(options);
+      // Extract options with defaults from current state
+      const page = options.page ?? pagination.page;
+      const limit = options.limit ?? pagination.itemsPerPage;
+      const status =
+        options.status ||
+        (filters.status !== "all" ? filters.status : undefined);
+
+      // Prepare search query if provided
+      const searchQuery = options.searchQuery ?? filters.searchQuery;
+
+      // Add sort parameter
+      const sort = options.sort ?? filters.sortDirection;
+
+      // Call API with server-side filtering and pagination
+      const result = await getArticles({
+        page,
+        limit,
+        status,
+        search: searchQuery || undefined,
+        sort: sort, // Pass sort parameter correctly
+      });
+
+      // Update state with results
       set({
         articles: result.data,
-        pagination: result.pagination,
+        pagination: {
+          page: result.pagination.page,
+          itemsPerPage: result.pagination.limit,
+          total: result.pagination.total,
+          totalPages: result.pagination.totalPages,
+        },
         isLoading: false,
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to fetch articles";
-      set({ error: errorMessage, isLoading: false });
-    }
-  },
-
-  fetchArticleBySlug: async (slug: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const article = await getArticleBySlug(slug);
-      set({ currentArticle: article, isLoading: false });
-      return article;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to fetch article";
-      set({ error: errorMessage, isLoading: false });
-      return null;
-    }
-  },
-
-  addArticle: async (data: ArticleCreateInput) => {
-    set({ isLoading: true, error: null });
-    try {
-      const newArticle = await createArticle(data);
-      set((state) => ({
-        articles: [newArticle, ...state.articles],
+      console.error("Failed to fetch articles:", error);
+      set({
+        error: "Failed to load articles",
         isLoading: false,
-      }));
-      return newArticle;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to create article";
-      set({ error: errorMessage, isLoading: false });
-      return null;
+      });
     }
   },
 
-  editArticle: async (slug: string, data: ArticleUpdateInput) => {
-    set({ isLoading: true, error: null });
+  deleteArticle: async (slug: string) => {
     try {
-      const updatedArticle = await updateArticle(slug, data);
-      set((state) => ({
-        articles: state.articles.map((article) =>
-          article.slug === slug ? updatedArticle : article
-        ),
-        currentArticle:
-          state.currentArticle?.slug === slug
-            ? updatedArticle
-            : state.currentArticle,
-        isLoading: false,
-      }));
-      return updatedArticle;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to update article";
-      set({ error: errorMessage, isLoading: false });
-      return null;
-    }
-  },
+      await deleteArticleApi(slug);
 
-  removeArticle: async (slug: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      await deleteArticle(slug);
+      // Update local state to remove the deleted article
       set((state) => ({
         articles: state.articles.filter((article) => article.slug !== slug),
-        currentArticle:
-          state.currentArticle?.slug === slug ? null : state.currentArticle,
-        isLoading: false,
+        pagination: {
+          ...state.pagination,
+          total: Math.max(0, state.pagination.total - 1),
+          totalPages: Math.ceil(
+            (state.pagination.total - 1) / state.pagination.itemsPerPage
+          ),
+        },
       }));
+
       return true;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to delete article";
-      set({ error: errorMessage, isLoading: false });
+      console.error("Failed to delete article:", error);
       return false;
     }
   },
 
-  clearCurrentArticle: () => {
-    set({ currentArticle: null });
+  setFilter: (key, value) => {
+    set((state) => ({
+      filters: {
+        ...state.filters,
+        [key]: value,
+      },
+    }));
   },
 
-  setError: (error: string | null) => {
-    set({ error });
+  resetFilters: () => {
+    set({
+      filters: {
+        status: "all",
+        sortDirection: "desc",
+        searchQuery: "",
+      },
+      pagination: {
+        ...get().pagination,
+        page: 1,
+      },
+    });
   },
 }));
-
-export default useArticleStore;

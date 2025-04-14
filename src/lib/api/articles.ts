@@ -51,14 +51,18 @@ export async function getArticles(
     status?: "draft" | "published";
     page?: number;
     limit?: number;
+    search?: string;
+    sort?: "asc" | "desc";
   } = {}
 ): Promise<PaginationResult<Article>> {
-  const { status, page = 1, limit = 10 } = options;
+  const { status, page = 1, limit = 10, search, sort = "desc" } = options;
 
   const params = new URLSearchParams();
   if (status) params.append("status", status);
   params.append("page", page.toString());
   params.append("limit", limit.toString());
+  if (search) params.append("search", search);
+  if (sort) params.append("sort", sort);
 
   const res = await fetch(`/api/articles?${params.toString()}`, {
     next: { tags: ["articles"] },

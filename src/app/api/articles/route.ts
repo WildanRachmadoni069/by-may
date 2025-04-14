@@ -7,18 +7,29 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search");
+    const sort = searchParams.get("sort") || "desc";
+
     const skip = (page - 1) * limit;
 
     // Build query filters
     const where: any = {};
     if (status) where.status = status;
 
-    // Get articles with pagination
+    // Add search functionality
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { content: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    // Get articles with pagination and filtering
     const articles = await db.article.findMany({
       where,
       take: limit,
       skip,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: sort === "asc" ? "asc" : "desc" },
     });
 
     // Get total count for pagination
