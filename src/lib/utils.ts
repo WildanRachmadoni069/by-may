@@ -121,3 +121,34 @@ export function shuffleArray<T>(array: T[]): T[] {
   }
   return newArray;
 }
+
+/**
+ * Format a date to a locale-friendly string
+ * @param dateStr Date string or Date object to format
+ * @param locale Locale to use for formatting (default: 'id-ID')
+ * @returns Formatted date string
+ */
+export function formatDate(
+  dateStr: string | Date | undefined | null,
+  locale: string = "id-ID"
+): string {
+  if (!dateStr) return "N/A";
+
+  try {
+    const date = new Date(dateStr);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+
+    return date.toLocaleDateString(locale, {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Error";
+  }
+}

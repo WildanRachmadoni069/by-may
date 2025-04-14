@@ -68,6 +68,7 @@ export async function getArticlesAction(
     status?: "draft" | "published";
     page?: number;
     limit?: number;
+    search?: string;
   } = {}
 ): Promise<PaginationResult<Article>> {
   return await ArticleService.getArticles(options);

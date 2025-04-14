@@ -32,22 +32,35 @@ export const ArticleService = {
       status?: "draft" | "published";
       page?: number;
       limit?: number;
+      search?: string;
+      sort?: "asc" | "desc";
     } = {}
   ): Promise<PaginationResult<Article>> {
-    const { status, page = 1, limit = 10 } = options;
-    const skip = (page - 1) * limit;
+    const { status, page = 1, limit = 10, search, sort = "desc" } = options;
 
+    // Build query filters
     const where: any = {};
     if (status) where.status = status;
 
+    // Add search functionality if query provided
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { content: { contains: search, mode: "insensitive" } },
+        { excerpt: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    // Count total matching articles for pagination
+    const totalCount = await db.article.count({ where });
+
+    // Get articles with pagination
     const articles = await db.article.findMany({
       where,
       take: limit,
-      skip,
-      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      orderBy: { createdAt: sort === "asc" ? "asc" : "desc" },
     });
-
-    const totalCount = await db.article.count({ where });
 
     return {
       data: articles as Article[],
