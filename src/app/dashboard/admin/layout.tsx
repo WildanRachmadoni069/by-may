@@ -39,9 +39,9 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useLogoutDialog } from "@/components/dashboard/LogoutDialog";
+// import { useLogoutDialog } from "@/components/dashboard/LogoutDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import useAuthStore from "@/store/useAuthStore";
+// import useAuthStore from "@/store/useAuthStore";
 import {
   Accordion,
   AccordionContent,
@@ -52,46 +52,46 @@ import {
 function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, userData, loading, isAdmin } = useAuthStore();
-  const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
+  // const { currentUser, userData, loading, isAdmin } = useAuthStore();
+  // const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
 
-  // Get initials from user's fullName
-  const getInitials = (name: string) => {
-    return name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  };
+  // // Get initials from user's fullName
+  // const getInitials = (name: string) => {
+  //   return name
+  //     ?.split(" ")
+  //     .map((n) => n[0])
+  //     .join("")
+  //     .toUpperCase();
+  // };
 
-  // Autentikasi check untuk memastikan hanya admin yang dapat mengakses
-  useEffect(() => {
-    if (!loading) {
-      if (!currentUser) {
-        router.push("/login"); // Redirect ke login jika tidak ada user
-        return;
-      }
+  // // Autentikasi check untuk memastikan hanya admin yang dapat mengakses
+  // useEffect(() => {
+  //   if (!loading) {
+  //     if (!currentUser) {
+  //       router.push("/login"); // Redirect ke login jika tidak ada user
+  //       return;
+  //     }
 
-      if (!isAdmin) {
-        router.push("/"); // Redirect ke homepage jika bukan admin
-        return;
-      }
-    }
-  }, [currentUser, loading, isAdmin, router]);
+  //     if (!isAdmin) {
+  //       router.push("/"); // Redirect ke homepage jika bukan admin
+  //       return;
+  //     }
+  //   }
+  // }, [currentUser, loading, isAdmin, router]);
 
   // Tampilkan loading spinner jika loading masih berlangsung
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="h-screen flex items-center justify-center">
+  //       <LoadingSpinner size="lg" />
+  //     </div>
+  //   );
+  // }
 
   // Jika tidak ada user atau bukan admin, jangan render apapun (redirect akan terjadi)
-  if (!currentUser || !isAdmin) {
-    return null;
-  }
+  // if (!currentUser || !isAdmin) {
+  //   return null;
+  // }
 
   // Render layout admin jika semua autentikasi valid
   return (
@@ -118,7 +118,8 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
           <SidebarSeparator />
 
           {/* Simplified Admin Profile Card - REPLACED DROPDOWN WITH ACCORDION */}
-          <div className="px-4 py-2">
+
+          {/* <div className="px-4 py-2">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="account" className="border-none">
                 <AccordionTrigger className="p-2 rounded-lg hover:bg-black/5 transition-colors">
@@ -137,7 +138,6 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                         {userData?.email}
                       </p>
                     </div>
-                    {/* Chevron handled by AccordionTrigger */}
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -163,7 +163,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </div>
+          </div> */}
 
           <SidebarSeparator className="mt-2" />
 
