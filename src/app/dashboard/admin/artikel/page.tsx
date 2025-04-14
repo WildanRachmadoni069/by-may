@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Search,
   PlusCircle,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -36,12 +37,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Article } from "@/lib/api/articles";
+import { Article, deleteArticle } from "@/lib/api/articles";
 
 function ArtikelAdminPage() {
   const { toast } = useToast();
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingArticles, setDeletingArticles] = useState<
+    Record<string, boolean>
+  >({});
   const [currentPage, setCurrentPage] = useState(1);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -105,28 +109,28 @@ function ArtikelAdminPage() {
 
   const handleDelete = async (slug: string) => {
     try {
-      const res = await fetch(`/api/articles/${slug}`, {
-        method: "DELETE",
-      });
+      // Set the deleting state for this specific article
+      setDeletingArticles((prev) => ({ ...prev, [slug]: true }));
 
-      if (!res.ok) {
-        throw new Error("Failed to delete article");
-      }
+      await deleteArticle(slug); // This now handles both database deletion and Cloudinary image deletion
 
       // Remove the deleted article from state
       setArticles(articles.filter((article) => article.slug !== slug));
 
       toast({
-        title: "Article deleted",
-        description: "The article has been successfully deleted.",
+        title: "Artikel berhasil dihapus",
+        description: "Artikel telah dihapus dari database.",
       });
     } catch (error) {
       console.error("Error deleting article:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete article",
+        description: "Gagal menghapus artikel. Silakan coba lagi.",
       });
+    } finally {
+      // Clear the deleting state for this article
+      setDeletingArticles((prev) => ({ ...prev, [slug]: false }));
     }
   };
 
@@ -219,8 +223,16 @@ function ArtikelAdminPage() {
                 </Link>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="icon">
-                      <Trash2 className="h-4 w-4" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      disabled={deletingArticles[article.slug]}
+                    >
+                      {deletingArticles[article.slug] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
@@ -235,8 +247,17 @@ function ArtikelAdminPage() {
                       <AlertDialogCancel>Batal</AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => handleDelete(article.slug)}
+                        disabled={deletingArticles[article.slug]}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        Hapus
+                        {deletingArticles[article.slug] ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Menghapus...
+                          </>
+                        ) : (
+                          "Hapus"
+                        )}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

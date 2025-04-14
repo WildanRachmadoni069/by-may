@@ -1,17 +1,17 @@
-import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { ArticleService } from "@/lib/services/article-service";
 
-// GET handler - fetch article by slug
+// Get a single article by slug
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    const slug = params.slug;
-    const article = await db.article.findUnique({
-      where: { slug },
-    });
+    // Await params before using its properties
+    const resolvedParams = await params;
+
+    const article = await ArticleService.getArticleBySlug(resolvedParams.slug);
 
     if (!article) {
       return NextResponse.json({ error: "Article not found" }, { status: 404 });
@@ -27,75 +27,58 @@ export async function GET(
   }
 }
 
-// PATCH handler - update article
+// Update an article
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    const slug = params.slug;
+    // Await params before using its properties
+    const resolvedParams = await params;
+
     const body = await req.json();
 
-    // Find the article first to make sure it exists
-    const existingArticle = await db.article.findUnique({
-      where: { slug },
-    });
+    const article = await ArticleService.updateArticle(
+      resolvedParams.slug,
+      body
+    );
 
-    if (!existingArticle) {
-      return NextResponse.json({ error: "Article not found" }, { status: 404 });
-    }
-
-    // Check if article is being published for the first time
-    let publishedAt = existingArticle.publishedAt;
-    if (body.status === "published" && !existingArticle.publishedAt) {
-      publishedAt = new Date();
-    }
-
-    // Update the article
-    const updatedArticle = await db.article.update({
-      where: { slug },
-      data: {
-        ...body,
-        publishedAt,
-      },
-    });
-
-    // Revalidate the article pages
-    revalidatePath(`/artikel/${slug}`);
+    // Revalidate the paths to ensure fresh data
     revalidatePath("/artikel");
+    revalidatePath(`/artikel/${resolvedParams.slug}`);
+    revalidatePath("/dashboard/admin/artikel");
 
-    return NextResponse.json(updatedArticle);
+    return NextResponse.json(article);
   } catch (error) {
     console.error("Error updating article:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to update article" },
       { status: 500 }
     );
   }
 }
 
-// DELETE handler - delete article
+// Delete an article
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    const slug = params.slug;
+    // Await params before using its properties
+    const resolvedParams = await params;
 
-    // Delete the article
-    await db.article.delete({
-      where: { slug },
-    });
+    await ArticleService.deleteArticle(resolvedParams.slug);
 
-    // Revalidate the article pages
-    revalidatePath(`/artikel/${slug}`);
+    // Revalidate paths
     revalidatePath("/artikel");
+    revalidatePath(`/artikel/${resolvedParams.slug}`);
+    revalidatePath("/dashboard/admin/artikel");
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting article:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to delete article" },
       { status: 500 }
     );
   }

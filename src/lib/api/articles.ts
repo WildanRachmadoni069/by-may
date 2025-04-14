@@ -129,11 +129,32 @@ export async function updateArticle(
 
 // Delete an article
 export async function deleteArticle(slug: string): Promise<void> {
+  // First, get the article to extract featured image URL
+  const article = await getArticleBySlug(slug);
+
+  // Delete the article from database
   const res = await fetch(`/api/articles/${slug}`, {
     method: "DELETE",
   });
 
   if (!res.ok) {
     throw new Error("Failed to delete article");
+  }
+
+  // If article had a featured image, delete it from Cloudinary
+  if (article && article.featured_image && article.featured_image.url) {
+    try {
+      await fetch("/api/cloudinary/delete-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: article.featured_image.url }),
+      });
+    } catch (error) {
+      console.error("Failed to delete image from Cloudinary:", error);
+      // Continue execution even if image deletion fails
+      // The article is already deleted from the database
+    }
   }
 }

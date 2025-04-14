@@ -1,9 +1,33 @@
-import { getArticleBySlug } from "@/lib/api/articles-server";
 import { notFound } from "next/navigation";
 import ArticleForm from "@/components/admin/article/ArticleForm";
 import type { ArticleData } from "@/types/article";
 import { Suspense } from "react";
 import { LoaderCircle } from "lucide-react";
+
+// Server component data fetching
+async function getArticleData(slug: string) {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/articles/${slug}`,
+      {
+        next: {
+          tags: [`article-${slug}`],
+          revalidate: 60, // Revalidate more frequently in admin context
+        },
+      }
+    );
+
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch article: ${res.statusText}`);
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error(`Error fetching article with slug ${slug}:`, error);
+    return null;
+  }
+}
 
 // Convert database article model to ArticleData format expected by the form
 const mapArticleToFormData = (article: any): ArticleData => {
@@ -17,8 +41,9 @@ const mapArticleToFormData = (article: any): ArticleData => {
     status: article.status,
     meta: article.meta || { title: "", description: "", og_image: "" },
     author: article.author || { id: "", name: "" },
-    created_at: article.createdAt?.toISOString() || null,
-    updated_at: article.updatedAt?.toISOString() || null,
+    created_at: article.createdAt?.toString() || null,
+    updated_at: article.updatedAt?.toString() || null,
+    publishedAt: article.publishedAt?.toString() || null,
   };
 };
 
@@ -31,7 +56,7 @@ export default async function ArticleEditPage({
   const resolvedParams = params;
   const { slug } = await resolvedParams;
 
-  const article = await getArticleBySlug(slug);
+  const article = await getArticleData(slug);
 
   if (!article) {
     notFound();

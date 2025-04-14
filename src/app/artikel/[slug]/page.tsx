@@ -22,7 +22,8 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
-import { getArticleAction } from "@/app/actions/article-actions";
+import { Metadata } from "next";
+import { getAppUrl } from "@/lib/utils/url";
 
 interface Props {
   params: {
@@ -30,6 +31,29 @@ interface Props {
   };
 }
 
+// Server component data fetching
+async function getArticleData(slug: string) {
+  try {
+    const res = await fetch(`${getAppUrl()}/api/articles/${slug}`, {
+      next: {
+        tags: [`article-${slug}`],
+        revalidate: 3600, // Revalidate once per hour
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      throw new Error(`Failed to fetch article: ${res.statusText}`);
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error(`Error fetching article with slug ${slug}:`, error);
+    return null;
+  }
+}
+
+// Helper components remain unchanged
 const ShareButton = ({ url, title }: { url: string; title: string }) => {
   const shareButtons = [
     {
@@ -93,8 +117,9 @@ export default async function ArticleDetailPage({
 }: {
   params: { slug: string };
 }) {
-  // Use the server action instead of the direct Prisma function
-  const article = await getArticleAction(params.slug);
+  // Use server component data fetching
+  const resolvedParams = await params;
+  const article = await getArticleData(resolvedParams.slug);
 
   // If article doesn't exist, show 404 page
   if (!article) {
