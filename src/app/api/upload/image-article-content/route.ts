@@ -19,9 +19,10 @@ export async function POST(req: NextRequest) {
       cloudinary.uploader
         .upload_stream(
           {
-            folder: "article-content", // Folder khusus untuk konten
+            folder: "article-content", // Folder tetap article-content
             tags: ["article-content"],
-            upload_preset: "article_preset", // Preset khusus untuk konten
+            upload_preset: "article_preset", // Preset yang sama untuk konsistensi
+            resource_type: "image",
           },
           function (error, result) {
             if (error) {
@@ -33,6 +34,9 @@ export async function POST(req: NextRequest) {
         )
         .end(buffer);
     });
+
+    // Log info tentang upload untuk debugging
+    console.log("Uploaded image with public_id:", (result as any).public_id);
 
     return NextResponse.json(result);
   } catch (error) {

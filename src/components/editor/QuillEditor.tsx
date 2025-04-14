@@ -14,6 +14,7 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
   ({ value, onChange, readOnly = false, className = "" }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const onChangeRef = useRef(onChange);
+    const imageTracker = useRef<Set<string>>(new Set()); // Track uploaded images
 
     useLayoutEffect(() => {
       onChangeRef.current = onChange;
@@ -69,7 +70,41 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
       };
       Quill.register(ImageBlot, true);
 
-      // Modify the image handler
+      // Extract URLs of images that are already in the content
+      const extractExistingImages = (htmlContent: string) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, "text/html");
+        const images = doc.querySelectorAll("img");
+        const urls = new Set<string>();
+        images.forEach((img) => {
+          if (img.src.includes("cloudinary.com")) {
+            urls.add(img.src);
+          }
+        });
+        return urls;
+      };
+
+      // Initialize with existing images if any
+      if (value) {
+        const existingImages = extractExistingImages(value);
+        existingImages.forEach((url) => imageTracker.current.add(url));
+      }
+
+      // Function to extract public_id from Cloudinary URL
+      const getPublicIdFromUrl = (url: string): string | null => {
+        // Patterns for matching Cloudinary URLs with potential folder structures
+        // Improved to handle both folder/publicId and direct publicId formats
+        const folderMatch = url.match(/\/upload\/v\d+\/([^\.]+)\.\w+$/);
+        if (folderMatch && folderMatch[1]) {
+          return folderMatch[1]; // This will include folder path if it exists
+        }
+
+        // Fallback to the simpler pattern which might miss folders
+        const simpleMatch = url.match(/\/v\d+\/([^/]+)\.\w+$/);
+        return simpleMatch ? simpleMatch[1] : null;
+      };
+
+      // Modified image handler with tracking
       const imageHandler = async function () {
         const input = document.createElement("input");
         input.setAttribute("type", "file");
@@ -94,6 +129,9 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
               if (!response.ok) throw new Error("Upload failed");
 
               const data = await response.json();
+
+              // Add to tracker
+              imageTracker.current.add(data.secure_url);
 
               // Get current selection or default to end
               const range = quill.getSelection(true);
@@ -133,46 +171,52 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
       `;
       document.head.appendChild(style);
 
-      // Function to extract public_id from Cloudinary URL
-      const getPublicIdFromUrl = (url: string) => {
-        const matches = url.match(/\/v\d+\/([^/]+)\.\w+$/);
-        return matches ? matches[1] : null;
-      };
+      // Improved implementation to detect image deletions by comparing the current content with the tracked images
+      const checkForDeletedImages = (htmlContent: string) => {
+        // Extract current image URLs from content
+        const currentImages = extractExistingImages(htmlContent);
+        const imagesToDelete = new Set<string>();
 
-      // Observer for deleted images
-      const deleteImage = async (src: string) => {
-        try {
-          const publicId = getPublicIdFromUrl(src);
-          if (!publicId) return;
-
-          await fetch("/api/upload/image-article-content/delete", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ publicId }),
-          });
-        } catch (error) {
-          console.error("Error deleting image:", error);
-        }
-      };
-
-      // Add observer for content changes
-      quill.on(Quill.events.TEXT_CHANGE, (delta, oldContents) => {
-        // Check for deleted images
-        delta.ops?.forEach((op) => {
-          if (op.delete) {
-            const deletedContent = oldContents.slice(op.delete);
-            deletedContent.ops?.forEach((delOp: any) => {
-              if (delOp.insert?.image) {
-                deleteImage(delOp.insert.image);
-              }
-            });
+        // Find images that were in the tracker but are no longer in the content
+        imageTracker.current.forEach((url) => {
+          if (!currentImages.has(url)) {
+            imagesToDelete.add(url);
           }
         });
 
-        // Existing change handler
-        onChangeRef.current?.(quill.root.innerHTML);
+        // Update the tracker
+        imageTracker.current = currentImages;
+
+        // Delete the removed images
+        imagesToDelete.forEach(async (url) => {
+          try {
+            const publicId = getPublicIdFromUrl(url);
+            if (!publicId) return;
+
+            console.log("Attempting to delete image with public_id:", publicId);
+
+            await fetch("/api/upload/image-article-content/delete", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ publicId }),
+            });
+          } catch (error) {
+            console.error("Error deleting image:", error);
+          }
+        });
+      };
+
+      // Update event handler to use the new approach
+      quill.on(Quill.events.TEXT_CHANGE, () => {
+        const htmlContent = quill.root.innerHTML;
+
+        // Check for and delete removed images
+        checkForDeletedImages(htmlContent);
+
+        // Call the onChange prop
+        onChangeRef.current?.(htmlContent);
       });
 
       if (typeof ref === "function") {
@@ -189,20 +233,16 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
       quill.enable(!readOnly);
 
       return () => {
-        // Before cleanup, check for any remaining images and delete them if editor is being destroyed
-        if (quill) {
-          const content = quill.getContents();
-          content.ops?.forEach((op: any) => {
-            if (op.insert?.image) {
-              deleteImage(op.insert.image);
-            }
-          });
-        }
+        // We don't need to delete all images on cleanup
+        // as we only want to delete images that were removed from the content
+
+        // Clean up the ref
         if (typeof ref === "function") {
           ref(null);
         } else if (ref) {
           ref.current = null;
         }
+
         container.innerHTML = "";
         style.remove();
       };

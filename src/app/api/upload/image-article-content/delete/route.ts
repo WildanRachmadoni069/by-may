@@ -19,13 +19,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log("Deleting image with public_id:", publicId);
+
     // Delete the image from Cloudinary
+    // Notice that we're using the full public_id including folder structure
     const result = await cloudinary.uploader.destroy(publicId);
 
     if (result.result === "ok") {
-      return NextResponse.json({ message: "Image deleted successfully" });
+      return NextResponse.json({
+        message: "Image deleted successfully",
+        result: result,
+      });
     } else {
-      throw new Error("Failed to delete image");
+      console.error("Failed to delete image:", result);
+      return NextResponse.json(
+        {
+          error: "Failed to delete image",
+          result: result,
+        },
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error("Delete error:", error);

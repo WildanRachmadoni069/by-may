@@ -6,6 +6,7 @@ import type {
   PaginationResult,
 } from "@/lib/api/articles";
 import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryService } from "./cloudinary-service";
 
 // Konfigurasi Cloudinary (server-side)
 const configureCloudinary = () => {
@@ -114,7 +115,7 @@ export const ArticleService = {
   },
 
   /**
-   * Menghapus artikel dan featured image-nya jika ada
+   * Menghapus artikel dan gambar-gambarnya
    */
   async deleteArticle(slug: string): Promise<void> {
     const article = await db.article.findUnique({
@@ -125,6 +126,11 @@ export const ArticleService = {
       throw new Error("Article not found");
     }
 
+    // Extract images from content before deleting the article
+    const contentImages = CloudinaryService.extractCloudinaryImagesFromHtml(
+      article.content
+    );
+
     await db.article.delete({
       where: { slug },
     });
@@ -134,9 +140,54 @@ export const ArticleService = {
       const imageObject = article.featured_image as { url?: string };
 
       if (imageObject.url) {
-        await this.deleteCloudinaryImage(imageObject.url);
+        await CloudinaryService.deleteImageByUrl(imageObject.url);
       }
     }
+
+    // Delete all content images
+    if (contentImages.length > 0) {
+      console.log(
+        `Deleting ${contentImages.length} content images from article ${slug}`
+      );
+
+      // Delete images in parallel for better performance
+      await Promise.allSettled(
+        contentImages.map((imageUrl) =>
+          CloudinaryService.deleteImageByUrl(imageUrl)
+        )
+      );
+    }
+  },
+
+  /**
+   * Extract all Cloudinary image URLs from HTML content
+   */
+  extractCloudinaryImagesFromHtml(htmlContent: string): string[] {
+    const images: string[] = [];
+
+    if (!htmlContent) return images;
+
+    try {
+      // Use regex to find all img tags
+      const imgRegex = /<img[^>]+src="([^">]+)"/g;
+      let match;
+
+      while ((match = imgRegex.exec(htmlContent)) !== null) {
+        const url = match[1];
+
+        // Only add Cloudinary URLs
+        if (
+          url.includes("cloudinary.com") &&
+          url.includes("/article-content/")
+        ) {
+          images.push(url);
+        }
+      }
+    } catch (error) {
+      console.error("Error extracting images from HTML:", error);
+    }
+
+    return images;
   },
 
   /**
