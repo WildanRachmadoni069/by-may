@@ -30,50 +30,47 @@ model User {
 
 // Products
 model Product {
-    id               String   @id @default(uuid())
-    name             String
-    slug             String   @unique
-    description      String?  @db.Text
-    mainImage        String?
-    additionalImages String[] // Pastikan array string murni, tidak boleh null
-    basePrice        Float?
-    baseStock        Int?
-    hasVariations    Boolean  @default(false)
-    specialLabel     String? // Bisa digunakan untuk "featured", "new", dll
-    weight           Int? // in grams
-    dimensions       Json? // {width, length, height}
-    seo              Json? // {title, description, keywords, og_image}
-    searchKeywords   String[]
+    id          String  @id @default(uuid())
+    name        String
+    slug        String  @unique
+    description String? @db.Text
 
-    // Kolom untuk full-text search
-    nameVector        Unsupported("tsvector")?
-    descriptionVector Unsupported("tsvector")?
-    searchVector      Unsupported("tsvector")?
+    // Gambar produk
+    featuredImage    Json? // {url: string, alt: string}
+    additionalImages Json[] // Array objek gambar [{url, alt}]
 
-    // Relasi dengan Category dan Collection
-    categoryId   String?
-    category     Category?   @relation(fields: [categoryId], references: [id])
-    collectionId String?
-    collection   Collection? @relation(fields: [collectionId], references: [id])
+    // Info produk dasar
+    basePrice     Float?
+    baseStock     Int?
+    hasVariations Boolean @default(false)
+    specialLabel  String? // "featured", "new", dll
+    weight        Int? // dalam gram
+    dimensions    Json? // {width, length, height} dalam cm
 
-    // Relasi dengan model variasi
+    // SEO - Format konsisten dengan artikel
+    meta Json? // {title: string, description: string, ogImage: string}
+
+    // Relasi
+    categoryId    String?
+    category      Category?          @relation(fields: [categoryId], references: [id])
+    collectionId  String?
+    collection    Collection?        @relation(fields: [collectionId], references: [id])
     variations    ProductVariation[]
     priceVariants PriceVariant[]
+    cartItems     CartItem[]
+    orderItems    OrderItem[]
 
-    // Relasi dengan model lainnya
-    cartItems  CartItem[]
-    orderItems OrderItem[]
-
+    // Timestamps
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    // Indeks dasar
+    @@index([slug])
     @@index([categoryId])
     @@index([collectionId])
-    @@index([slug])
     @@index([specialLabel])
     @@index([name])
     @@index([basePrice])
-    @@index([searchKeywords])
 }
 
 // Categories
@@ -108,18 +105,18 @@ model FAQ {
 
 // Articles
 model Article {
-    id             String    @id @default(uuid())
-    title          String
-    slug           String    @unique
-    content        String    @db.Text
-    excerpt        String?   @db.Text
-    featured_image Json? // {url: string, alt: string}
-    status         String // "draft", "published"
-    meta           Json? // {title: string, description: string, og_image: string}
-    author         Json? // {id: string, name: string}
-    publishedAt    DateTime?
-    createdAt      DateTime  @default(now())
-    updatedAt      DateTime  @updatedAt
+    id            String    @id @default(uuid())
+    title         String
+    slug          String    @unique
+    content       String    @db.Text
+    excerpt       String?   @db.Text
+    featuredImage Json? // {url: string, alt: string} -- Perubahan dari featured_image ke camelCase
+    status        String // "draft", "published"
+    meta          Json? // {title: string, description: string, ogImage: string}
+    author        Json? // {id: string, name: string}
+    publishedAt   DateTime?
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
 
     @@index([slug])
     @@index([status])
@@ -136,7 +133,7 @@ model Banner {
     url       String?
     active    Boolean  @default(true)
     createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt // Diubah dari @default(now()) ke @updatedAt
+    updatedAt DateTime @updatedAt
 }
 
 // SEO Settings
@@ -146,9 +143,9 @@ model SEOSetting {
     title       String
     description String
     keywords    String?
-    og_image    String?
+    ogImage     String? // perubahan dari og_image ke camelCase
     createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt // Perbaikan dari @default(now()) ke @updatedAt
+    updatedAt   DateTime @updatedAt
 }
 
 // Cart Items
@@ -245,7 +242,7 @@ model PriceVariant {
     stock           Int
     combinationKey  String // Contoh: "color-1_size-2" untuk kombinasi unik
     descriptiveName String? // contoh: "Merah - XL"
-    options         PriceVariantToOption[] // Pastikan relasi ini didefinisikan dengan benar
+    options         PriceVariantToOption[]
     createdAt       DateTime               @default(now())
     updatedAt       DateTime               @updatedAt
 
@@ -276,7 +273,7 @@ model Address {
     addressLine String
     isDefault   Boolean  @default(false)
     createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt // Diubah dari @default(now()) ke @updatedAt
+    updatedAt   DateTime @updatedAt
     user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@index([userId])
