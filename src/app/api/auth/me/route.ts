@@ -20,12 +20,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    // Check if we're in browser environment (should never happen in API routes)
-    if (typeof window !== "undefined") {
-      console.error("Browser environment detected in API route");
-      return NextResponse.json({ user: null }, { status: 500 });
-    }
-
     // Verify user still exists and get fresh data
     try {
       const user = await db.user.findUnique({

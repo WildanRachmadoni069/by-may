@@ -10,7 +10,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { FirebaseError } from "firebase/app";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Eye, EyeOff } from "lucide-react";
@@ -62,21 +61,10 @@ export function LoginForm({
       } catch (error) {
         console.error("Error signing in:", error);
 
-        let errorMessage = "Terjadi kesalahan saat login. Silakan coba lagi.";
+        let errorMessage = "Email atau kata sandi salah. Silakan coba lagi.";
 
-        if (error instanceof FirebaseError) {
-          switch (error.code) {
-            case "auth/invalid-email":
-              errorMessage = "Format email tidak valid.";
-              break;
-            case "auth/user-not-found":
-            case "auth/wrong-password":
-              errorMessage = "Email atau kata sandi salah.";
-              break;
-            case "auth/too-many-requests":
-              errorMessage = "Terlalu banyak percobaan login. Coba lagi nanti.";
-              break;
-          }
+        if (error instanceof Error) {
+          errorMessage = error.message || errorMessage;
         }
 
         toast({
