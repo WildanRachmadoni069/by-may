@@ -31,7 +31,7 @@ const CartButton = dynamic(() => import("./CartButton"), { ssr: false });
 
 function MainNav() {
   const pathName = usePathname();
-  const { currentUser, userData, isAdmin } = useAuthStore();
+  const { currentUser, isAdmin } = useAuthStore();
   const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
 
   // Get initials from user's fullName
@@ -120,25 +120,28 @@ function MainNav() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-4">
-              <CartButton />
+              {/* <CartButton /> */}
 
               {currentUser ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Avatar className="cursor-pointer h-9 w-9 border-2 border-primary/20 hover:border-primary/40 transition-all duration-200 shadow-sm hover:shadow">
-                      <AvatarImage src="" alt={userData?.fullName || "User"} />
+                      <AvatarImage
+                        src=""
+                        alt={currentUser?.fullName || "User"}
+                      />
                       <AvatarFallback className="bg-gradient-to-br from-primary/90 to-primary/70 text-white font-medium text-sm">
-                        {getInitials(userData?.fullName || "User")}
+                        {getInitials(currentUser?.fullName || "User")}
                       </AvatarFallback>
                     </Avatar>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="p-2 border-b">
-                      <div className="font-semibold">
-                        {userData?.fullName || "User"}
+                      <div className="font-semibold truncate max-w-full">
+                        {currentUser?.fullName || "User"}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate mt-0.5">
-                        {userData?.email}
+                      <div className="text-xs text-muted-foreground truncate max-w-full mt-0.5">
+                        {currentUser?.email}
                       </div>
                     </div>
                     <DropdownMenuSeparator />

@@ -3,9 +3,8 @@ import localFont from "next/font/local";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-// Remove auth-related imports
-// import { AuthStateManager } from "@/components/AuthStateManager";
-// import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
+import AuthProvider from "@/components/auth-provider";
+import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -20,7 +19,6 @@ const geistMono = localFont({
 const jakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"] });
 
 export async function generateMetadata(): Promise<Metadata> {
-  // Simplify metadata - remove Firebase dependency
   return {
     title: {
       default: "Al-Quran Custom Cover",
@@ -41,12 +39,11 @@ export default function RootLayout({
       <body
         className={`${jakartaSans.className} antialiased min-h-screen bg-background flex flex-col`}
       >
-        <Toaster />
-        {/* Add a simple admin access banner */}
-        <div className="bg-blue-500 text-white text-center py-1 text-sm">
-          <span>Development Mode: Authentication bypassed</span>
-        </div>
-        <main className="relative flex-grow">{children}</main>
+        <AuthProvider>
+          <Toaster />
+          <main className="relative flex-grow">{children}</main>
+          <LogoutDialog />
+        </AuthProvider>
       </body>
     </html>
   );

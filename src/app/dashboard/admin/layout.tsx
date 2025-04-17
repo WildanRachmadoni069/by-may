@@ -30,18 +30,18 @@ import {
   HelpCircle,
   Search,
   Home,
-  ChevronDown,
   LogOut,
 } from "lucide-react";
 import NextImage from "next/image";
 import Link from "next/link";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// import { useLogoutDialog } from "@/components/dashboard/LogoutDialog";
+import { useLogoutDialog } from "@/components/dashboard/LogoutDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-// import useAuthStore from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
+import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
@@ -52,48 +52,138 @@ import {
 function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  // const { currentUser, userData, loading, isAdmin } = useAuthStore();
-  // const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
+  const { currentUser, loading, initialized, isAdmin, checkAuth } =
+    useAuthStore();
+  const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
 
-  // // Get initials from user's fullName
-  // const getInitials = (name: string) => {
-  //   return name
-  //     ?.split(" ")
-  //     .map((n) => n[0])
-  //     .join("")
-  //     .toUpperCase();
-  // };
+  // Get initials from user's fullName
+  const getInitials = (name: string | null = "") => {
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n?.[0])
+        .join("")
+        .toUpperCase() || "A"
+    );
+  };
 
-  // // Autentikasi check untuk memastikan hanya admin yang dapat mengakses
-  // useEffect(() => {
-  //   if (!loading) {
-  //     if (!currentUser) {
-  //       router.push("/login"); // Redirect ke login jika tidak ada user
-  //       return;
-  //     }
+  // Authentication check for admin access
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
 
-  //     if (!isAdmin) {
-  //       router.push("/"); // Redirect ke homepage jika bukan admin
-  //       return;
-  //     }
-  //   }
-  // }, [currentUser, loading, isAdmin, router]);
+    const verifyAdmin = async () => {
+      try {
+        if (!initialized) {
+          await checkAuth();
+        }
 
-  // Tampilkan loading spinner jika loading masih berlangsung
-  // if (loading) {
-  //   return (
-  //     <div className="h-screen flex items-center justify-center">
-  //       <LoadingSpinner size="lg" />
-  //     </div>
-  //   );
-  // }
+        if (!loading) {
+          setAuthChecked(true);
+        }
+      } catch (error) {
+        if (attemptCount < 2) {
+          setAttemptCount((prev) => prev + 1);
+          timer = setTimeout(() => {
+            verifyAdmin();
+          }, 1000);
+        } else {
+          setAuthChecked(true);
+        }
+      }
+    };
 
-  // Jika tidak ada user atau bukan admin, jangan render apapun (redirect akan terjadi)
-  // if (!currentUser || !isAdmin) {
-  //   return null;
-  // }
+    verifyAdmin();
 
-  // Render layout admin jika semua autentikasi valid
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [initialized, checkAuth, loading, attemptCount]);
+
+  // Only redirect after we've checked auth status
+  useEffect(() => {
+    if (authChecked && !loading) {
+      if (!currentUser) {
+        router.push("/login?redirect=/dashboard/admin");
+        return;
+      }
+
+      if (!isAdmin) {
+        router.push("/");
+        return;
+      }
+    }
+  }, [currentUser, loading, isAdmin, router, authChecked]);
+
+  // Tampilkan loading spinner jika masih dalam proses pengecekan
+  if (loading || !authChecked) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-muted-foreground">Memeriksa izin admin...</p>
+      </div>
+    );
+  }
+
+  // Jika sudah dicek dan ternyata bukan admin, tampilkan pesan error
+  if (!currentUser) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center text-center px-4">
+        <div className="mb-6 text-amber-500">
+          <NextImage
+            src="/img/Logo.jpg"
+            alt="Logo"
+            width={80}
+            height={80}
+            className="mx-auto mb-4"
+          />
+        </div>
+        <h1 className="text-2xl font-bold text-destructive mb-2">
+          Akses Ditolak
+        </h1>
+        <p className="text-muted-foreground max-w-md mb-6">
+          Anda harus login terlebih dahulu untuk mengakses halaman ini.
+        </p>
+        <div className="flex gap-4">
+          <Button asChild variant="outline">
+            <Link href="/">Kembali ke Beranda</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/login?redirect=/dashboard/admin">Login</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center text-center px-4">
+        <div className="mb-6 text-amber-500">
+          <NextImage
+            src="/img/Logo.jpg"
+            alt="Logo"
+            width={80}
+            height={80}
+            className="mx-auto mb-4"
+          />
+        </div>
+        <h1 className="text-2xl font-bold text-destructive mb-2">
+          Akses Ditolak
+        </h1>
+        <p className="text-muted-foreground max-w-md mb-6">
+          Maaf, Anda tidak memiliki izin admin yang diperlukan untuk mengakses
+          area ini.
+        </p>
+        <Button asChild>
+          <Link href="/">Kembali ke Beranda</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  // Admin access granted - render dashboard
   return (
     <SidebarProvider>
       <Sidebar>
@@ -117,25 +207,28 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
 
           <SidebarSeparator />
 
-          {/* Simplified Admin Profile Card - REPLACED DROPDOWN WITH ACCORDION */}
-
-          {/* <div className="px-4 py-2">
+          {/* Admin Profile Section - Fixed overflow issue */}
+          <div className="px-4 py-2">
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="account" className="border-none">
                 <AccordionTrigger className="p-2 rounded-lg hover:bg-black/5 transition-colors">
-                  <div className="flex items-center gap-3 w-full">
-                    <Avatar className="h-10 w-10 border-2 border-amber-100">
-                      <AvatarImage src="" alt={userData?.fullName || "Admin"} />
+                  <div className="flex items-center gap-3 w-full max-w-full">
+                    <Avatar className="h-10 w-10 shrink-0 border-2 border-amber-100">
+                      <AvatarImage
+                        src=""
+                        alt={currentUser?.fullName || "Admin"}
+                      />
                       <AvatarFallback className="bg-amber-500 text-white">
-                        {getInitials(userData?.fullName || "Admin")}
+                        {getInitials(currentUser?.fullName)}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="font-medium text-sm truncate">
-                        {userData?.fullName || "Admin"}
+                    <div className="flex-1 min-w-0 max-w-[calc(100%-3rem)] text-left">
+                      <p className="font-medium text-sm truncate w-full overflow-hidden text-ellipsis">
+                        {currentUser?.fullName || "Admin"}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {userData?.email}
+                      <p className="text-xs text-muted-foreground truncate w-28 overflow-hidden text-ellipsis">
+                        {currentUser?.email}
+                        {currentUser?.role === "admin" ? " (Admin)" : ""}
                       </p>
                     </div>
                   </div>
@@ -163,7 +256,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
-          </div> */}
+          </div>
 
           <SidebarSeparator className="mt-2" />
 

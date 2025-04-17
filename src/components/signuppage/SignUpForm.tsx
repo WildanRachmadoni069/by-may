@@ -70,20 +70,8 @@ export function SignUpForm({
         let errorMessage =
           "Terjadi kesalahan saat mendaftar. Silakan coba lagi.";
 
-        if (error instanceof FirebaseError) {
-          switch (error.code) {
-            case "auth/email-already-in-use":
-              errorMessage =
-                "Email sudah digunakan. Silakan gunakan email lain.";
-              break;
-            case "auth/invalid-email":
-              errorMessage = "Format email tidak valid.";
-              break;
-            case "auth/weak-password":
-              errorMessage =
-                "Password terlalu lemah. Gunakan minimal 6 karakter.";
-              break;
-          }
+        if (error instanceof Error) {
+          errorMessage = error.message;
         }
 
         toast({

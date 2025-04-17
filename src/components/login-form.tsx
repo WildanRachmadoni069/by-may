@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { FirebaseError } from "firebase/app";
 import { useFormik } from "formik";
@@ -31,8 +31,12 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const signIn = useAuthStore((state) => state.signIn);
+
+  // Get redirect parameter from URL
+  const redirectPath = searchParams.get("redirect") || "/";
 
   const formik = useFormik({
     initialValues: {
@@ -52,8 +56,9 @@ export function LoginForm({
           description: "Selamat datang kembali!",
         });
 
-        // Redirect ke beranda (/) daripada ke dashboard
-        router.push("/");
+        // Redirect to the requested page or homepage
+        router.push(redirectPath);
+        router.refresh();
       } catch (error) {
         console.error("Error signing in:", error);
 
