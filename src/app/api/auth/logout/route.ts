@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
+/**
+ * GET /api/auth/logout
+ *
+ * Melakukan proses logout pengguna dengan menghapus cookie autentikasi.
+ * Merevalidasi halaman utama untuk memastikan data segar setelah logout.
+ *
+ * @returns {Promise<NextResponse>} Respons JSON menunjukkan keberhasilan atau kegagalan
+ */
 export async function GET() {
   try {
     // Create the response
@@ -22,7 +30,6 @@ export async function GET() {
 
     return response;
   } catch (error) {
-    console.error("Logout error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to logout" },
       { status: 500 }

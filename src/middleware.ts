@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/auth";
 
+/**
+ * Middleware Autentikasi
+ *
+ * Melindungi rute berdasarkan status autentikasi dan peran pengguna:
+ * 1. Mengarahkan pengguna terotentikasi dari halaman auth
+ * 2. Melindungi rute admin
+ * 3. Mengizinkan akses publik ke rute auth dan file statis
+ *
+ * @param {NextRequest} request - Permintaan masuk
+ * @returns {NextResponse} Respons atau redirect
+ */
 export default function middleware(request: NextRequest) {
   // Get token from cookies
   const token = request.cookies.get("authToken")?.value;
@@ -39,7 +50,6 @@ export default function middleware(request: NextRequest) {
       }
     } catch (error) {
       // Token verification failed, continue to auth page
-      console.error("Token verification failed:", error);
     }
   }
 
@@ -69,7 +79,6 @@ export default function middleware(request: NextRequest) {
       }
     } catch (error) {
       // Token verification failed, redirect to login
-      console.error("Token verification failed for admin route:", error);
       url.pathname = "/login";
       url.searchParams.set("redirect", pathname);
       return NextResponse.redirect(url);

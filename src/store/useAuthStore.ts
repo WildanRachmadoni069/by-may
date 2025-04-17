@@ -1,5 +1,8 @@
 import { create } from "zustand";
 
+/**
+ * Objek pengguna yang mewakili pengguna terotentikasi
+ */
 interface User {
   id: string;
   email: string;
@@ -7,28 +10,61 @@ interface User {
   role: string;
 }
 
+/**
+ * Status dan metode autentikasi
+ */
 interface AuthState {
+  /** Pengguna yang sedang login atau null jika tidak ada */
   currentUser: User | null;
+
+  /** Penanda apakah pengguna saat ini memiliki hak admin */
   isAdmin: boolean;
+
+  /** Penanda jika operasi autentikasi sedang berlangsung */
   loading: boolean;
+
+  /** Penanda jika pemeriksaan autentikasi awal telah selesai */
   initialized: boolean;
+
+  /**
+   * Melakukan login pengguna dengan email dan password
+   * @param credentials - Kredensial pengguna
+   */
   signIn: (credentials: { email: string; password: string }) => Promise<void>;
+
+  /**
+   * Mendaftarkan pengguna baru
+   * @param credentials - Data pendaftaran pengguna
+   */
   signUp: (credentials: {
     fullName: string;
     email: string;
     password: string;
   }) => Promise<void>;
+
+  /**
+   * Melakukan logout pengguna saat ini
+   */
   signOut: () => Promise<void>;
+
+  /**
+   * Memeriksa status autentikasi dan mengambil data pengguna saat ini
+   * @returns Pengguna saat ini atau null jika tidak terotentikasi
+   */
   checkAuth: () => Promise<User | null>;
 }
 
+/**
+ * Store autentikasi menggunakan Zustand
+ * Mengelola state auth dan menyediakan metode untuk operasi autentikasi
+ */
 const useAuthStore = create<AuthState>((set, get) => ({
   currentUser: null,
   isAdmin: false,
   loading: true,
   initialized: false,
 
-  // Check authentication status on init
+  // Check authentication status
   checkAuth: async () => {
     try {
       set({ loading: true });
@@ -155,9 +191,8 @@ const useAuthStore = create<AuthState>((set, get) => ({
 
       set({ currentUser: null, isAdmin: false, loading: false });
 
-      // Invalidate all cache entries that require authentication
+      // Clear any client-side cache we might be using
       if (typeof window !== "undefined") {
-        // Clear any client-side cache we might be using
         sessionStorage.clear();
       }
     } catch (error) {

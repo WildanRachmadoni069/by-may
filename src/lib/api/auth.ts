@@ -1,10 +1,13 @@
 /**
  * Auth API Client
  *
- * This module provides functions for interacting with the authentication API
- * from client components.
+ * Menyediakan fungsi untuk berinteraksi dengan API autentikasi
+ * dari komponen client.
  */
 
+/**
+ * Objek pengguna yang mewakili pengguna terotentikasi
+ */
 export type User = {
   id: string;
   email: string;
@@ -12,6 +15,16 @@ export type User = {
   role: string;
 };
 
+/**
+ * Mendaftarkan pengguna baru
+ *
+ * @param {object} data - Data pendaftaran
+ * @param {string} data.fullName - Nama lengkap pengguna
+ * @param {string} data.email - Email pengguna
+ * @param {string} data.password - Password pengguna
+ * @returns {Promise<object>} Hasil pendaftaran
+ * @throws {Error} Jika pendaftaran gagal
+ */
 export async function register(data: {
   fullName: string;
   email: string;
@@ -33,6 +46,15 @@ export async function register(data: {
   return res.json();
 }
 
+/**
+ * Melakukan login pengguna
+ *
+ * @param {object} data - Kredensial login
+ * @param {string} data.email - Email pengguna
+ * @param {string} data.password - Password pengguna
+ * @returns {Promise<object>} Hasil login dengan data pengguna
+ * @throws {Error} Jika login gagal
+ */
 export async function login(data: { email: string; password: string }) {
   const res = await fetch("/api/auth/login", {
     method: "POST",
@@ -51,6 +73,12 @@ export async function login(data: { email: string; password: string }) {
   return res.json();
 }
 
+/**
+ * Melakukan logout pengguna saat ini
+ *
+ * @returns {Promise<object>} Hasil logout
+ * @throws {Error} Jika logout gagal
+ */
 export async function logout() {
   const res = await fetch("/api/auth/logout", {
     method: "GET",
@@ -65,6 +93,11 @@ export async function logout() {
   return res.json();
 }
 
+/**
+ * Mendapatkan pengguna yang sedang login
+ *
+ * @returns {Promise<User | null>} Pengguna saat ini atau null jika tidak terotentikasi
+ */
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const res = await fetch("/api/auth/me", {
@@ -82,7 +115,6 @@ export async function getCurrentUser(): Promise<User | null> {
     const data = await res.json();
     return data.user;
   } catch (error) {
-    console.error("Error getting current user:", error);
     return null;
   }
 }

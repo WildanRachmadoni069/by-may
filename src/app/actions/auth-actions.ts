@@ -13,6 +13,14 @@ import { revalidatePath } from "next/cache";
 import { AuthService } from "@/lib/services/auth-service";
 import type { UserSession } from "@/lib/services/auth-service";
 
+/**
+ * Mendaftarkan pengguna baru (server action)
+ *
+ * @param {string} email - Email pengguna
+ * @param {string} password - Password pengguna
+ * @param {string} fullName - Nama lengkap pengguna
+ * @returns {Promise<object>} Status keberhasilan dan data pengguna atau error
+ */
 export async function registerAction(
   email: string,
   password: string,
@@ -29,15 +37,20 @@ export async function registerAction(
   }
 }
 
+/**
+ * Melakukan login pengguna (server action)
+ *
+ * @param {string} email - Email pengguna
+ * @param {string} password - Password pengguna
+ * @returns {Promise<object>} Status keberhasilan dan data pengguna atau error
+ */
 export async function loginAction(email: string, password: string) {
   try {
     const { user, token } = await AuthService.loginUser(email, password);
 
     // Set a cookie for the session
-    (
-      await // Set a cookie for the session
-      cookies()
-    ).set({
+    const cookieStore = await cookies();
+    cookieStore.set({
       name: "authToken",
       value: token,
       httpOnly: true,
@@ -55,9 +68,15 @@ export async function loginAction(email: string, password: string) {
   }
 }
 
+/**
+ * Melakukan logout pengguna (server action)
+ *
+ * @returns {Promise<object>} Status keberhasilan atau error
+ */
 export async function logoutAction() {
   try {
-    (await cookies()).set({
+    const cookieStore = await cookies();
+    cookieStore.set({
       name: "authToken",
       value: "",
       expires: new Date(0),
@@ -71,8 +90,14 @@ export async function logoutAction() {
   }
 }
 
+/**
+ * Mendapatkan pengguna yang sedang login (server action)
+ *
+ * @returns {Promise<UserSession | null>} Pengguna saat ini atau null jika tidak terotentikasi
+ */
 export async function getCurrentUserAction(): Promise<UserSession | null> {
-  const token = (await cookies()).get("authToken")?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("authToken")?.value;
 
   if (!token) return null;
 
@@ -83,6 +108,12 @@ export async function getCurrentUserAction(): Promise<UserSession | null> {
   return user;
 }
 
+/**
+ * Memerlukan autentikasi untuk melanjutkan (server action)
+ * Akan mengarahkan ke halaman login jika tidak terotentikasi
+ *
+ * @returns {Promise<UserSession>} Pengguna saat ini
+ */
 export async function requireAuthAction() {
   const user = await getCurrentUserAction();
 
@@ -93,6 +124,12 @@ export async function requireAuthAction() {
   return user;
 }
 
+/**
+ * Memerlukan hak admin untuk melanjutkan (server action)
+ * Akan mengarahkan ke halaman login jika tidak terotentikasi atau ke beranda jika bukan admin
+ *
+ * @returns {Promise<UserSession>} Pengguna admin saat ini
+ */
 export async function requireAdminAction() {
   const user = await getCurrentUserAction();
 

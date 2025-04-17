@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/auth";
 import { db } from "@/lib/db";
 
+/**
+ * GET /api/auth/me
+ *
+ * Mengambil data pengguna yang sedang login berdasarkan token autentikasi dalam cookie.
+ * Mengembalikan informasi pengguna jika terotentikasi, atau null jika tidak.
+ *
+ * @param {NextRequest} req - Objek permintaan masuk
+ * @returns {Promise<NextResponse>} Respons JSON dengan data pengguna atau error
+ */
 export async function GET(req: NextRequest) {
   try {
     // Get token from cookies
     const token = req.cookies.get("authToken")?.value;
-    console.log("Token found:", !!token);
 
     if (!token) {
       return NextResponse.json({ user: null }, { status: 401 });
@@ -14,7 +22,6 @@ export async function GET(req: NextRequest) {
 
     // Verify token
     const payload = verifyToken(token);
-    console.log("Token payload:", payload?.id, payload?.role);
 
     if (!payload || !payload.id) {
       return NextResponse.json({ user: null }, { status: 401 });
@@ -33,11 +40,8 @@ export async function GET(req: NextRequest) {
       });
 
       if (!user) {
-        console.log("User not found:", payload.id);
         return NextResponse.json({ user: null }, { status: 401 });
       }
-
-      console.log("User retrieved:", user.email, "Role:", user.role);
 
       // Return user with explicit role field
       return NextResponse.json({
@@ -49,14 +53,12 @@ export async function GET(req: NextRequest) {
         },
       });
     } catch (dbError) {
-      console.error("Database error:", dbError);
       return NextResponse.json(
         { user: null, error: "Database error" },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error("Authentication error:", error);
     return NextResponse.json({ user: null }, { status: 401 });
   }
 }

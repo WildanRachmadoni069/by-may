@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/auth";
 
+/**
+ * POST /api/auth/register
+ *
+ * Mendaftarkan pengguna baru dengan kredensial yang diberikan.
+ * Memvalidasi bahwa email belum digunakan sebelumnya.
+ *
+ * @param {NextRequest} req - Permintaan masuk dengan data pendaftaran
+ * @returns {Promise<NextResponse>} Respons JSON dengan data pengguna atau error
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -10,7 +19,7 @@ export async function POST(req: NextRequest) {
     // Validate inputs
     if (!email || !password || !fullName) {
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: "Semua kolom wajib diisi" },
         { status: 400 }
       );
     }
@@ -22,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "Email already registered" },
+        { error: "Email sudah terdaftar" },
         { status: 400 }
       );
     }
@@ -57,8 +66,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     const errorMessage =
-      error instanceof Error ? error.message : "Something went wrong";
-    console.error("Registration error:", error);
+      error instanceof Error ? error.message : "Terjadi kesalahan";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -6,6 +6,18 @@ import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import { usePathname, useRouter } from "next/navigation";
 
+/**
+ * Komponen Penyedia Autentikasi
+ *
+ * Membungkus aplikasi untuk menyediakan konteks dan fungsionalitas autentikasi:
+ * - Memeriksa status autentikasi pada saat pemuatan awal
+ * - Mengarahkan pengguna terotentikasi dari halaman login/daftar
+ * - Menampilkan layar loading selama pemeriksaan autentikasi
+ *
+ * @param {object} props - Props komponen
+ * @param {React.ReactNode} props.children - Komponen anak untuk dirender
+ * @returns {JSX.Element} Aplikasi yang dibungkus dengan konteks auth
+ */
 export default function AuthProvider({
   children,
 }: {
@@ -30,7 +42,6 @@ export default function AuthProvider({
     if (initialized && !loading && currentUser) {
       // If user is logged in and on an auth page, redirect to home
       if (authRoutes.includes(pathname)) {
-        console.log("User is already logged in. Redirecting from auth page.");
         router.replace("/");
       }
     }

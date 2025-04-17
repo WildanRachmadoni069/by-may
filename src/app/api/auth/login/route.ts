@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyPassword, createToken } from "@/lib/auth/auth";
 import { db } from "@/lib/db";
 
+/**
+ * POST /api/auth/login
+ *
+ * Mengautentikasi pengguna dengan email dan password.
+ * Menyimpan cookie HTTP-only dengan token JWT jika autentikasi berhasil.
+ *
+ * @param {NextRequest} req - Objek permintaan masuk yang berisi email dan password
+ * @returns {Promise<NextResponse>} Respons JSON dengan data pengguna atau error
+ */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -10,19 +19,8 @@ export async function POST(req: NextRequest) {
     // Validate inputs
     if (!email || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Email dan password diperlukan" },
         { status: 400 }
-      );
-    }
-
-    // Check if we're in browser environment (should never happen in API routes, but just in case)
-    if (typeof window !== "undefined") {
-      console.error(
-        "Attempting to access Prisma from browser in /api/auth/login"
-      );
-      return NextResponse.json(
-        { error: "Internal server error" },
-        { status: 500 }
       );
     }
 
@@ -34,7 +32,7 @@ export async function POST(req: NextRequest) {
 
       if (!user || !user.passwordHash) {
         return NextResponse.json(
-          { error: "Invalid email or password" },
+          { error: "Email atau password tidak valid" },
           { status: 401 }
         );
       }
@@ -44,7 +42,7 @@ export async function POST(req: NextRequest) {
 
       if (!isValid) {
         return NextResponse.json(
-          { error: "Invalid email or password" },
+          { error: "Email atau password tidak valid" },
           { status: 401 }
         );
       }
@@ -80,7 +78,6 @@ export async function POST(req: NextRequest) {
 
       return response;
     } catch (dbError) {
-      console.error("Database error:", dbError);
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
   } catch (error) {

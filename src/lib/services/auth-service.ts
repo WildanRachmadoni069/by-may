@@ -12,6 +12,9 @@ import { sign, verify } from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 
+/**
+ * Data sesi pengguna yang disertakan dalam token JWT
+ */
 export type UserSession = {
   id: string;
   email: string;
@@ -19,13 +22,30 @@ export type UserSession = {
   role: string;
 };
 
+/**
+ * Layanan Autentikasi
+ *
+ * Menangani semua operasi database terkait autentikasi.
+ * Layanan ini dirancang untuk digunakan hanya di sisi server.
+ */
 export const AuthService = {
-  // Hash password before storing
+  /**
+   * Mengenkripsi password menggunakan bcrypt
+   *
+   * @param {string} password - Password plaintext untuk dienkripsi
+   * @returns {Promise<string>} Password yang sudah dienkripsi
+   */
   async hashPassword(password: string): Promise<string> {
     return hash(password, 12);
   },
 
-  // Compare provided password with stored hash
+  /**
+   * Memverifikasi password terhadap hash
+   *
+   * @param {string} password - Password plaintext untuk diverifikasi
+   * @param {string} hashedPassword - Password terenkripsi untuk dibandingkan
+   * @returns {Promise<boolean>} True jika password cocok, false jika tidak
+   */
   async verifyPassword(
     password: string,
     hashedPassword: string
@@ -33,7 +53,12 @@ export const AuthService = {
     return compare(password, hashedPassword);
   },
 
-  // Create a JWT token
+  /**
+   * Membuat token JWT untuk sesi pengguna
+   *
+   * @param {UserSession} user - Data pengguna yang akan dienkode dalam token
+   * @returns {string} Token JWT
+   */
   createToken(user: UserSession): string {
     return sign(
       {
@@ -47,7 +72,12 @@ export const AuthService = {
     );
   },
 
-  // Verify JWT token
+  /**
+   * Memverifikasi token JWT dan mengembalikan sesi pengguna
+   *
+   * @param {string} token - Token JWT untuk diverifikasi
+   * @returns {UserSession | null} Sesi pengguna jika valid, null jika tidak
+   */
   verifyToken(token: string): UserSession | null {
     try {
       return verify(token, JWT_SECRET) as UserSession;
@@ -56,7 +86,15 @@ export const AuthService = {
     }
   },
 
-  // Register a new user
+  /**
+   * Mendaftarkan pengguna baru
+   *
+   * @param {string} email - Email pengguna
+   * @param {string} password - Password pengguna
+   * @param {string} fullName - Nama lengkap pengguna
+   * @returns {Promise<object>} Data pengguna yang dibuat tanpa data sensitif
+   * @throws {Error} Jika email sudah terdaftar
+   */
   async registerUser(email: string, password: string, fullName: string) {
     // Check if user already exists
     const existingUser = await db.user.findUnique({
@@ -88,7 +126,14 @@ export const AuthService = {
     };
   },
 
-  // Login user
+  /**
+   * Mengautentikasi pengguna
+   *
+   * @param {string} email - Email pengguna
+   * @param {string} password - Password pengguna
+   * @returns {Promise<object>} Sesi pengguna dan token JWT
+   * @throws {Error} Jika kredensial tidak valid
+   */
   async loginUser(email: string, password: string) {
     // Find the user
     const user = await db.user.findUnique({
@@ -120,7 +165,12 @@ export const AuthService = {
     };
   },
 
-  // Get current user from token
+  /**
+   * Mendapatkan data pengguna berdasarkan ID
+   *
+   * @param {string} userId - ID pengguna
+   * @returns {Promise<UserSession | null>} Data pengguna tanpa field sensitif
+   */
   async getCurrentUser(userId: string) {
     const user = await db.user.findUnique({
       where: { id: userId },
