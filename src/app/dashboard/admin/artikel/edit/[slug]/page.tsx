@@ -13,12 +13,12 @@ const mapArticleToFormData = (article: any): ArticleData => {
     slug: article.slug,
     content: article.content,
     excerpt: article.excerpt || "",
-    featured_image: article.featured_image || { url: "", alt: "" },
+    featuredImage: article.featuredImage || { url: "", alt: "" },
     status: article.status,
     meta: article.meta || { title: "", description: "", og_image: "" },
     author: article.author || { id: "", name: "" },
-    created_at: article.createdAt?.toString() || null,
-    updated_at: article.updatedAt?.toString() || null,
+    createdAt: article.createdAt?.toString() || null,
+    updatedAt: article.updatedAt?.toString() || null,
     publishedAt: article.publishedAt?.toString() || null,
   };
 };

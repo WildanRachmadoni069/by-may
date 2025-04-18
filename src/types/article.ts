@@ -52,4 +52,9 @@ export interface ArticleFormData {
     description: string;
     ogImage?: string;
   };
+  // Add author property to match with service usage
+  author?: {
+    id: string;
+    name: string;
+  } | null;
 }

@@ -11,14 +11,10 @@
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { CloudinaryService } from "./cloudinary-service";
-import type {
-  ArticleCreateInput,
-  ArticleUpdateInput,
-  Article,
-  PaginationResult,
-  FeaturedImage,
-  ArticleAuthor,
-} from "@/lib/api/articles";
+// Import types from types/article.ts instead
+import { ArticleData, ArticleFormData } from "@/types/article";
+// Only import PaginationResult from lib/api/articles
+import { PaginationResult } from "@/lib/api/articles";
 import { getBaseUrl } from "@/lib/utils/url";
 
 export const ArticleService = {
@@ -27,14 +23,14 @@ export const ArticleService = {
    * @param slug - Slug artikel
    * @returns Artikel yang ditemukan atau null jika tidak ada
    */
-  async getArticleBySlug(slug: string): Promise<Article | null> {
+  async getArticleBySlug(slug: string): Promise<ArticleData | null> {
     const article = await db.article.findUnique({
       where: { slug },
     });
 
     if (!article) return null;
 
-    return article as unknown as Article;
+    return article as unknown as ArticleData;
   },
 
   /**
@@ -50,7 +46,7 @@ export const ArticleService = {
       search?: string;
       sort?: "asc" | "desc";
     } = {}
-  ): Promise<PaginationResult<Article>> {
+  ): Promise<PaginationResult<ArticleData>> {
     const { status, page = 1, limit = 10, search, sort = "desc" } = options;
 
     // Membangun filter query
@@ -78,7 +74,7 @@ export const ArticleService = {
     });
 
     return {
-      data: articles as Article[],
+      data: articles as unknown as ArticleData[],
       pagination: {
         total: totalCount,
         page,
@@ -107,7 +103,7 @@ export const ArticleService = {
    * @param data - Data artikel
    * @returns Artikel yang dibuat
    */
-  async createArticle(data: ArticleCreateInput): Promise<Article> {
+  async createArticle(data: ArticleFormData): Promise<ArticleData> {
     // Memproses metadata
     const meta = data.meta || {
       title: data.title,
@@ -118,7 +114,7 @@ export const ArticleService = {
     const publishedAt = data.status === "published" ? new Date() : null;
 
     // Format fields untuk Prisma
-    const featured_image = this._processJsonField(data.featured_image);
+    const featuredImage = this._processJsonField(data.featuredImage);
     const author = this._processJsonField(data.author);
 
     const article = await db.article.create({
@@ -127,7 +123,7 @@ export const ArticleService = {
         slug: data.slug,
         content: data.content,
         excerpt: data.excerpt,
-        featured_image,
+        featuredImage, // Using camelCase property name
         status: data.status,
         meta,
         author,
@@ -135,7 +131,7 @@ export const ArticleService = {
       },
     });
 
-    return article as unknown as Article;
+    return article as unknown as ArticleData;
   },
 
   /**
@@ -146,8 +142,8 @@ export const ArticleService = {
    */
   async updateArticle(
     slug: string,
-    data: ArticleUpdateInput
-  ): Promise<Article> {
+    data: Partial<ArticleFormData>
+  ): Promise<ArticleData> {
     // Dapatkan artikel yang ada
     const existingArticle = await db.article.findUnique({
       where: { slug },
@@ -166,8 +162,8 @@ export const ArticleService = {
     // Proses fields JSON untuk kompatibilitas Prisma
     let updateData: any = { ...data };
 
-    if ("featured_image" in data) {
-      updateData.featured_image = this._processJsonField(data.featured_image);
+    if ("featuredImage" in data) {
+      updateData.featuredImage = this._processJsonField(data.featuredImage);
     }
 
     if ("author" in data) {
@@ -176,16 +172,16 @@ export const ArticleService = {
 
     // Tangani perubahan gambar featured dan pembersihan
     if (
-      data.featured_image &&
-      existingArticle.featured_image &&
-      typeof existingArticle.featured_image === "object" &&
-      (existingArticle.featured_image as any).url !== data.featured_image.url
+      data.featuredImage &&
+      existingArticle.featuredImage &&
+      typeof existingArticle.featuredImage === "object" &&
+      (existingArticle.featuredImage as any).url !== data.featuredImage.url
     ) {
       try {
         // Hapus gambar featured lama jika ada dan sedang diubah
-        if ((existingArticle.featured_image as any).url) {
+        if ((existingArticle.featuredImage as any).url) {
           await CloudinaryService.deleteImageByUrl(
-            (existingArticle.featured_image as any).url
+            (existingArticle.featuredImage as any).url
           );
         }
       } catch (error) {
@@ -205,7 +201,7 @@ export const ArticleService = {
       },
     });
 
-    return updatedArticle as unknown as Article;
+    return updatedArticle as unknown as ArticleData;
   },
 
   /**
@@ -231,8 +227,8 @@ export const ArticleService = {
     });
 
     // Tangani penghapusan gambar featured
-    if (article.featured_image && typeof article.featured_image === "object") {
-      const imageObject = article.featured_image as { url?: string };
+    if (article.featuredImage && typeof article.featuredImage === "object") {
+      const imageObject = article.featuredImage as { url?: string };
 
       if (imageObject.url) {
         await CloudinaryService.deleteImageByUrl(imageObject.url);

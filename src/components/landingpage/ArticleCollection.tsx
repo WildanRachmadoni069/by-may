@@ -5,10 +5,11 @@ import { ArticleEmptyState } from "@/components/general/EmptyState";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { Article, getArticles } from "@/lib/api/articles";
+import { getArticles } from "@/lib/api/articles";
+import { ArticleData } from "@/types/article";
 
 export default function ArticleCollection() {
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<ArticleData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,9 +86,11 @@ export default function ArticleCollection() {
               title={article.title}
               excerpt={article.excerpt || ""}
               slug={article.slug}
-              featured_image={article.featured_image || { url: "", alt: "" }}
-              created_at={
-                article.publishedAt?.toString() || article.createdAt.toString()
+              featuredImage={article.featuredImage || { url: "", alt: "" }}
+              createdAt={
+                article.publishedAt?.toString() ||
+                article.createdAt?.toString() ||
+                ""
               }
             />
           ))}
