@@ -15,7 +15,7 @@ export interface ArticleData {
   slug: string;
   content: string;
   excerpt: string | null;
-  featured_image: {
+  featuredImage: {
     url: string;
     alt: string;
   } | null;
@@ -23,14 +23,14 @@ export interface ArticleData {
   meta: {
     title: string;
     description: string;
-    og_image: string;
+    ogImage: string;
   } | null;
   author: {
     id: string;
     name: string;
   } | null;
-  created_at: string | null;
-  updated_at: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
   publishedAt?: string | null;
 }
 
@@ -42,7 +42,7 @@ export interface ArticleFormData {
   slug: string;
   content: string;
   excerpt?: string | null;
-  featured_image?: {
+  featuredImage?: {
     url: string;
     alt: string;
   } | null;
@@ -50,6 +50,6 @@ export interface ArticleFormData {
   meta: {
     title: string;
     description: string;
-    og_image?: string;
+    ogImage?: string;
   };
 }

@@ -63,13 +63,13 @@ export async function generateMetadata(
       url: `${baseUrl}/artikel/${slug}`,
       title: article.meta?.title || article.title,
       description: article.meta?.description || article.excerpt || undefined,
-      images: article.featured_image?.url
+      images: article.featuredImage?.url
         ? [
             {
-              url: article.featured_image.url,
+              url: article.featuredImage.url,
               width: 1200,
               height: 630,
-              alt: article.featured_image.alt || article.title,
+              alt: article.featuredImage.alt || article.title,
             },
           ]
         : undefined,
@@ -121,7 +121,7 @@ export default async function ArticleDetailPage({
 
   // Penanganan gambar featured
   const hasValidImage =
-    article.featured_image?.url && article.featured_image.url.trim() !== "";
+    article.featuredImage?.url && article.featuredImage.url.trim() !== "";
   const placeholderImage = "/img/placeholder.png";
 
   return (
@@ -159,8 +159,8 @@ export default async function ArticleDetailPage({
           <figure className="relative w-full aspect-[16/9]">
             {hasValidImage ? (
               <Image
-                src={article.featured_image!.url}
-                alt={article.featured_image!.alt || article.title}
+                src={article.featuredImage!.url}
+                alt={article.featuredImage!.alt || article.title}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1200px"
                 priority

@@ -1,10 +1,10 @@
 import React from "react";
 import Link from "next/link";
-import { Article } from "@/lib/api/articles";
+import { ArticleData } from "@/types/article";
 import { ArticleCard } from "@/components/general/ArticleCard";
 
 interface RelatedArticlesSectionProps {
-  articles: Article[];
+  articles: ArticleData[];
 }
 
 export function RelatedArticlesSection({
@@ -22,9 +22,11 @@ export function RelatedArticlesSection({
             title={article.title}
             excerpt={article.excerpt || ""}
             slug={article.slug}
-            featured_image={article.featured_image || null}
-            created_at={
-              article.publishedAt?.toString() || article.createdAt.toString()
+            featuredImage={article.featuredImage || null}
+            createdAt={
+              article.publishedAt?.toString() ||
+              article.createdAt?.toString() ||
+              ""
             }
           />
         ))}

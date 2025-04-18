@@ -23,20 +23,20 @@ import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
 import { useToast } from "@/hooks/use-toast";
 import type { ArticleData, ArticleFormData } from "@/types/article";
-// Import PostgreSQL article API functions
-import { Article, createArticle, updateArticle } from "@/lib/api/articles";
+// Only import functions from API file, not types
+import { createArticle, updateArticle } from "@/lib/api/articles";
 
 const QuillEditor = dynamic(() => import("@/components/editor/QuillEditor"), {
   ssr: false,
 });
 
-// Updated validation schema with better typing
+// Updated validation schema with better typing and camelCase properties
 const validationSchema = Yup.object({
   title: Yup.string().required("Judul wajib diisi"),
   slug: Yup.string().required("Slug wajib diisi"),
   content: Yup.string().required("Konten wajib diisi"),
   excerpt: Yup.string().nullable(),
-  featured_image: Yup.object({
+  featuredImage: Yup.object({
     url: Yup.string().nullable(),
     alt: Yup.string().when("url", {
       is: (val: any) => val && val.length > 0,
@@ -48,7 +48,7 @@ const validationSchema = Yup.object({
   meta: Yup.object({
     title: Yup.string().required("Meta title wajib diisi"),
     description: Yup.string().required("Meta description wajib diisi"),
-    og_image: Yup.string().nullable(),
+    ogImage: Yup.string().nullable(),
   }),
 });
 
@@ -82,18 +82,18 @@ interface ArticleFormProps {
   article?: ArticleData; // Optional for create, required for edit
 }
 
-// Properly typed default values
+// Properly typed default values with camelCase properties
 const getDefaultInitialValues = (): ArticleFormData => ({
   title: "",
   slug: "",
   content: "",
   excerpt: "",
-  featured_image: { url: "", alt: "" },
+  featuredImage: { url: "", alt: "" },
   status: "draft" as const,
   meta: {
     title: "",
     description: "",
-    og_image: "",
+    ogImage: "",
   },
 });
 
@@ -108,7 +108,7 @@ function validateArticleData(data: ArticleFormData) {
   // Check data types
   if (data.meta && typeof data.meta !== "object")
     errors.push("Meta must be an object");
-  if (data.featured_image && typeof data.featured_image !== "object")
+  if (data.featuredImage && typeof data.featuredImage !== "object")
     errors.push("Featured image must be an object");
 
   // Return validation results
@@ -132,12 +132,12 @@ export default function ArticleForm({ article }: ArticleFormProps) {
         slug: article.slug,
         content: article.content,
         excerpt: article.excerpt || "",
-        featured_image: article.featured_image || { url: "", alt: "" },
+        featuredImage: article.featuredImage || { url: "", alt: "" },
         status: article.status,
         meta: {
           title: article.meta?.title || "",
           description: article.meta?.description || "",
-          og_image: article.meta?.og_image || "",
+          ogImage: article.meta?.ogImage || "",
         },
       };
     }
@@ -231,12 +231,12 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     }
   }, [formik.values.content]);
 
-  // Sync featured image URL to og_image
+  // Sync featured image URL to ogImage
   React.useEffect(() => {
-    if (formik.values.featured_image?.url) {
-      formik.setFieldValue("meta.og_image", formik.values.featured_image.url);
+    if (formik.values.featuredImage?.url) {
+      formik.setFieldValue("meta.ogImage", formik.values.featuredImage.url);
     }
-  }, [formik.values.featured_image?.url]);
+  }, [formik.values.featuredImage?.url]);
 
   // Sync title to meta title if meta.title is empty or same as previous title
   React.useEffect(() => {
@@ -407,16 +407,16 @@ export default function ArticleForm({ article }: ArticleFormProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <FeaturedImageArticle
-              value={formik.values.featured_image}
+              value={formik.values.featuredImage}
               onChange={(imageData) =>
-                formik.setFieldValue("featured_image", imageData)
+                formik.setFieldValue("featuredImage", imageData)
               }
             />
             {/* Handle nested form errors better */}
-            {isFieldTouched("featured_image.url") &&
-              (formik.errors.featured_image as any)?.url && (
+            {isFieldTouched("featuredImage.url") &&
+              (formik.errors.featuredImage as any)?.url && (
                 <p className="text-sm text-red-500">
-                  {(formik.errors.featured_image as any).url}
+                  {(formik.errors.featuredImage as any).url}
                 </p>
               )}
           </CardContent>
@@ -481,9 +481,9 @@ export default function ArticleForm({ article }: ArticleFormProps) {
               {/* Hidden OG Image field */}
               <input
                 type="hidden"
-                id="meta.og_image"
-                name="meta.og_image"
-                value={formik.values.meta.og_image || ""}
+                id="meta.ogImage"
+                name="meta.ogImage"
+                value={formik.values.meta.ogImage || ""}
               />
             </div>
 

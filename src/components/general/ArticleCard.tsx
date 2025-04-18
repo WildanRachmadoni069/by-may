@@ -7,23 +7,24 @@ interface ArticleCardProps {
   title: string;
   slug: string;
   excerpt: string;
-  featured_image: {
+  featuredImage: {
+    // Changed from featured_image to featuredImage
     url: string;
     alt: string;
   } | null;
-  created_at: string;
+  createdAt: string; // Changed from created_at to createdAt
 }
 
 export function ArticleCard({
   title,
   slug,
   excerpt,
-  featured_image,
-  created_at,
+  featuredImage, // Changed from featured_image to featuredImage
+  createdAt, // Changed from created_at to createdAt
 }: ArticleCardProps) {
-  // Cek apakah featured_image valid dan memiliki URL yang tidak kosong
+  // Cek apakah featuredImage valid dan memiliki URL yang tidak kosong
   const hasValidImage =
-    featured_image && featured_image.url && featured_image.url.trim() !== "";
+    featuredImage && featuredImage.url && featuredImage.url.trim() !== "";
 
   // Placeholder image yang akan digunakan jika tidak ada featured image
   const placeholderImageUrl = "/img/placeholder.png"; // Pastikan ini ada di folder public
@@ -36,8 +37,8 @@ export function ArticleCard({
       <div className="aspect-[16/9] overflow-hidden relative">
         {hasValidImage ? (
           <Image
-            src={featured_image.url}
-            alt={featured_image.alt || title}
+            src={featuredImage.url}
+            alt={featuredImage.alt || title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -55,9 +56,9 @@ export function ArticleCard({
       <div className="p-4">
         <div className="flex items-center text-xs text-gray-500 mb-2">
           <CalendarIcon size={14} className="mr-1" />
-          <span>{formatDate(created_at)}</span>
+          <span>{formatDate(createdAt)}</span>
         </div>
-        <h3 className="text-lg font-semibold mb-2 text-gray-800 group-hover:text-primary transition-colors">
+        <h3 className="text-lg font-semibold mb-2 text-gray-800 group-hover:text-primary transition-colors line-clamp-2">
           {title}
         </h3>
         <p className="text-sm text-gray-600 line-clamp-3">{excerpt}</p>

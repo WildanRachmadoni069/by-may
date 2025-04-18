@@ -18,11 +18,12 @@ import {
 import Footer from "@/components/landingpage/Footer";
 import { getArticlesAction } from "@/app/actions/article-actions";
 import { SearchArticles } from "@/components/article/SearchArticles";
-import { Article } from "@/lib/api/articles";
 import { ArticlePagination } from "@/components/article/ArticlePagination";
 import { ArticleEmptyState } from "@/components/article/ArticleEmptyState";
 import { Suspense } from "react";
 import { ArticleSkeletons } from "@/components/article/ArticleSkeletons";
+// Import from types/article instead of lib/api/articles
+import { ArticleData } from "@/types/article";
 
 // Metadata untuk SEO halaman
 export const metadata: Metadata = {
@@ -69,7 +70,7 @@ export default async function ArticlePage({ searchParams }: ArticlePageProps) {
     search,
   });
 
-  const articles: Article[] = articlesResult.data || [];
+  const articles: ArticleData[] = articlesResult.data || [];
   const { total, totalPages } = articlesResult.pagination;
   const hasArticles = articles.length > 0;
 
@@ -146,10 +147,11 @@ export default async function ArticlePage({ searchParams }: ArticlePageProps) {
                     title={article.title}
                     excerpt={article.excerpt || ""}
                     slug={article.slug}
-                    featured_image={article.featured_image || null}
-                    created_at={
+                    featuredImage={article.featuredImage || null}
+                    createdAt={
                       article.publishedAt?.toString() ||
-                      article.createdAt.toString()
+                      article.createdAt?.toString() ||
+                      ""
                     }
                   />
                 </article>
