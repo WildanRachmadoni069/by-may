@@ -23,14 +23,15 @@ import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
 import { useToast } from "@/hooks/use-toast";
 import type { ArticleData, ArticleFormData } from "@/types/article";
-// Only import functions from API file, not types
 import { createArticle, updateArticle } from "@/lib/api/articles";
 
 const QuillEditor = dynamic(() => import("@/components/editor/QuillEditor"), {
   ssr: false,
 });
 
-// Updated validation schema with better typing and camelCase properties
+/**
+ * Skema validasi untuk formulir artikel
+ */
 const validationSchema = Yup.object({
   title: Yup.string().required("Judul wajib diisi"),
   slug: Yup.string().required("Slug wajib diisi"),
@@ -52,37 +53,46 @@ const validationSchema = Yup.object({
   }),
 });
 
+/**
+ * Menghasilkan slug URL yang ramah dari judul
+ * @param title Judul artikel
+ * @returns Slug URL yang ramah
+ */
 const generateSlug = (title: string): string => {
   return title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "") // Remove special characters
-    .replace(/\s+/g, "-") // Replace spaces with -
-    .replace(/-+/g, "-") // Replace multiple - with single -
-    .trim(); // Trim - from start and end
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
 };
 
+/**
+ * Menghasilkan kutipan dari konten artikel
+ * @param content Konten HTML artikel
+ * @returns Kutipan teks polos
+ */
 const generateExcerpt = (content: string): string => {
-  // Add space before closing HTML tags
   const textWithSpaces = content.replace(/<\//g, " </");
-
-  // Remove HTML tags and get plain text
   const plainText = textWithSpaces
-    .replace(/<[^>]+>/g, "") // Remove HTML tags
-    .replace(/\s+/g, " ") // Replace multiple spaces with single space
-    .replace(/\n+/g, " ") // Replace line breaks with space
-    .trim(); // Remove leading/trailing spaces
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/\n+/g, " ")
+    .trim();
 
-  // Get first 150 characters and add ellipsis if needed
   return plainText.length > 150
     ? `${plainText.substring(0, 150)}...`
     : plainText;
 };
 
 interface ArticleFormProps {
-  article?: ArticleData; // Optional for create, required for edit
+  article?: ArticleData;
 }
 
-// Properly typed default values with camelCase properties
+/**
+ * Mendapatkan nilai awal default untuk formulir artikel
+ * @returns Nilai default formulir artikel
+ */
 const getDefaultInitialValues = (): ArticleFormData => ({
   title: "",
   slug: "",
@@ -97,34 +107,38 @@ const getDefaultInitialValues = (): ArticleFormData => ({
   },
 });
 
+/**
+ * Memvalidasi data artikel sebelum pengiriman
+ * @param data Data formulir artikel
+ * @returns Hasil validasi
+ */
 function validateArticleData(data: ArticleFormData) {
-  // Check required fields
   const errors: string[] = [];
 
-  if (!data.title) errors.push("Title is required");
-  if (!data.content) errors.push("Content is required");
-  if (!data.status) errors.push("Status is required");
+  if (!data.title) errors.push("Judul wajib diisi");
+  if (!data.content) errors.push("Konten wajib diisi");
+  if (!data.status) errors.push("Status wajib diisi");
 
-  // Check data types
   if (data.meta && typeof data.meta !== "object")
-    errors.push("Meta must be an object");
+    errors.push("Meta harus berupa objek");
   if (data.featuredImage && typeof data.featuredImage !== "object")
-    errors.push("Featured image must be an object");
+    errors.push("Gambar utama harus berupa objek");
 
-  // Return validation results
   return {
     isValid: errors.length === 0,
     errors,
   };
 }
 
+/**
+ * Komponen formulir artikel untuk membuat dan mengedit artikel
+ */
 export default function ArticleForm({ article }: ArticleFormProps) {
   const quillRef = React.useRef<Quill>(null);
   const router = useRouter();
   const { toast } = useToast();
   const isEditMode = !!article;
 
-  // Create properly typed initial form values
   const initialValues: ArticleFormData = React.useMemo(() => {
     if (article) {
       return {
@@ -149,23 +163,17 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     validationSchema,
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        // Validate data
         const validation = validateArticleData(values);
         if (!validation.isValid) {
-          console.error("Article data validation failed:", validation.errors);
           toast({
             variant: "destructive",
-            title: "Validation Error",
+            title: "Error Validasi",
             description: validation.errors.join(", "),
           });
           return;
         }
 
-        // Log the data being sent
-        console.log("Submitting article data:", values);
-
         if (isEditMode && article) {
-          // Update existing article using PostgreSQL API
           await updateArticle(article.slug, {
             ...values,
             status: values.status,
@@ -176,12 +184,11 @@ export default function ArticleForm({ article }: ArticleFormProps) {
             description: "Perubahan telah berhasil disimpan",
           });
         } else {
-          // Create new article using PostgreSQL API
           const articleData = {
             ...values,
             status: values.status,
             author: {
-              id: "admin", // This could be dynamic based on the authenticated user
+              id: "admin",
               name: "Admin",
             },
           };
@@ -196,10 +203,6 @@ export default function ArticleForm({ article }: ArticleFormProps) {
 
         router.push("/dashboard/admin/artikel");
       } catch (error) {
-        console.error(
-          isEditMode ? "Error updating article:" : "Error creating article:",
-          error
-        );
         toast({
           title: isEditMode
             ? "Gagal memperbarui artikel"
@@ -213,9 +216,9 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     },
   });
 
-  // Auto-generate slug when title changes (only if slug hasn't been manually edited)
   const [slugManuallyEdited, setSlugManuallyEdited] = React.useState(false);
 
+  // Otomatis menghasilkan slug dari judul
   React.useEffect(() => {
     if (!slugManuallyEdited && formik.values.title) {
       const slug = generateSlug(formik.values.title);
@@ -223,7 +226,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     }
   }, [formik.values.title, slugManuallyEdited]);
 
-  // Auto-generate excerpt when content changes
+  // Otomatis menghasilkan excerpt dari konten
   React.useEffect(() => {
     if (formik.values.content) {
       const excerpt = generateExcerpt(formik.values.content);
@@ -231,14 +234,14 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     }
   }, [formik.values.content]);
 
-  // Sync featured image URL to ogImage
+  // Sinkronisasi URL gambar utama ke ogImage
   React.useEffect(() => {
     if (formik.values.featuredImage?.url) {
       formik.setFieldValue("meta.ogImage", formik.values.featuredImage.url);
     }
   }, [formik.values.featuredImage?.url]);
 
-  // Sync title to meta title if meta.title is empty or same as previous title
+  // Sinkronisasi judul ke meta title
   React.useEffect(() => {
     if (
       formik.values.title &&
@@ -249,7 +252,6 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     }
   }, [formik.values.title, formik.initialValues.title]);
 
-  // Handle title change with automatic meta title update
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     formik.setValues({
@@ -265,13 +267,12 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     });
   };
 
-  // Handle slug change - mark as manually edited
   const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSlugManuallyEdited(true);
     formik.handleChange(e);
   };
 
-  // For type-safe access to nested errors
+  // Akses error bertingkat dengan aman
   const getNestedError = (path: string) => {
     const parts = path.split(".");
     let error: any = formik.errors;
@@ -282,7 +283,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     return error;
   };
 
-  // For type-safe checking if a field is touched
+  // Cek apakah field telah disentuh
   const isFieldTouched = (path: string) => {
     const parts = path.split(".");
     let touched: any = formik.touched;
@@ -412,7 +413,6 @@ export default function ArticleForm({ article }: ArticleFormProps) {
                 formik.setFieldValue("featuredImage", imageData)
               }
             />
-            {/* Handle nested form errors better */}
             {isFieldTouched("featuredImage.url") &&
               (formik.errors.featuredImage as any)?.url && (
                 <p className="text-sm text-red-500">
@@ -478,7 +478,6 @@ export default function ArticleForm({ article }: ArticleFormProps) {
                   )}
               </div>
 
-              {/* Hidden OG Image field */}
               <input
                 type="hidden"
                 id="meta.ogImage"

@@ -5,7 +5,6 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash, Plus, Info, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Tooltip,
   TooltipContent,
@@ -22,6 +21,10 @@ interface FeaturedImageArticleProps {
   className?: string;
 }
 
+/**
+ * Komponen untuk mengelola gambar utama artikel
+ * Memungkinkan mengunggah, memperbarui, dan menghapus gambar dengan pengelolaan teks alt
+ */
 function FeaturedImageArticle({
   onChange,
   value,
@@ -33,19 +36,17 @@ function FeaturedImageArticle({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Create a ref for the file input
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Create a ref to track if a file dialog is open
   const fileDialogOpenRef = useRef<boolean>(false);
-  // Create a safety timeout ref
   const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Perbarui state saat nilai prop berubah
   useEffect(() => {
     setPreview(value?.url ?? null);
     setAltText(value?.alt ?? "");
   }, [value]);
 
-  // Clean up any timeouts when component unmounts
+  // Bersihkan timeout saat komponen unmount
   useEffect(() => {
     return () => {
       if (safetyTimeoutRef.current) {
@@ -54,7 +55,9 @@ function FeaturedImageArticle({
     };
   }, []);
 
-  // Helper function to extract publicId from Cloudinary URL
+  /**
+   * Ekstrak publicId dari URL Cloudinary untuk pembaruan gambar
+   */
   const extractPublicId = (url: string) => {
     const parts = url.split("/");
     const filenameWithExt = parts.pop() || "";
@@ -62,23 +65,23 @@ function FeaturedImageArticle({
     return publicId;
   };
 
+  /**
+   * Menangani pemilihan file dan unggahan
+   */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    fileDialogOpenRef.current = false; // Dialog is now closed
+    fileDialogOpenRef.current = false;
 
-    // Cancel any pending safety timeout
     if (safetyTimeoutRef.current) {
       clearTimeout(safetyTimeoutRef.current);
       safetyTimeoutRef.current = null;
     }
 
-    // If no file is selected (user canceled), reset the editing state
     if (!file) {
       setIsEditing(false);
       return;
     }
 
-    // Set uploading states
     setIsUploading(true);
     if (preview) {
       setIsEditing(true);
@@ -106,7 +109,7 @@ function FeaturedImageArticle({
       }
 
       if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
+        throw new Error(`Gagal mengunggah: ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -122,7 +125,6 @@ function FeaturedImageArticle({
           : "Gambar berhasil diunggah",
       });
     } catch (error) {
-      console.error("Error uploading/updating image:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -132,13 +134,15 @@ function FeaturedImageArticle({
       setIsUploading(false);
       setIsEditing(false);
 
-      // Reset the file input value
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     }
   };
 
+  /**
+   * Menangani penghapusan gambar
+   */
   const handleRemoveImage = async () => {
     if (value?.url) {
       try {
@@ -152,7 +156,7 @@ function FeaturedImageArticle({
         });
 
         if (!response.ok) {
-          throw new Error("Failed to delete image");
+          throw new Error("Gagal menghapus gambar");
         }
 
         setPreview(null);
@@ -162,7 +166,6 @@ function FeaturedImageArticle({
           description: "Gambar berhasil dihapus dari Cloudinary",
         });
       } catch (error) {
-        console.error("Error removing image:", error);
         toast({
           variant: "destructive",
           title: "Error",
@@ -174,31 +177,28 @@ function FeaturedImageArticle({
     }
   };
 
+  /**
+   * Memicu dialog pemilihan file
+   */
   const handleEdit = () => {
-    // If already editing, don't do anything
     if (isEditing || isUploading || isDeleting) return;
 
     setIsEditing(true);
     fileDialogOpenRef.current = true;
 
-    // Create a safety timeout to reset editing state if dialog is canceled
     safetyTimeoutRef.current = setTimeout(() => {
-      // If the dialog was opened but handleFileChange wasn't called,
-      // it means the user likely canceled
       if (fileDialogOpenRef.current) {
         setIsEditing(false);
         fileDialogOpenRef.current = false;
       }
-    }, 1000); // Give enough time for the dialog to be handled
+    }, 1000);
 
-    // Trigger the file input click
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  // This function will be called before showing the file picker dialog
-  const handleFileInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
+  const handleFileInputClick = () => {
     fileDialogOpenRef.current = true;
   };
 
@@ -216,7 +216,6 @@ function FeaturedImageArticle({
         />
         {preview ? (
           <div className="relative w-full h-[300px]">
-            {/* Show loading overlay */}
             {(isUploading || isEditing || isDeleting) && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/75 rounded-lg text-white z-10">
                 <Loader2 className="h-8 w-8 animate-spin mb-2" />
@@ -267,7 +266,6 @@ function FeaturedImageArticle({
             </div>
           </div>
         ) : (
-          // Empty state UI
           <label
             htmlFor="featured-image-upload"
             className="flex flex-col items-center justify-center h-[300px] border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50"
@@ -289,7 +287,6 @@ function FeaturedImageArticle({
         )}
       </div>
 
-      {/* Alt text input */}
       {preview && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">

@@ -4,18 +4,13 @@
  * Layanan ini bertanggung jawab untuk menangani semua operasi terkait artikel
  * termasuk operasi CRUD, pengambilan data dengan paginasi dan filter,
  * serta pengelolaan gambar artikel.
- *
- * Berfungsi sebagai lapisan terpusat antara operasi database dan API/actions.
  */
 
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { CloudinaryService } from "./cloudinary-service";
-// Import types from types/article.ts instead
 import { ArticleData, ArticleFormData } from "@/types/article";
-// Only import PaginationResult from lib/api/articles
 import { PaginationResult } from "@/lib/api/articles";
-import { getBaseUrl } from "@/lib/utils/url";
 
 export const ArticleService = {
   /**
@@ -123,7 +118,7 @@ export const ArticleService = {
         slug: data.slug,
         content: data.content,
         excerpt: data.excerpt,
-        featuredImage, // Using camelCase property name
+        featuredImage,
         status: data.status,
         meta,
         author,
@@ -186,7 +181,6 @@ export const ArticleService = {
         }
       } catch (error) {
         // Log tapi lanjutkan dengan pembaruan
-        console.error("Error saat menghapus gambar lama:", error);
       }
     }
 
