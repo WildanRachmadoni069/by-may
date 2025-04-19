@@ -1,7 +1,7 @@
 /**
  * Banner Service
  *
- * Service untuk mengelola banner pada aplikasi.
+ * Layanan untuk mengelola banner pada aplikasi.
  * Menyediakan fungsi-fungsi CRUD untuk banner.
  */
 
@@ -16,6 +16,7 @@ import {
 export const BannerService = {
   /**
    * Mengambil semua banner
+   * @returns Promise yang menyelesaikan ke array banner
    */
   async getBanners(): Promise<BannerData[]> {
     return db.banner.findMany({
@@ -25,6 +26,8 @@ export const BannerService = {
 
   /**
    * Mengambil banner berdasarkan ID
+   * @param id ID banner yang dicari
+   * @returns Banner yang ditemukan atau null
    */
   async getBannerById(id: string): Promise<BannerData | null> {
     const banner = await db.banner.findUnique({
@@ -36,6 +39,8 @@ export const BannerService = {
 
   /**
    * Membuat banner baru
+   * @param data Data banner yang akan dibuat
+   * @returns Banner yang dibuat
    */
   async createBanner(data: BannerCreateInput): Promise<BannerData> {
     return db.banner.create({
@@ -50,6 +55,9 @@ export const BannerService = {
 
   /**
    * Memperbarui banner yang sudah ada
+   * @param id ID banner yang akan diperbarui
+   * @param data Data banner yang diperbarui
+   * @returns Banner yang diperbarui
    */
   async updateBanner(id: string, data: BannerUpdateInput): Promise<BannerData> {
     const existingBanner = await db.banner.findUnique({
@@ -60,14 +68,13 @@ export const BannerService = {
       throw new Error("Banner tidak ditemukan");
     }
 
-    // Handle image replacement if needed
+    // Tangani penggantian gambar jika diperlukan
     if (data.imageUrl && data.imageUrl !== existingBanner.imageUrl) {
       try {
-        // Delete the old image
+        // Hapus gambar lama
         await CloudinaryService.deleteImageByUrl(existingBanner.imageUrl);
       } catch (error) {
-        console.error("Error deleting old banner image:", error);
-        // Continue with update even if image deletion fails
+        // Lanjutkan dengan update meskipun penghapusan gambar gagal
       }
     }
 
@@ -79,6 +86,7 @@ export const BannerService = {
 
   /**
    * Menghapus banner dan gambar terkait
+   * @param id ID banner yang akan dihapus
    */
   async deleteBanner(id: string): Promise<void> {
     const banner = await db.banner.findUnique({
@@ -89,22 +97,22 @@ export const BannerService = {
       throw new Error("Banner tidak ditemukan");
     }
 
-    // Delete the banner from the database
+    // Hapus banner dari database
     await db.banner.delete({
       where: { id },
     });
 
-    // Delete the associated image from Cloudinary
+    // Hapus gambar terkait dari Cloudinary
     try {
       await CloudinaryService.deleteImageByUrl(banner.imageUrl);
     } catch (error) {
-      console.error("Error deleting banner image from Cloudinary:", error);
-      // Continue even if image deletion fails
+      // Lanjutkan meskipun penghapusan gambar gagal
     }
   },
 
   /**
    * Mengambil banner yang aktif saja
+   * @returns Array banner yang aktif
    */
   async getActiveBanners(): Promise<BannerData[]> {
     return db.banner.findMany({

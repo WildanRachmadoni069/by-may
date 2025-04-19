@@ -7,11 +7,18 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { BannerFormData } from "@/types/banner";
 
+/**
+ * Halaman untuk menambahkan banner baru
+ */
 export default function AddBannerPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  /**
+   * Menangani pembuatan banner baru
+   * @param data Data banner yang akan dibuat
+   */
   const handleCreate = async (data: BannerFormData) => {
     try {
       setIsProcessing(true);
@@ -24,7 +31,6 @@ export default function AddBannerPage() {
 
       router.push("/dashboard/admin/banner");
     } catch (error) {
-      console.error("Error creating banner:", error);
       toast({
         variant: "destructive",
         title: "Error",

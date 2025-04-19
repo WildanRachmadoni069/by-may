@@ -7,16 +7,27 @@ import Image from "next/image";
 import { Upload, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+/**
+ * Props untuk komponen BannerImageUpload
+ */
 interface BannerImageProps {
+  /** Nilai gambar saat ini */
   value: {
     url: string;
     alt?: string;
   };
+  /** Handler untuk perubahan gambar */
   onChange: (value: { url: string; alt?: string }) => void;
+  /** Class CSS tambahan */
   className?: string;
+  /** Status disabled */
   disabled?: boolean;
 }
 
+/**
+ * Komponen untuk upload dan pengelolaan gambar banner
+ * Mendukung upload baru, update gambar, dan hapus gambar
+ */
 export default function BannerImageUpload({
   value,
   onChange,
@@ -24,16 +35,17 @@ export default function BannerImageUpload({
   disabled = false,
 }: BannerImageProps) {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileDialogOpenRef = useRef<boolean>(false);
   const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Bersihkan timeout saat komponen unmount
+  /**
+   * Bersihkan timeout saat komponen unmount
+   */
   useEffect(() => {
     return () => {
       if (safetyTimeoutRef.current) {
@@ -44,6 +56,8 @@ export default function BannerImageUpload({
 
   /**
    * Ekstrak publicId dari URL Cloudinary untuk pembaruan gambar
+   * @param url URL gambar Cloudinary
+   * @returns PublicId gambar
    */
   const extractPublicId = (url: string) => {
     const parts = url.split("/");
@@ -52,7 +66,10 @@ export default function BannerImageUpload({
     return publicId;
   };
 
-  // Handle file upload
+  /**
+   * Menangani perubahan file yang dipilih
+   * @param e Event perubahan input file
+   */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     fileDialogOpenRef.current = false;
@@ -67,7 +84,7 @@ export default function BannerImageUpload({
       return;
     }
 
-    // Validate file size (max 5MB)
+    // Validasi ukuran file (maks 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         variant: "destructive",
@@ -78,7 +95,7 @@ export default function BannerImageUpload({
       return;
     }
 
-    // Validate file type
+    // Validasi tipe file
     if (!file.type.startsWith("image/")) {
       toast({
         variant: "destructive",
@@ -96,11 +113,10 @@ export default function BannerImageUpload({
 
     try {
       const formData = new FormData();
-
       let response;
 
       if (value.url) {
-        // Update existing image
+        // Update gambar yang sudah ada
         const publicId = extractPublicId(value.url);
         formData.append("image", file);
         formData.append("publicId", publicId);
@@ -110,7 +126,7 @@ export default function BannerImageUpload({
           body: formData,
         });
       } else {
-        // Upload new image
+        // Upload gambar baru
         formData.append("file", file);
         formData.append("folder", "bymay-banners");
         formData.append("upload_preset", "bymay-banner");
@@ -129,7 +145,6 @@ export default function BannerImageUpload({
       const data = await response.json();
       const imageUrl = data.secure_url;
 
-      // Update the component value with the new image URL
       onChange({
         url: imageUrl,
         alt: value.alt || "",
@@ -142,7 +157,6 @@ export default function BannerImageUpload({
           : "Gambar berhasil diupload",
       });
     } catch (error) {
-      console.error("Error uploading image:", error);
       toast({
         variant: "destructive",
         title: "Operasi gagal",
@@ -157,14 +171,15 @@ export default function BannerImageUpload({
     }
   };
 
-  // Handle image removal
+  /**
+   * Menangani penghapusan gambar
+   */
   const handleRemove = async () => {
     if (!value.url) return;
 
     try {
       setIsDeleting(true);
 
-      // Delete the image from Cloudinary
       const response = await fetch("/api/cloudinary/delete", {
         method: "POST",
         headers: {
@@ -177,7 +192,6 @@ export default function BannerImageUpload({
         throw new Error("Failed to delete image");
       }
 
-      // Clear the image URL
       onChange({ url: "", alt: "" });
 
       toast({
@@ -185,7 +199,6 @@ export default function BannerImageUpload({
         description: "Gambar berhasil dihapus",
       });
     } catch (error) {
-      console.error("Error deleting image:", error);
       toast({
         variant: "destructive",
         title: "Hapus gagal",

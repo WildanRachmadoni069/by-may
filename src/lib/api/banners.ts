@@ -1,7 +1,7 @@
 /**
  * Banner API Client
  *
- * Fungsi-fungsi untuk interaksi dengan Banner API dari client components.
+ * Fungsi-fungsi untuk interaksi dengan Banner API dari client components
  */
 
 import {
@@ -12,6 +12,7 @@ import {
 
 /**
  * Mengambil semua banner
+ * @returns Promise yang menyelesaikan ke array banner
  */
 export async function getBanners(): Promise<BannerData[]> {
   const res = await fetch("/api/banners", {
@@ -20,7 +21,7 @@ export async function getBanners(): Promise<BannerData[]> {
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(error || "Failed to fetch banners");
+    throw new Error(error || "Gagal mengambil banner");
   }
 
   return res.json();
@@ -28,6 +29,8 @@ export async function getBanners(): Promise<BannerData[]> {
 
 /**
  * Mengambil banner berdasarkan ID
+ * @param id ID banner yang dicari
+ * @returns Banner yang ditemukan
  */
 export async function getBannerById(id: string): Promise<BannerData> {
   const res = await fetch(`/api/banners/${id}`, {
@@ -36,7 +39,7 @@ export async function getBannerById(id: string): Promise<BannerData> {
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(error || "Failed to fetch banner");
+    throw new Error(error || "Gagal mengambil banner");
   }
 
   return res.json();
@@ -44,6 +47,8 @@ export async function getBannerById(id: string): Promise<BannerData> {
 
 /**
  * Membuat banner baru
+ * @param data Data banner yang akan dibuat
+ * @returns Banner yang dibuat
  */
 export async function createBanner(
   data: BannerCreateInput
@@ -58,7 +63,7 @@ export async function createBanner(
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(error || "Failed to create banner");
+    throw new Error(error || "Gagal membuat banner");
   }
 
   return res.json();
@@ -66,6 +71,9 @@ export async function createBanner(
 
 /**
  * Memperbarui banner yang sudah ada
+ * @param id ID banner yang akan diperbarui
+ * @param data Data banner yang diperbarui
+ * @returns Banner yang diperbarui
  */
 export async function updateBanner(
   id: string,
@@ -81,7 +89,7 @@ export async function updateBanner(
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(error || "Failed to update banner");
+    throw new Error(error || "Gagal memperbarui banner");
   }
 
   return res.json();
@@ -89,6 +97,7 @@ export async function updateBanner(
 
 /**
  * Menghapus banner
+ * @param id ID banner yang akan dihapus
  */
 export async function deleteBanner(id: string): Promise<void> {
   const res = await fetch(`/api/banners/${id}`, {
@@ -97,6 +106,6 @@ export async function deleteBanner(id: string): Promise<void> {
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(error || "Failed to delete banner");
+    throw new Error(error || "Gagal menghapus banner");
   }
 }

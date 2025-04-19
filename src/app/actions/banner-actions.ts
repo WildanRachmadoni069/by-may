@@ -18,7 +18,11 @@ import {
 } from "@/types/banner";
 import { verifyToken } from "@/lib/auth/auth";
 
-// Helper untuk memverifikasi admin auth
+/**
+ * Helper untuk memverifikasi admin auth
+ * @returns Payload dari token jika autentikasi berhasil
+ * @throws Error jika tidak terautentikasi
+ */
 async function checkAdminAuth() {
   const cookieStore = await cookies();
   const token = cookieStore.get("authToken")?.value;
@@ -38,11 +42,13 @@ async function checkAdminAuth() {
 
 /**
  * Membuat banner baru
+ * @param data Data banner yang akan dibuat
+ * @returns Banner yang dibuat
  */
 export async function createBannerAction(
   data: BannerCreateInput
 ): Promise<BannerData> {
-  // Verify admin authorization
+  // Verifikasi autentikasi admin
   await checkAdminAuth();
 
   const banner = await BannerService.createBanner(data);
@@ -53,12 +59,15 @@ export async function createBannerAction(
 
 /**
  * Memperbarui banner yang sudah ada
+ * @param id ID banner yang akan diperbarui
+ * @param data Data banner yang diperbarui
+ * @returns Banner yang diperbarui
  */
 export async function updateBannerAction(
   id: string,
   data: BannerUpdateInput
 ): Promise<BannerData> {
-  // Verify admin authorization
+  // Verifikasi autentikasi admin
   await checkAdminAuth();
 
   const banner = await BannerService.updateBanner(id, data);
@@ -69,9 +78,10 @@ export async function updateBannerAction(
 
 /**
  * Menghapus banner
+ * @param id ID banner yang akan dihapus
  */
 export async function deleteBannerAction(id: string): Promise<void> {
-  // Verify admin authorization
+  // Verifikasi autentikasi admin
   await checkAdminAuth();
 
   await BannerService.deleteBanner(id);
@@ -81,6 +91,7 @@ export async function deleteBannerAction(id: string): Promise<void> {
 
 /**
  * Mengambil semua banner
+ * @returns Array banner
  */
 export async function getBannersAction(): Promise<BannerData[]> {
   return await BannerService.getBanners();
@@ -88,6 +99,8 @@ export async function getBannersAction(): Promise<BannerData[]> {
 
 /**
  * Mengambil banner berdasarkan ID
+ * @param id ID banner yang dicari
+ * @returns Banner yang ditemukan atau null
  */
 export async function getBannerByIdAction(
   id: string
@@ -97,6 +110,7 @@ export async function getBannerByIdAction(
 
 /**
  * Mengambil banner yang aktif saja
+ * @returns Array banner yang aktif
  */
 export async function getActiveBannersAction(): Promise<BannerData[]> {
   return await BannerService.getActiveBanners();

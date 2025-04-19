@@ -14,18 +14,26 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useBannerStore } from "@/store/useBannerStore";
 import { BannerData } from "@/types/banner";
 
+/**
+ * Komponen carousel banner untuk halaman utama
+ * Menampilkan banner yang aktif dengan fitur carousel
+ */
 function BannerLandingpage() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
   const { fetchBanners, getActiveBanners, loading } = useBannerStore();
 
-  // Fetch banners on component mount
+  /**
+   * Ambil data banner saat komponen dimount
+   */
   useEffect(() => {
     fetchBanners();
   }, [fetchBanners]);
 
-  // Set up carousel API
+  /**
+   * Konfigurasi carousel API
+   */
   useEffect(() => {
     if (!api) return;
 
@@ -37,13 +45,13 @@ function BannerLandingpage() {
     });
   }, [api]);
 
-  // Get active banners for display
+  // Ambil banner aktif untuk ditampilkan
   const activeBanners: BannerData[] = getActiveBanners();
 
-  // Flag to determine carousel display mode
+  // Flag untuk menentukan mode tampilan carousel
   const usePeekMode = activeBanners.length > 2;
 
-  // If no banners or loading, don't render the component
+  // Jika tidak ada banner atau sedang loading, tidak render apa-apa
   if (loading) return null;
   if (activeBanners.length === 0) return null;
 
@@ -128,7 +136,7 @@ function BannerLandingpage() {
 
           {activeBanners.length > 1 && (
             <>
-              {/* Custom Previous Button */}
+              {/* Tombol Previous */}
               <button
                 onClick={() => api?.scrollPrev()}
                 className="absolute top-1/2 -translate-y-1/2 left-2 md:left-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md"
@@ -137,7 +145,7 @@ function BannerLandingpage() {
                 <ChevronLeft className="h-6 w-6 text-destructive" />
               </button>
 
-              {/* Custom Next Button */}
+              {/* Tombol Next */}
               <button
                 onClick={() => api?.scrollNext()}
                 className="absolute top-1/2 -translate-y-1/2 right-2 md:right-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md"

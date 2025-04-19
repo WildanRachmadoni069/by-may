@@ -11,6 +11,9 @@ import BannerForm from "@/components/admin/banner/BannerForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BannerFormData } from "@/types/banner";
 
+/**
+ * Halaman untuk mengedit banner
+ */
 export default function EditBannerPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -19,6 +22,9 @@ export default function EditBannerPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const { id } = useParams<{ id: string }>();
 
+  /**
+   * Mengambil data banner berdasarkan ID
+   */
   useEffect(() => {
     const loadBanner = async () => {
       try {
@@ -29,10 +35,9 @@ export default function EditBannerPage() {
         }
         setBanner({
           ...data,
-          url: data.url || "", // Ensure url is always a string, not null
+          url: data.url || "", // Pastikan url selalu string, bukan null
         });
       } catch (error) {
-        console.error("Error loading banner:", error);
         toast({
           variant: "destructive",
           title: "Error",
@@ -47,6 +52,10 @@ export default function EditBannerPage() {
     loadBanner();
   }, [id, router, toast]);
 
+  /**
+   * Menangani pembaruan banner
+   * @param data Data banner yang diperbarui
+   */
   const handleUpdate = async (data: BannerFormData) => {
     try {
       setIsProcessing(true);
@@ -59,7 +68,6 @@ export default function EditBannerPage() {
 
       router.push("/dashboard/admin/banner");
     } catch (error) {
-      console.error("Error updating banner:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -69,6 +77,7 @@ export default function EditBannerPage() {
     }
   };
 
+  // Tampilkan skeleton loading selama data dimuat
   if (isLoading) {
     return (
       <div className="space-y-6">

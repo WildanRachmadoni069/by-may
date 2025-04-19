@@ -10,19 +10,32 @@ import { useToast } from "@/hooks/use-toast";
 import BannerImageUpload from "./BannerImageUpload";
 import { BannerFormData } from "@/types/banner";
 
-// Image interface to match BannerImageUpload component
+/**
+ * Interface untuk data gambar banner
+ */
 interface BannerImage {
   url: string;
   alt?: string;
 }
 
+/**
+ * Props untuk komponen BannerForm
+ */
 interface BannerFormProps {
+  /** Data awal untuk form (opsional) */
   initialData?: BannerFormData;
+  /** Fungsi yang dipanggil saat form disubmit */
   onSubmit: (data: BannerFormData) => Promise<void>;
+  /** Teks untuk tombol submit */
   submitButtonText?: string;
+  /** State loading saat proses submit */
   isProcessing?: boolean;
 }
 
+/**
+ * Komponen form untuk pengelolaan banner
+ * Digunakan untuk menambah dan mengedit banner
+ */
 export default function BannerForm({
   initialData,
   onSubmit,
@@ -41,18 +54,21 @@ export default function BannerForm({
     active: initialData?.active ?? true,
   });
 
-  // For image
   const [imageData, setImageData] = React.useState<BannerImage>({
     url: initialData?.imageUrl || "",
     alt: initialData?.title || "",
   });
 
-  // Function to handle image data changes with correct typing
+  /**
+   * Menangani perubahan data gambar
+   */
   const handleImageChange = (newImageData: BannerImage) => {
     setImageData(newImageData);
   };
 
-  // Update imageUrl when imageData changes
+  /**
+   * Memperbarui URL gambar saat imageData berubah
+   */
   React.useEffect(() => {
     setFormData((prev) => ({
       ...prev,
@@ -60,7 +76,9 @@ export default function BannerForm({
     }));
   }, [imageData.url]);
 
-  // Update image alt when title changes
+  /**
+   * Memperbarui alt text gambar saat judul berubah
+   */
   React.useEffect(() => {
     if (imageData.url) {
       setImageData((prev) => ({
@@ -70,6 +88,9 @@ export default function BannerForm({
     }
   }, [formData.title]);
 
+  /**
+   * Menangani perubahan input teks
+   */
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -80,6 +101,9 @@ export default function BannerForm({
     }));
   };
 
+  /**
+   * Menangani perubahan status aktif/nonaktif
+   */
   const handleSwitchChange = (checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
@@ -87,6 +111,9 @@ export default function BannerForm({
     }));
   };
 
+  /**
+   * Menangani submit form
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -111,7 +138,6 @@ export default function BannerForm({
     try {
       await onSubmit(formData);
     } catch (error) {
-      console.error("Error submitting form:", error);
       toast({
         variant: "destructive",
         title: "Error",
