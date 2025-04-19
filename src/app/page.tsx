@@ -8,8 +8,8 @@ export default function Home() {
   return (
     <MainLayout>
       <HeroLandingpage />
-      {/* <BannerLandingpage />
-      <section aria-labelledby="featured-products" className="py-12">
+      <BannerLandingpage />
+      {/* <section aria-labelledby="featured-products" className="py-12">
         <ProductCollections title="Produk Unggulan" specialLabel="best" />
       </section>
       <section aria-labelledby="new-products" className="py-12">

@@ -1,62 +1,44 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import BannerForm from "@/components/admin/banner/BannerForm";
+import { createBannerAction } from "@/app/actions/banner-actions";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import BannerForm, { Banner } from "@/components/admin/banner/BannerForm";
-import { useBannerStore } from "@/store/useBannerStore";
+import { BannerFormData } from "@/types/banner";
 
 export default function AddBannerPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addBanner, error, resetError } = useBannerStore();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Reset any previous errors when mounting
-  useEffect(() => {
-    resetError();
-  }, [resetError]);
-
-  // Show error toast when there's an error from the store
-  useEffect(() => {
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error,
-      });
-    }
-  }, [error, toast]);
-
-  const handleSubmit = async (bannerData: Banner) => {
-    setIsSubmitting(true);
-
+  const handleCreate = async (data: BannerFormData) => {
     try {
-      await addBanner({
-        title: bannerData.title,
-        imageUrl: bannerData.imageUrl,
-        url: bannerData.url,
-        active: bannerData.active,
-      });
+      setIsProcessing(true);
+      await createBannerAction(data);
 
       toast({
-        title: "Banner berhasil dibuat",
-        description: "Banner telah berhasil disimpan.",
+        title: "Berhasil",
+        description: "Banner telah ditambahkan",
       });
 
       router.push("/dashboard/admin/banner");
     } catch (error) {
-      // Error already handled by the store and displayed via useEffect
       console.error("Error creating banner:", error);
-    } finally {
-      setIsSubmitting(false);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Gagal membuat banner. Silakan coba lagi.",
+      });
+      setIsProcessing(false);
     }
   };
 
   return (
     <BannerForm
-      onSubmit={handleSubmit}
-      submitButtonText="Simpan Banner"
-      isProcessing={isSubmitting}
+      onSubmit={handleCreate}
+      submitButtonText="Tambah Banner"
+      isProcessing={isProcessing}
     />
   );
 }

@@ -5,19 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import BannerImageUpload from "./BannerImageUpload";
-
-// Banner interface
-export interface Banner {
-  id?: string;
-  title: string;
-  imageUrl: string;
-  url: string;
-  active: boolean;
-}
+import { BannerFormData } from "@/types/banner";
 
 // Image interface to match BannerImageUpload component
 interface BannerImage {
@@ -26,8 +17,8 @@ interface BannerImage {
 }
 
 interface BannerFormProps {
-  initialData?: Banner;
-  onSubmit: (data: Banner) => Promise<void>;
+  initialData?: BannerFormData;
+  onSubmit: (data: BannerFormData) => Promise<void>;
   submitButtonText?: string;
   isProcessing?: boolean;
 }
@@ -42,7 +33,7 @@ export default function BannerForm({
   const { toast } = useToast();
   const isEditMode = !!initialData?.id;
 
-  const [formData, setFormData] = React.useState<Banner>({
+  const [formData, setFormData] = React.useState<BannerFormData>({
     id: initialData?.id || undefined,
     title: initialData?.title || "",
     imageUrl: initialData?.imageUrl || "",

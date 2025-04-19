@@ -9,9 +9,10 @@ import {
 } from "../ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import Link from "next/link";
-import { useBannerStore } from "@/store/useBannerStore";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react"; // Import chevron icons
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useBannerStore } from "@/store/useBannerStore";
+import { BannerData } from "@/types/banner";
 
 function BannerLandingpage() {
   const [api, setApi] = useState<CarouselApi>();
@@ -37,7 +38,7 @@ function BannerLandingpage() {
   }, [api]);
 
   // Get active banners for display
-  const activeBanners = getActiveBanners();
+  const activeBanners: BannerData[] = getActiveBanners();
 
   // Flag to determine carousel display mode
   const usePeekMode = activeBanners.length > 2;

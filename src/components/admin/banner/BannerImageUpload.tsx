@@ -1,145 +1,332 @@
-import React, { useCallback, useState } from "react";
+"use client";
+
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash, Upload, Pencil } from "lucide-react";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { Upload, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface BannerImage {
-  url: string;
-  alt?: string;
-}
-
-interface BannerImageUploadProps {
-  value: BannerImage;
-  onChange: (imageData: BannerImage) => void;
+interface BannerImageProps {
+  value: {
+    url: string;
+    alt?: string;
+  };
+  onChange: (value: { url: string; alt?: string }) => void;
+  className?: string;
   disabled?: boolean;
 }
 
 export default function BannerImageUpload({
   value,
   onChange,
+  className,
   disabled = false,
-}: BannerImageUploadProps) {
-  const [uploading, setUploading] = useState(false);
+}: BannerImageProps) {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const uploadImage = useCallback(
-    async (file: File) => {
-      if (!file) return;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileDialogOpenRef = useRef<boolean>(false);
+  const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-      setUploading(true);
+  // Bersihkan timeout saat komponen unmount
+  useEffect(() => {
+    return () => {
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+      }
+    };
+  }, []);
 
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
+  /**
+   * Ekstrak publicId dari URL Cloudinary untuk pembaruan gambar
+   */
+  const extractPublicId = (url: string) => {
+    const parts = url.split("/");
+    const filenameWithExt = parts.pop() || "";
+    const publicId = filenameWithExt.split(".")[0];
+    return publicId;
+  };
 
-        const response = await fetch("/api/upload/banner", {
+  // Handle file upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    fileDialogOpenRef.current = false;
+
+    if (safetyTimeoutRef.current) {
+      clearTimeout(safetyTimeoutRef.current);
+      safetyTimeoutRef.current = null;
+    }
+
+    if (!file) {
+      setIsEditing(false);
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "File terlalu besar",
+        description: "Ukuran file maksimal 5MB",
+      });
+      setIsEditing(false);
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        variant: "destructive",
+        title: "Format file tidak didukung",
+        description: "Silakan upload file gambar (JPG, PNG, atau WebP)",
+      });
+      setIsEditing(false);
+      return;
+    }
+
+    setIsUploading(true);
+    if (value.url) {
+      setIsEditing(true);
+    }
+
+    try {
+      const formData = new FormData();
+
+      let response;
+
+      if (value.url) {
+        // Update existing image
+        const publicId = extractPublicId(value.url);
+        formData.append("image", file);
+        formData.append("publicId", publicId);
+
+        response = await fetch("/api/cloudinary/update-image", {
           method: "POST",
           body: formData,
         });
+      } else {
+        // Upload new image
+        formData.append("file", file);
+        formData.append("folder", "bymay-banners");
+        formData.append("upload_preset", "bymay-banner");
+        formData.append("tags", "banner,homepage");
 
-        if (!response.ok) {
-          throw new Error("Upload failed");
-        }
-
-        const data = await response.json();
-
-        onChange({
-          url: data.secure_url,
-          alt: value.alt || "",
+        response = await fetch("/api/cloudinary/upload", {
+          method: "POST",
+          body: formData,
         });
-
-        toast({
-          title: "Gambar berhasil diupload",
-          description: "Gambar banner telah berhasil diupload.",
-        });
-      } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Upload gagal",
-          description:
-            "Terjadi kesalahan saat mengupload gambar. Silakan coba lagi.",
-        });
-        console.error("Error uploading image:", error);
-      } finally {
-        setUploading(false);
       }
-    },
-    [onChange, toast, value.alt]
-  );
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      uploadImage(file);
+      if (!response.ok) {
+        throw new Error(`Upload gagal: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const imageUrl = data.secure_url;
+
+      // Update the component value with the new image URL
+      onChange({
+        url: imageUrl,
+        alt: value.alt || "",
+      });
+
+      toast({
+        title: value.url ? "Gambar diperbarui" : "Upload berhasil",
+        description: value.url
+          ? "Gambar berhasil diperbarui tanpa menghapus gambar lama"
+          : "Gambar berhasil diupload",
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        variant: "destructive",
+        title: "Operasi gagal",
+        description: "Gagal memproses gambar. Silakan coba lagi.",
+      });
+    } finally {
+      setIsUploading(false);
+      setIsEditing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
-  const handleDeleteImage = () => {
-    onChange({ url: "", alt: "" });
+  // Handle image removal
+  const handleRemove = async () => {
+    if (!value.url) return;
+
+    try {
+      setIsDeleting(true);
+
+      // Delete the image from Cloudinary
+      const response = await fetch("/api/cloudinary/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: value.url }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete image");
+      }
+
+      // Clear the image URL
+      onChange({ url: "", alt: "" });
+
+      toast({
+        title: "Hapus berhasil",
+        description: "Gambar berhasil dihapus",
+      });
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast({
+        variant: "destructive",
+        title: "Hapus gagal",
+        description: "Gagal menghapus gambar, silakan coba lagi",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  /**
+   * Memicu dialog pemilihan file
+   */
+  const handleEdit = () => {
+    if (isEditing || isUploading || isDeleting) return;
+
+    setIsEditing(true);
+    fileDialogOpenRef.current = true;
+
+    safetyTimeoutRef.current = setTimeout(() => {
+      if (fileDialogOpenRef.current) {
+        setIsEditing(false);
+        fileDialogOpenRef.current = false;
+      }
+    }, 1000);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileInputClick = () => {
+    fileDialogOpenRef.current = true;
   };
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", className)}>
       {value.url ? (
-        <div className="relative">
-          <div className="relative w-full h-[200px] rounded-lg overflow-hidden border">
+        <div className="flex flex-col gap-4">
+          {/* Preview image */}
+          <div className="relative w-full h-48 bg-gray-100 rounded-md overflow-hidden">
+            {(isUploading || isEditing || isDeleting) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/75 rounded-lg text-white z-10">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p>
+                  {isDeleting
+                    ? "Menghapus gambar..."
+                    : isEditing
+                    ? "Mengganti gambar..."
+                    : "Mengunggah gambar..."}
+                </p>
+              </div>
+            )}
             <Image
               src={value.url}
-              alt={value.alt || "Banner image"}
+              alt={value.alt || "Banner preview"}
               fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 768px"
+              className="object-contain"
+              sizes="(max-width: 768px) 100vw, 500px"
             />
           </div>
-          <div className="absolute top-2 right-2 flex gap-2">
+
+          <div className="flex gap-2">
+            {/* Upload new button */}
             <Button
+              type="button"
+              variant="outline"
               size="sm"
-              variant="secondary"
-              className="rounded-full bg-white/80 hover:bg-white"
-              disabled={disabled || uploading}
-              onClick={() =>
-                document.getElementById("banner-image-upload")?.click()
-              }
+              onClick={handleEdit}
+              disabled={isUploading || isEditing || isDeleting || disabled}
             >
-              <Pencil className="h-4 w-4" />
+              <Upload className="h-4 w-4 mr-2" />
+              Ganti Gambar
             </Button>
+
+            {/* Remove button */}
             <Button
-              size="sm"
+              type="button"
               variant="destructive"
-              className="rounded-full"
-              disabled={disabled || uploading}
-              onClick={handleDeleteImage}
+              size="sm"
+              onClick={handleRemove}
+              disabled={isUploading || isEditing || isDeleting || disabled}
             >
-              <Trash className="h-4 w-4" />
+              <X className="h-4 w-4 mr-2" />
+              Hapus Gambar
             </Button>
           </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+            onClick={handleFileInputClick}
+            disabled={isUploading || isEditing || isDeleting || disabled}
+          />
         </div>
       ) : (
         <div
-          className="border-2 border-dashed rounded-md p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+          className={cn(
+            "flex flex-col items-center justify-center w-full h-48 bg-gray-50 border-2 border-dashed rounded-md cursor-pointer hover:bg-gray-100 transition-colors",
+            (isUploading || disabled) && "opacity-50 cursor-not-allowed"
+          )}
           onClick={() =>
-            document.getElementById("banner-image-upload")?.click()
+            !isUploading && !disabled && fileInputRef.current?.click()
           }
         >
+          {isUploading ? (
+            <>
+              <Loader2 className="h-8 w-8 animate-spin mb-2 text-gray-400" />
+              <p className="text-sm text-gray-600 font-medium">
+                Mengunggah gambar...
+              </p>
+            </>
+          ) : (
+            <>
+              <Upload className="h-8 w-8 text-gray-400 mb-2" />
+              <p className="text-sm text-gray-600 font-medium">
+                Klik untuk upload gambar banner
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Ukuran optimal: 1200x300px
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Format: JPG, PNG, atau WebP (Maks. 5MB)
+              </p>
+            </>
+          )}
+
           <input
+            ref={fileInputRef}
             type="file"
-            id="banner-image-upload"
-            className="hidden"
             accept="image/*"
-            onChange={handleImageChange}
-            disabled={disabled || uploading}
+            className="hidden"
+            onChange={handleFileChange}
+            onClick={handleFileInputClick}
+            disabled={isUploading || disabled}
           />
-          <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
-          <p className="font-medium">
-            {uploading ? "Mengupload..." : "Klik untuk upload gambar banner"}
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            PNG, JPG atau WEBP (maks. 5MB, disarankan ukuran 1200x300px)
-          </p>
         </div>
       )}
-      {/* Removed the alt text input field as banner title will be used for alt text */}
     </div>
   );
 }

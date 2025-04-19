@@ -1,179 +1,105 @@
 import { create } from "zustand";
 import {
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
+  BannerData,
+  BannerCreateInput,
+  BannerUpdateInput,
+} from "@/types/banner";
+import {
+  createBanner,
+  deleteBanner,
+  getBanners,
+  updateBanner,
+} from "@/lib/api/banners";
 
-interface Banner {
-  id: string;
-  title: string;
-  imageUrl: string;
-  url: string;
-  active: boolean;
-  createdAt?: any;
-  updatedAt?: any;
-}
-
-interface BannerStore {
-  // State
-  banners: Banner[];
+interface BannerState {
+  banners: BannerData[];
   loading: boolean;
   error: string | null;
-
-  // Getters
-  getActiveBanners: () => Banner[];
-
-  // Actions
   fetchBanners: () => Promise<void>;
-  getBanner: (id: string) => Promise<Banner | null>;
-  addBanner: (banner: Omit<Banner, "id">) => Promise<Banner>;
-  updateBanner: (id: string, banner: Partial<Banner>) => Promise<void>;
+  createBanner: (data: BannerCreateInput) => Promise<BannerData>;
+  updateBanner: (id: string, data: BannerUpdateInput) => Promise<BannerData>;
   deleteBanner: (id: string) => Promise<void>;
-  resetError: () => void;
+  getActiveBanners: () => BannerData[];
 }
 
-export const useBannerStore = create<BannerStore>((set, get) => ({
+export const useBannerStore = create<BannerState>((set, get) => ({
   banners: [],
   loading: false,
   error: null,
 
-  // Get only active banners (for frontend display)
-  getActiveBanners: () => {
-    return get().banners.filter((banner) => banner.active);
-  },
-
-  // Fetch all banners from Firestore
   fetchBanners: async () => {
-    set({ loading: true, error: null });
     try {
-      const bannersRef = collection(db, "banners");
-      const bannersSnapshot = await getDocs(bannersRef);
-
-      const fetchedBanners = bannersSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Banner[];
-
-      set({ banners: fetchedBanners, loading: false });
+      set({ loading: true, error: null });
+      const banners = await getBanners();
+      set({ banners, loading: false });
     } catch (error) {
-      console.error("Error fetching banners:", error);
       set({
-        error: "Failed to fetch banners",
+        error:
+          error instanceof Error ? error.message : "Failed to fetch banners",
         loading: false,
       });
     }
   },
 
-  // Get a single banner by ID
-  getBanner: async (id) => {
+  createBanner: async (data: BannerCreateInput) => {
     try {
-      // Check if banner already exists in state
-      const existingBanner = get().banners.find((banner) => banner.id === id);
-      if (existingBanner) return existingBanner;
-
-      // Otherwise fetch from Firestore
-      const bannerRef = doc(db, "banners", id);
-      const bannerDoc = await getDoc(bannerRef);
-
-      if (bannerDoc.exists()) {
-        const data = bannerDoc.data();
-        return {
-          id,
-          title: data.title || "",
-          imageUrl: data.imageUrl || "",
-          url: data.url || "",
-          active: data.active ?? true,
-          ...(data.createdAt && { createdAt: data.createdAt }),
-          ...(data.updatedAt && { updatedAt: data.updatedAt }),
-        } as Banner;
-      }
-      return null;
-    } catch (error) {
-      console.error(`Error fetching banner ${id}:`, error);
-      set({
-        error: `Failed to fetch banner: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      });
-      return null;
-    }
-  },
-
-  // Add a new banner
-  addBanner: async (banner) => {
-    try {
-      const bannersRef = collection(db, "banners");
-      const docRef = await addDoc(bannersRef, {
-        ...banner,
-        createdAt: new Date(),
-      });
-
-      const newBanner = {
-        id: docRef.id,
-        ...banner,
-        createdAt: new Date(),
-      };
-
+      set({ loading: true, error: null });
+      const newBanner = await createBanner(data);
       set((state) => ({
-        banners: [...state.banners, newBanner],
+        banners: [newBanner, ...state.banners],
+        loading: false,
       }));
-
       return newBanner;
     } catch (error) {
-      console.error("Error adding banner:", error);
-      set({ error: `Failed to add banner: ${error}` });
+      set({
+        error:
+          error instanceof Error ? error.message : "Failed to create banner",
+        loading: false,
+      });
       throw error;
     }
   },
 
-  // Update an existing banner
-  updateBanner: async (id, bannerData) => {
+  updateBanner: async (id: string, data: BannerUpdateInput) => {
     try {
-      const bannerRef = doc(db, "banners", id);
-      const updateData = {
-        ...bannerData,
-        updatedAt: new Date(),
-      };
-
-      await updateDoc(bannerRef, updateData);
-
+      set({ loading: true, error: null });
+      const updatedBanner = await updateBanner(id, data);
       set((state) => ({
         banners: state.banners.map((banner) =>
-          banner.id === id
-            ? { ...banner, ...bannerData, updatedAt: new Date() }
-            : banner
+          banner.id === id ? updatedBanner : banner
         ),
+        loading: false,
       }));
+      return updatedBanner;
     } catch (error) {
-      console.error(`Error updating banner ${id}:`, error);
-      set({ error: `Failed to update banner: ${error}` });
+      set({
+        error:
+          error instanceof Error ? error.message : "Failed to update banner",
+        loading: false,
+      });
       throw error;
     }
   },
 
-  // Delete a banner
-  deleteBanner: async (id) => {
+  deleteBanner: async (id: string) => {
     try {
-      await deleteDoc(doc(db, "banners", id));
-
+      set({ loading: true, error: null });
+      await deleteBanner(id);
       set((state) => ({
         banners: state.banners.filter((banner) => banner.id !== id),
+        loading: false,
       }));
     } catch (error) {
-      console.error(`Error deleting banner ${id}:`, error);
-      set({ error: `Failed to delete banner: ${error}` });
+      set({
+        error:
+          error instanceof Error ? error.message : "Failed to delete banner",
+        loading: false,
+      });
       throw error;
     }
   },
 
-  // Reset error state
-  resetError: () => set({ error: null }),
+  getActiveBanners: () => {
+    return get().banners.filter((banner) => banner.active);
+  },
 }));
