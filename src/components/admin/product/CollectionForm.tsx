@@ -1,79 +1,106 @@
 "use client";
 
 import { useState } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase/firebaseConfig";
-import { collection, addDoc } from "firebase/firestore";
+import { useCollectionStore } from "@/store/useCollectionStore";
 
-const CollectionSchema = Yup.object().shape({
-  name: Yup.string()
-    .min(2, "Nama koleksi terlalu pendek")
-    .max(50, "Nama koleksi terlalu panjang")
-    .required("Nama koleksi wajib diisi"),
-});
-
+/**
+ * Props untuk komponen CollectionForm
+ */
 interface CollectionFormProps {
+  /** Fungsi callback yang dipanggil setelah form berhasil disubmit */
   onSuccess?: () => void;
+  /** Data awal untuk form (untuk mode edit) */
+  initialData?: {
+    id: string;
+    name: string;
+  };
 }
 
-export default function CollectionForm({ onSuccess }: CollectionFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+/**
+ * Komponen form untuk membuat atau mengupdate koleksi
+ */
+export default function CollectionForm({
+  onSuccess,
+  initialData,
+}: CollectionFormProps) {
   const { toast } = useToast();
+  const { createCollection, updateCollection } = useCollectionStore();
+  const [name, setName] = useState(initialData?.name || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formik = useFormik({
-    initialValues: { name: "" },
-    validationSchema: CollectionSchema,
-    onSubmit: async (values, { resetForm }) => {
-      setIsSubmitting(true);
-      try {
-        await addDoc(collection(db, "collections"), {
-          name: values.name,
-          createdAt: new Date(),
-        });
+  /**
+   * Menangani submit form
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Nama koleksi tidak boleh kosong",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (initialData?.id) {
+        // Mode edit
+        await updateCollection(initialData.id, { name });
         toast({
-          title: "Koleksi berhasil ditambahkan",
-          description: "Koleksi baru telah berhasil ditambahkan.",
+          title: "Berhasil",
+          description: "Koleksi berhasil diperbarui",
         });
-        resetForm();
-        if (onSuccess) {
-          onSuccess();
-        }
-      } catch (error) {
-        console.error("Error adding collection:", error);
+      } else {
+        // Mode tambah
+        await createCollection({ name });
         toast({
-          title: "Gagal menambahkan koleksi",
-          description: "Terjadi kesalahan. Silakan coba lagi.",
-          variant: "destructive",
+          title: "Berhasil",
+          description: "Koleksi berhasil dibuat",
         });
-      } finally {
-        setIsSubmitting(false);
+        setName("");
       }
-    },
-  });
+
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Terjadi kesalahan saat menyimpan koleksi",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={formik.handleSubmit} className="space-y-4">
-        <div>
-          <Label htmlFor="name">Nama Koleksi</Label>
-          <Input id="name" {...formik.getFieldProps("name")} />
-          {formik.touched.name && formik.errors.name && (
-            <p className="text-sm text-red-500 mt-1">{formik.errors.name}</p>
-          )}
-        </div>
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isSubmitting || !formik.isValid}
-        >
-          {isSubmitting ? "Menyimpan..." : "Simpan Koleksi"}
-        </Button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1">
+        <Label htmlFor="name">Nama Koleksi</Label>
+        <Input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Masukkan nama koleksi"
+          disabled={isSubmitting}
+          autoComplete="off"
+        />
+      </div>
+      <Button type="submit" disabled={isSubmitting} className="w-full">
+        {isSubmitting
+          ? "Menyimpan..."
+          : initialData
+          ? "Perbarui Koleksi"
+          : "Tambah Koleksi"}
+      </Button>
+    </form>
   );
 }

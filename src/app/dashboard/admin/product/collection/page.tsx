@@ -13,12 +13,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-export default function CollectionPage() {
+/**
+ * Halaman pengelolaan koleksi produk
+ */
+function CollectionPage() {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
 
   return (
     <div className="space-y-4">
-      {/* Header with title and add button */}
+      {/* Header dengan judul dan tombol tambah */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold mb-2">Koleksi Produk</h1>
@@ -32,12 +35,12 @@ export default function CollectionPage() {
         </Button>
       </div>
 
-      {/* Collection list with the same styling as product list */}
+      {/* Daftar koleksi dengan styling yang sama seperti daftar produk */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100">
         <CollectionList />
       </div>
 
-      {/* Collection form in a slide-out sheet */}
+      {/* Form koleksi dalam sheet slide-out */}
       <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
         <SheetContent className="w-full md:max-w-md">
           <SheetHeader>
@@ -54,3 +57,5 @@ export default function CollectionPage() {
     </div>
   );
 }
+
+export default CollectionPage;

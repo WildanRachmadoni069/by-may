@@ -1,91 +1,197 @@
+/**
+ * Collection Store
+ *
+ * Store Zustand untuk pengelolaan state collection di sisi klien
+ */
+
 import { create } from "zustand";
 import {
-  getCollections,
+  CollectionData,
+  CollectionCreateInput,
+  CollectionUpdateInput,
+  CollectionOption,
+} from "@/types/collection";
+import {
   createCollection,
-  updateCollection,
   deleteCollection,
-} from "@/utils/collection";
+  getCollections,
+  getCollectionOptions,
+  updateCollection,
+} from "@/lib/api/collections";
 
-interface Collection {
-  id: string;
-  name: string;
-  value: string;
-  label: string;
-}
-
+/**
+ * Interface untuk state collection
+ */
 interface CollectionState {
-  collections: Collection[];
+  /** Daftar koleksi */
+  collections: CollectionOption[];
+  /** Status loading */
   loading: boolean;
+  /** Pesan error */
   error: string | null;
+  /** State untuk koleksi yang sedang dihapus (ID koleksi: boolean) */
+  deletingCollections: Record<string, boolean>;
+  /** Mengambil daftar koleksi */
   fetchCollections: () => Promise<void>;
-  addCollection: (name: string) => Promise<void>;
-  updateCollection: (id: string, name: string) => Promise<void>;
-  deleteCollection: (id: string) => Promise<void>;
+  /** Membuat koleksi baru */
+  createCollection: (data: CollectionCreateInput) => Promise<CollectionData>;
+  /** Memperbarui koleksi */
+  updateCollection: (
+    id: string,
+    data: CollectionUpdateInput
+  ) => Promise<CollectionData>;
+  /** Menghapus koleksi */
+  deleteCollection: (
+    id: string
+  ) => Promise<{ success: boolean; message?: string }>;
+  /** Mengatur status penghapusan koleksi */
+  setDeletingCollection: (id: string, isDeleting: boolean) => void;
 }
 
-export const useCollectionStore = create<CollectionState>((set) => ({
+/**
+ * Zustand store untuk pengelolaan koleksi
+ */
+export const useCollectionStore = create<CollectionState>((set, get) => ({
   collections: [],
   loading: false,
   error: null,
+  deletingCollections: {},
 
+  /**
+   * Mengambil data koleksi dari API
+   */
   fetchCollections: async () => {
-    set({ loading: true });
     try {
-      const collectionsData = await getCollections();
-      set({ collections: collectionsData, loading: false, error: null });
+      set({ loading: true, error: null });
+      const collections = await getCollectionOptions();
+      set({ collections, loading: false });
     } catch (error) {
-      console.error("Error fetching collections:", error);
-      set({ error: "Failed to fetch collections", loading: false });
+      set({
+        error:
+          error instanceof Error ? error.message : "Gagal mengambil koleksi",
+        loading: false,
+      });
     }
   },
 
-  addCollection: async (name: string) => {
-    set({ loading: true });
+  /**
+   * Membuat koleksi baru
+   * @param data Data koleksi yang akan dibuat
+   * @returns Koleksi yang dibuat
+   */
+  createCollection: async (data: CollectionCreateInput) => {
     try {
-      const newCollection = await createCollection(name);
-      set((state) => ({
-        collections: [...state.collections, newCollection],
-        loading: false,
-        error: null,
-      }));
+      set({ loading: true, error: null });
+      const newCollection = await createCollection(data);
+      set((state) => {
+        // Konversi ke format option
+        const newOption: CollectionOption = {
+          id: newCollection.id,
+          name: newCollection.name,
+          value: newCollection.id,
+          label: newCollection.name,
+        };
+        return {
+          collections: [...state.collections, newOption],
+          loading: false,
+          error: null,
+        };
+      });
+      return newCollection;
     } catch (error) {
-      console.error("Error adding collection:", error);
-      set({ error: "Failed to add collection", loading: false });
+      set({
+        error: error instanceof Error ? error.message : "Gagal membuat koleksi",
+        loading: false,
+      });
       throw error;
     }
   },
 
-  updateCollection: async (id: string, name: string) => {
-    set({ loading: true });
+  /**
+   * Memperbarui koleksi yang sudah ada
+   * @param id ID koleksi yang akan diperbarui
+   * @param data Data koleksi yang diperbarui
+   * @returns Koleksi yang diperbarui
+   */
+  updateCollection: async (id: string, data: CollectionUpdateInput) => {
     try {
-      const updatedCollection = await updateCollection(id, name);
+      set({ loading: true, error: null });
+      const updatedCollection = await updateCollection(id, data);
       set((state) => ({
-        collections: state.collections.map((c) =>
-          c.id === id ? updatedCollection : c
+        collections: state.collections.map((collection) =>
+          collection.id === id
+            ? {
+                id: updatedCollection.id,
+                name: updatedCollection.name,
+                value: updatedCollection.id,
+                label: updatedCollection.name,
+              }
+            : collection
         ),
         loading: false,
         error: null,
       }));
+      return updatedCollection;
     } catch (error) {
-      console.error("Error updating collection:", error);
-      set({ error: "Failed to update collection", loading: false });
+      set({
+        error:
+          error instanceof Error ? error.message : "Gagal memperbarui koleksi",
+        loading: false,
+      });
       throw error;
     }
   },
 
+  /**
+   * Menghapus koleksi
+   * @param id ID koleksi yang akan dihapus
+   * @returns Status keberhasilan dan pesan
+   */
   deleteCollection: async (id: string) => {
-    set({ loading: true });
     try {
-      await deleteCollection(id);
       set((state) => ({
-        collections: state.collections.filter((c) => c.id !== id),
-        loading: false,
-        error: null,
+        deletingCollections: { ...state.deletingCollections, [id]: true },
       }));
+
+      const result = await deleteCollection(id);
+
+      if (result.success) {
+        set((state) => ({
+          collections: state.collections.filter(
+            (collection) => collection.id !== id
+          ),
+          deletingCollections: { ...state.deletingCollections, [id]: false },
+        }));
+      } else {
+        set((state) => ({
+          error: result.message || "Gagal menghapus koleksi",
+          deletingCollections: { ...state.deletingCollections, [id]: false },
+        }));
+      }
+
+      return result;
     } catch (error) {
-      console.error("Error deleting collection:", error);
-      set({ error: "Failed to delete collection", loading: false });
-      throw error;
+      set((state) => ({
+        error:
+          error instanceof Error ? error.message : "Gagal menghapus koleksi",
+        deletingCollections: { ...state.deletingCollections, [id]: false },
+      }));
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Gagal menghapus koleksi",
+      };
     }
+  },
+
+  /**
+   * Mengatur status penghapusan koleksi
+   * @param id ID koleksi
+   * @param isDeleting Status penghapusan
+   */
+  setDeletingCollection: (id, isDeleting) => {
+    set((state) => ({
+      deletingCollections: { ...state.deletingCollections, [id]: isDeleting },
+    }));
   },
 }));
