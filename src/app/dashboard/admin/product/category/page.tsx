@@ -2,7 +2,6 @@
 
 import CategoryForm from "@/components/admin/product/CategoryForm";
 import CategoryList from "@/components/admin/product/CategoryList";
-import React from "react";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { useState } from "react";
@@ -14,12 +13,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
+/**
+ * Halaman pengelolaan kategori produk
+ */
 function CategoryPage() {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
 
   return (
     <div className="space-y-4">
-      {/* Header with title and add button */}
+      {/* Header dengan judul dan tombol tambah */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold mb-2">Kategori Produk</h1>
@@ -32,12 +34,12 @@ function CategoryPage() {
         </Button>
       </div>
 
-      {/* Category list with the same styling as product list */}
+      {/* Daftar kategori dengan styling yang sama seperti daftar produk */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100">
         <CategoryList />
       </div>
 
-      {/* Category form in a slide-out sheet */}
+      {/* Form kategori dalam sheet slide-out */}
       <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
         <SheetContent className="w-full md:max-w-md">
           <SheetHeader>

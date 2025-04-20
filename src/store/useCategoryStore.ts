@@ -1,91 +1,177 @@
+/**
+ * Category Store
+ *
+ * Store Zustand untuk pengelolaan state category di sisi klien
+ */
+
 import { create } from "zustand";
 import {
-  getCategories,
+  CategoryData,
+  CategoryCreateInput,
+  CategoryUpdateInput,
+} from "@/types/category";
+import {
   createCategory,
-  updateCategory,
   deleteCategory,
-} from "@/utils/category";
+  getCategories,
+  updateCategory,
+} from "@/lib/api/categories";
 
-interface Category {
-  id: string;
-  name: string;
-  value: string;
-  label: string;
-}
-
+/**
+ * Interface untuk state category
+ */
 interface CategoryState {
-  categories: Category[];
+  /** Daftar kategori */
+  categories: CategoryData[];
+  /** Status loading */
   loading: boolean;
+  /** Pesan error */
   error: string | null;
+  /** State untuk kategori yang sedang dihapus (ID kategori: boolean) */
+  deletingCategories: Record<string, boolean>;
+
+  /** Mengambil daftar kategori */
   fetchCategories: () => Promise<void>;
-  addCategory: (name: string) => Promise<void>;
-  updateCategory: (id: string, name: string) => Promise<void>;
-  deleteCategory: (id: string) => Promise<void>;
+  /** Membuat kategori baru */
+  createCategory: (data: CategoryCreateInput) => Promise<CategoryData>;
+  /** Memperbarui kategori */
+  updateCategory: (
+    id: string,
+    data: CategoryUpdateInput
+  ) => Promise<CategoryData>;
+  /** Menghapus kategori */
+  deleteCategory: (
+    id: string
+  ) => Promise<{ success: boolean; message?: string }>;
+  /** Mengatur status penghapusan kategori */
+  setDeletingCategory: (id: string, isDeleting: boolean) => void;
 }
 
-export const useCategoryStore = create<CategoryState>((set) => ({
+/**
+ * Zustand store untuk pengelolaan kategori
+ */
+export const useCategoryStore = create<CategoryState>((set, get) => ({
   categories: [],
   loading: false,
   error: null,
+  deletingCategories: {},
 
+  /**
+   * Mengambil data kategori dari API
+   */
   fetchCategories: async () => {
-    set({ loading: true });
     try {
-      const categoriesData = await getCategories();
-      set({ categories: categoriesData, loading: false, error: null });
+      set({ loading: true, error: null });
+      const categories = await getCategories();
+      set({ categories, loading: false });
     } catch (error) {
-      console.error("Error fetching categories:", error);
-      set({ error: "Failed to fetch categories", loading: false });
+      set({
+        error:
+          error instanceof Error ? error.message : "Gagal mengambil kategori",
+        loading: false,
+      });
     }
   },
 
-  addCategory: async (name: string) => {
-    set({ loading: true });
+  /**
+   * Membuat kategori baru
+   * @param data Data kategori yang akan dibuat
+   * @returns Kategori yang dibuat
+   */
+  createCategory: async (data: CategoryCreateInput) => {
     try {
-      const newCategory = await createCategory(name);
+      set({ loading: true, error: null });
+      const newCategory = await createCategory(data);
       set((state) => ({
         categories: [...state.categories, newCategory],
         loading: false,
-        error: null,
       }));
+      return newCategory;
     } catch (error) {
-      console.error("Error adding category:", error);
-      set({ error: "Failed to add category", loading: false });
+      set({
+        error:
+          error instanceof Error ? error.message : "Gagal membuat kategori",
+        loading: false,
+      });
       throw error;
     }
   },
 
-  updateCategory: async (id: string, name: string) => {
-    set({ loading: true });
+  /**
+   * Memperbarui kategori yang sudah ada
+   * @param id ID kategori yang akan diperbarui
+   * @param data Data kategori yang diperbarui
+   * @returns Kategori yang diperbarui
+   */
+  updateCategory: async (id: string, data: CategoryUpdateInput) => {
     try {
-      const updatedCategory = await updateCategory(id, name);
+      set({ loading: true, error: null });
+      const updatedCategory = await updateCategory(id, data);
       set((state) => ({
-        categories: state.categories.map((c) =>
-          c.id === id ? updatedCategory : c
+        categories: state.categories.map((category) =>
+          category.id === id ? updatedCategory : category
         ),
         loading: false,
-        error: null,
       }));
+      return updatedCategory;
     } catch (error) {
-      console.error("Error updating category:", error);
-      set({ error: "Failed to update category", loading: false });
+      set({
+        error:
+          error instanceof Error ? error.message : "Gagal memperbarui kategori",
+        loading: false,
+      });
       throw error;
     }
   },
 
+  /**
+   * Menghapus kategori
+   * @param id ID kategori yang akan dihapus
+   * @returns Status keberhasilan dan pesan
+   */
   deleteCategory: async (id: string) => {
-    set({ loading: true });
     try {
-      await deleteCategory(id);
       set((state) => ({
-        categories: state.categories.filter((c) => c.id !== id),
-        loading: false,
-        error: null,
+        deletingCategories: { ...state.deletingCategories, [id]: true },
       }));
+
+      const result = await deleteCategory(id);
+
+      if (result.success) {
+        set((state) => ({
+          categories: state.categories.filter((category) => category.id !== id),
+          deletingCategories: { ...state.deletingCategories, [id]: false },
+        }));
+      } else {
+        set((state) => ({
+          error: result.message || "Gagal menghapus kategori",
+          deletingCategories: { ...state.deletingCategories, [id]: false },
+        }));
+      }
+
+      return result;
     } catch (error) {
-      console.error("Error deleting category:", error);
-      set({ error: "Failed to delete category", loading: false });
-      throw error;
+      set((state) => ({
+        error:
+          error instanceof Error ? error.message : "Gagal menghapus kategori",
+        deletingCategories: { ...state.deletingCategories, [id]: false },
+      }));
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Gagal menghapus kategori",
+      };
     }
+  },
+
+  /**
+   * Mengatur status penghapusan kategori
+   * @param id ID kategori
+   * @param isDeleting Status penghapusan
+   */
+  setDeletingCategory: (id, isDeleting) => {
+    set((state) => ({
+      deletingCategories: { ...state.deletingCategories, [id]: isDeleting },
+    }));
   },
 }));
