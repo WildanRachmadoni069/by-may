@@ -31,7 +31,8 @@ import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import ProductDescriptionEditor from "@/components/editor/ProductDescriptionEditor";
-import { updateProduct } from "@/lib/firebase/products"; // Import updateProduct function
+// Remove Firebase import and replace with PostgreSQL API functions
+import { createProduct, updateProduct } from "@/lib/api/products";
 
 interface ProductFormProps {
   productId?: string;
@@ -123,21 +124,14 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     loading: categoriesLoading,
     fetchCategories,
   } = useCategoryStore();
-  const { addProduct } = useProductStore();
-  const {
-    collections,
-    loading: collectionsLoading,
-    fetchCollections,
-  } = useCollectionStore();
+
+  const { collections, fetchCollections } = useCollectionStore();
 
   // Fetch categories on mount
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
-
-  useEffect(() => {
     fetchCollections();
-  }, [fetchCollections]);
+  }, [fetchCategories, fetchCollections]);
 
   const [showVariationForm, setShowVariationForm] = useState(false);
   const [editingVariationIndex, setEditingVariationIndex] = useState<
@@ -150,7 +144,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     name: "",
     options: [{ id: Date.now().toString(), name: "" }],
   });
-  
+
   // State to track submission status
   const [submitting, setSubmitting] = useState(false);
 
@@ -161,28 +155,43 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     onSubmit: async (values, actions) => {
       try {
         setSubmitting(true);
-        
+
+        // Convert from ProductFormValues to ProductCreateInput/ProductUpdateInput
+        const productData = {
+          ...values,
+          // Convert seo to meta for PostgreSQL backend
+          meta: values.seo,
+        };
+
+        let result;
         if (productId) {
-          // Use the updateProduct function from products.ts
-          await updateProduct(productId, values);
+          // Use updateProduct from API for existing products
+          result = await updateProduct(productId, {
+            ...productData,
+            id: productId,
+          });
           toast({
             title: "Produk berhasil diperbarui",
             description: "Perubahan telah disimpan",
           });
         } else {
-          await addProduct(values);
+          // Use createProduct from API for new products
+          result = await createProduct(productData);
           toast({
             title: "Produk berhasil ditambahkan",
             description: "Produk baru telah disimpan",
           });
         }
+
         router.push("/dashboard/admin/product");
       } catch (error) {
         console.error("Error submitting form:", error);
         toast({
           variant: "destructive",
           title: "Gagal menyimpan produk",
-          description: `Terjadi kesalahan: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          description: `Terjadi kesalahan: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
         });
       } finally {
         setSubmitting(false);
@@ -202,6 +211,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     }
   }, [formik.values.name]);
 
+  // Functions for managing variations
   const handleAddOption = () => {
     setNewVariation((prev) => ({
       ...prev,
@@ -220,7 +230,10 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     const variation = formik.values.variations[index];
     setNewVariation({
       name: variation.name,
-      options: variation.options,
+      options: variation.options.map((opt) => ({
+        ...opt,
+        imageUrl: opt.imageUrl === null ? undefined : opt.imageUrl,
+      })),
     });
     setEditingVariationIndex(index);
     setShowVariationForm(true);
@@ -350,7 +363,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     return value === 0 ? "" : value || "";
   };
 
-  // Update the variations list JSX to include edit button
+  // Render functions
   const renderVariationsList = () => (
     <div className="space-y-4">
       {formik.values.variations.map((variation, index) => (
@@ -366,7 +379,6 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
     </div>
   );
 
-  // Add this function to render variation form
   const renderVariationForm = () => {
     const isFirstVariation = formik.values.variations.length === 0;
     const showImageUpload =
@@ -568,13 +580,15 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
             >
               <SelectTrigger>
                 <SelectValue
-                  placeholder={categoriesLoading ? "Memuat..." : "Pilih kategori"}
+                  placeholder={
+                    categoriesLoading ? "Memuat..." : "Pilih kategori"
+                  }
                 />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category.value} value={category.value}>
-                    {category.label}
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -595,9 +609,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
               }
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={collectionsLoading ? "Memuat..." : "Pilih koleksi"}
-                />
+                <SelectValue placeholder="Pilih koleksi" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Tidak ada koleksi</SelectItem>
