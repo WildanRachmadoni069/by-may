@@ -1,91 +1,115 @@
-export interface ProductOption {
+import { PaginationInfo, PaginatedResult } from "./common";
+
+// Type definitions for product-related models
+
+// Base types
+export type Image = {
+  url: string;
+  alt: string;
+};
+
+export type Dimensions = {
+  width: number;
+  length: number;
+  height: number;
+};
+
+export type MetaSEO = {
+  title: string;
+  description: string;
+  ogImage?: string;
+  keywords?: string[];
+};
+
+// Product Variation Types
+export interface ProductVariationOption {
   id: string;
   name: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
 }
 
 export interface ProductVariation {
   id: string;
   name: string;
-  options: ProductOption[];
+  options: ProductVariationOption[];
 }
 
-export interface ProductDimensions {
-  width: number;
-  length: number;
-  height: number;
-}
-
-export interface VariationPrice {
+// Price Variant Types
+export interface PriceVariant {
+  id?: string;
   price: number;
   stock: number;
+  combinationKey: string;
+  descriptiveName?: string;
 }
 
-export interface ProductSEO {
-  title: string;
-  description: string;
-  keywords: string[];
-}
-
-// Type for combination components used in the UI
-export interface VariationCombination {
+// Product Types
+export interface Product {
   id: string;
   name: string;
-  components: Array<{ variationId: string; optionId: string }>;
+  slug: string;
+  description?: string;
+  featuredImage?: Image;
+  additionalImages?: Image[];
+  basePrice?: number | null;
+  baseStock?: number | null;
+  hasVariations: boolean;
+  specialLabel?: string;
+  weight?: number;
+  dimensions?: Dimensions;
+  meta?: MetaSEO;
+  categoryId?: string;
+  collectionId?: string;
+  variations: ProductVariation[];
+  priceVariants: PriceVariant[];
+  createdAt: Date;
+  updatedAt: Date;
+  // For client-side compatibility
+  mainImage?: string | null;
+  variationPrices?: Record<string, { price: number; stock: number }>;
 }
 
-// Interface for form field options - make imageUrl consistently nullable
-export interface VariationFormOption {
-  id: string;
-  name: string;
-  imageUrl?: string | null; // Ensure consistent typing with both undefined and null
-}
-
-// Interface for variation form data
-export interface VariationFormData {
-  name: string;
-  options: VariationFormOption[];
-}
-
+// Form Values Type
 export interface ProductFormValues {
-  id?: string;
   name: string;
   slug: string;
   description: string;
-  category: string;
-  specialLabel: string; // Digunakan untuk "featured", "new", dll
   mainImage: string | null;
   additionalImages: (string | null)[];
-  hasVariations: boolean;
   basePrice?: number;
   baseStock?: number;
-  variations: ProductVariation[];
-  variationPrices: Record<string, VariationPrice>;
+  hasVariations: boolean;
+  specialLabel: string;
   weight: number;
-  dimensions: ProductDimensions;
-  seo: ProductSEO;
+  dimensions: Dimensions;
+  seo: MetaSEO;
+  category: string;
   collection?: string;
+  variations: ProductVariation[];
+  variationPrices: Record<string, { price: number; stock: number }>;
   searchKeywords?: string[];
-  // featured dan new sudah dihapus karena menggunakan specialLabel
 }
 
-export interface GetProductsOptions {
+// Product filtering types
+export type SortBy = "newest" | "price-asc" | "price-desc";
+
+export interface ProductsFilter {
   category?: string;
   collection?: string;
-  sortBy?: string;
-  itemsPerPage?: number;
-  lastDoc?: any;
+  sortBy?: SortBy;
   searchQuery?: string;
+  page?: number;
+  limit?: number;
 }
 
-export interface Product extends ProductFormValues {
+// Use the shared types for consistency
+export type ProductsResponse = PaginatedResult<Product>;
+
+// Create/Update types
+export interface ProductCreateInput extends Omit<ProductFormValues, "seo"> {
+  meta: MetaSEO;
+}
+
+export interface ProductUpdateInput extends Partial<ProductCreateInput> {
   id: string;
-  createdAt: any;
-  updatedAt: any;
-}
-
-export interface FilteredProductsResponse {
-  products: Product[];
-  lastDoc: any;
-  hasMore: boolean;
 }

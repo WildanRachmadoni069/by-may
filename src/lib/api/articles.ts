@@ -7,17 +7,15 @@
 
 // Import tipe data dari types/article.ts
 import { ArticleData, ArticleFormData } from "@/types/article";
+import { PaginatedResult } from "@/types/common";
 
-// Tipe data untuk API responses
-export type PaginationResult<T> = {
-  data: T[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-};
+// Use the standardized type from common
+export type Article = ArticleData;
+export type ArticleCreateInput = ArticleFormData;
+export type ArticleUpdateInput = Partial<ArticleFormData>;
+
+// Use the standardized PaginatedResult type
+export type PaginationResult<T> = PaginatedResult<T>;
 
 /**
  * Mengambil semua artikel dengan filter opsional

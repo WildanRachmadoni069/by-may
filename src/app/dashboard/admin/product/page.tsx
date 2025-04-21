@@ -20,6 +20,7 @@ import {
   X,
   PackageOpen,
   CircleSlashed,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { formatRupiah } from "@/lib/utils";
@@ -53,133 +54,98 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useCategoryStore } from "@/store/useCategoryStore";
-import { useProductStore } from "@/store/useProductStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { useProductFilterStore } from "@/store/useProductFilterStore";
-
-interface Product {
-  id: string;
-  name: string;
-  basePrice?: number;
-  baseStock?: number;
-  hasVariations: boolean;
-  variationPrices: Record<string, { price: number; stock: number }>;
-  category: string;
-}
+import { SortBy } from "@/types/product";
+import { useRouter } from "next/navigation";
+import { getProducts, deleteProduct } from "@/lib/api/products";
+import type { Product } from "@/types/product";
 
 function AdminProductList() {
-  const {
-    products,
-    loading: productsLoading,
-    error,
-    hasMore,
-    fetchFilteredProducts,
-    fetchMoreProducts,
-    removeProduct,
-  } = useProductStore();
   const { toast } = useToast();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const filters = useProductFilterStore();
   const { categories, fetchCategories } = useCategoryStore();
   const { collections, fetchCollections } = useCollectionStore();
 
-  // Add local filter state that will only be applied when the button is clicked
-  const [localFilters, setLocalFilters] = useState({
-    category: filters.category,
-    collection: filters.collection,
-    sortBy: filters.sortBy,
-  });
+  // State for products and loading
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deletingProducts, setDeletingProducts] = useState<
+    Record<string, boolean>
+  >({});
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const itemsPerPage = 5;
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    category: "all",
+    collection: "all",
+    sortBy: "newest" as SortBy,
+  });
 
   // Fetch initial data
   useEffect(() => {
     fetchCategories();
     fetchCollections();
+    fetchProducts();
+  }, []);
 
-    // Initial products fetch
-    fetchFilteredProducts({
-      itemsPerPage: itemsPerPage,
-    });
-  }, [fetchCategories, fetchCollections, fetchFilteredProducts]);
+  // Fetch products with current filters
+  const fetchProducts = async (page = 1) => {
+    setLoading(true);
+    setError(null);
 
-  // Update total pages when products or hasMore changes
-  useEffect(() => {
-    // If we have hasMore true, add at least one more page
-    // This is an estimate since we don't know the exact count
-    if (hasMore) {
-      setTotalPages(Math.max(2, currentPage + 1));
-    } else if (products.length === 0) {
-      setTotalPages(1);
-    } else {
-      // When we're on the last page, calculate based on current products
-      const estimatedTotal = Math.ceil(products.length / itemsPerPage);
-      setTotalPages(Math.max(currentPage, estimatedTotal));
+    try {
+      const response = await getProducts({
+        category: filters.category,
+        collection: filters.collection,
+        sortBy: filters.sortBy,
+        searchQuery,
+        page,
+        limit: itemsPerPage,
+      });
+
+      setProducts(response.data);
+      setTotalPages(response.pagination.totalPages);
+      setTotalItems(response.pagination.total);
+      setCurrentPage(response.pagination.page);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+      setError("Failed to load products");
+    } finally {
+      setLoading(false);
     }
-  }, [products, hasMore, currentPage]);
+  };
 
   // Handle page change
-  const handlePageChange = async (page: number) => {
-    if (page < 1 || page > totalPages || page === currentPage) return;
-
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages || page === currentPage || loading)
+      return;
     setCurrentPage(page);
-
-    if (page === 1) {
-      // First page - fetch fresh
-      await fetchFilteredProducts({
-        category: filters.category,
-        collection: filters.collection,
-        sortBy: filters.sortBy,
-        itemsPerPage: itemsPerPage,
-        searchQuery: searchQuery.trim(),
-      });
-    } else {
-      // For subsequent pages, fetch from the beginning with more items
-      await fetchFilteredProducts({
-        category: filters.category,
-        collection: filters.collection,
-        sortBy: filters.sortBy,
-        itemsPerPage: itemsPerPage * page, // Fetch enough items to cover all pages up to current
-        searchQuery: searchQuery.trim(),
-      });
-    }
+    fetchProducts(page);
   };
 
   // Handle product deletion
   const handleDelete = async (productId: string) => {
     try {
-      // Get product details to access image URLs
-      const productToDelete = products.find((p) => p.id === productId);
+      setDeletingProducts((prev) => ({ ...prev, [productId]: true }));
 
-      if (productToDelete) {
-        // Import deleteProductImages dari file products.ts
-        const { deleteProductImages } = await import("@/lib/firebase/products");
+      await deleteProduct(productId);
 
-        // Hapus gambar dari Cloudinary
-        await deleteProductImages(productToDelete);
-      }
-
-      // Delete product from database
-      await removeProduct(productId);
       toast({
         title: "Sukses",
         description: "Produk berhasil dihapus",
       });
 
-      // Refresh product list if needed
-      if (products.length <= 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-        await fetchFilteredProducts({
-          category: filters.category,
-          collection: filters.collection,
-          sortBy: filters.sortBy,
-          itemsPerPage: itemsPerPage * (currentPage - 1),
-          searchQuery: searchQuery.trim(),
-        });
-      }
+      // Refresh product list
+      fetchProducts(
+        products.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage
+      );
     } catch (error) {
       toast({
         variant: "destructive",
@@ -187,72 +153,51 @@ function AdminProductList() {
         description: "Gagal menghapus produk",
       });
       console.error("Error deleting product:", error);
+    } finally {
+      setDeletingProducts((prev) => ({ ...prev, [productId]: false }));
     }
   };
 
-  // Handle search separately from filters
+  // Handle search
   const handleSearch = () => {
-    setCurrentPage(1); // Reset to first page on new search
-    fetchFilteredProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: itemsPerPage,
-      searchQuery: searchQuery.trim(),
-    });
+    setCurrentPage(1);
+    fetchProducts(1);
   };
 
   // Reset search but keep filters
   const handleResetSearch = () => {
     setSearchQuery("");
-    setCurrentPage(1); // Reset to first page
-    fetchFilteredProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: itemsPerPage,
-      searchQuery: "", // Ensure empty string
-    });
+    setCurrentPage(1);
+    fetchProducts(1);
   };
 
   // Apply all filters at once
   const handleApplyFilters = () => {
-    setCurrentPage(1); // Reset to first page on filter change
-
-    // Update the global filter store
-    filters.setCategory(localFilters.category);
-    filters.setCollection(localFilters.collection);
-    filters.setSortBy(localFilters.sortBy);
-
-    // Fetch with all the new filter values, maintaining search query
-    fetchFilteredProducts({
-      category: localFilters.category,
-      collection: localFilters.collection,
-      sortBy: localFilters.sortBy,
-      itemsPerPage: itemsPerPage,
-      searchQuery: searchQuery.trim(),
-    });
+    setCurrentPage(1);
+    fetchProducts(1);
   };
 
   // Reset filters to defaults but keep search
   const handleResetFilters = () => {
-    const defaultFilters = {
+    setFilters({
       category: "all",
       collection: "all",
-      sortBy: "newest" as typeof localFilters.sortBy,
-    };
-
-    setLocalFilters(defaultFilters);
+      sortBy: "newest",
+    });
   };
 
   const getProductPrice = (product: Product) => {
     if (!product.hasVariations) {
-      // Format harga untuk produk tanpa variasi
+      // Format price for products without variations
       return formatRupiah(product.basePrice || 0);
     }
 
-    // Format harga untuk produk dengan variasi
-    const prices = Object.values(product.variationPrices).map((v) => v.price);
+    // Format price for products with variations
+    if (!product.priceVariants || product.priceVariants.length === 0) {
+      return formatRupiah(0);
+    }
+
+    const prices = product.priceVariants.map((v) => v.price);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
 
@@ -266,7 +211,9 @@ function AdminProductList() {
       return product.baseStock || 0;
     }
 
-    return Object.values(product.variationPrices).reduce(
+    if (!product.priceVariants) return 0;
+
+    return product.priceVariants.reduce(
       (total, variation) => total + variation.stock,
       0
     );
@@ -346,16 +293,6 @@ function AdminProductList() {
     return items;
   };
 
-  const loadMore = () => {
-    fetchMoreProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: itemsPerPage,
-      searchQuery: searchQuery.trim(),
-    });
-  };
-
   // Add product table skeleton loader
   const renderProductSkeletons = () => {
     return Array(itemsPerPage)
@@ -387,7 +324,7 @@ function AdminProductList() {
 
   // Render empty or not found state
   const renderEmptyState = () => {
-    if (productsLoading && products.length === 0) {
+    if (loading && products.length === 0) {
       return (
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -427,7 +364,7 @@ function AdminProductList() {
     );
   };
 
-  if (productsLoading && !products.length) {
+  if (loading && !products.length) {
     return (
       <div className="space-y-4">
         <div className="w-full flex justify-between items-center mb-6">
@@ -485,7 +422,7 @@ function AdminProductList() {
               size="sm"
               variant="secondary"
               onClick={handleSearch}
-              disabled={productsLoading}
+              disabled={loading}
               className="px-3 h-9"
             >
               <Search className="h-4 w-4" />
@@ -495,7 +432,7 @@ function AdminProductList() {
                 size="sm"
                 variant="outline"
                 onClick={handleResetSearch}
-                disabled={productsLoading}
+                disabled={loading}
                 className="px-3 h-9"
               >
                 <X className="h-4 w-4" />
@@ -507,9 +444,9 @@ function AdminProductList() {
           <div className="flex flex-wrap gap-2 sm:w-auto w-full">
             {/* Category filter */}
             <Select
-              value={localFilters.category}
+              value={filters.category}
               onValueChange={(value) =>
-                setLocalFilters({ ...localFilters, category: value })
+                setFilters({ ...filters, category: value })
               }
             >
               <SelectTrigger className="h-9 w-[120px]">
@@ -518,8 +455,8 @@ function AdminProductList() {
               <SelectContent>
                 <SelectItem value="all">Semua Kategori</SelectItem>
                 {categories.map((category) => (
-                  <SelectItem key={category.value} value={category.value}>
-                    {category.label}
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -527,9 +464,9 @@ function AdminProductList() {
 
             {/* Collection filter */}
             <Select
-              value={localFilters.collection}
+              value={filters.collection}
               onValueChange={(value) =>
-                setLocalFilters({ ...localFilters, collection: value })
+                setFilters({ ...filters, collection: value })
               }
             >
               <SelectTrigger className="h-9 w-[120px]">
@@ -548,11 +485,11 @@ function AdminProductList() {
 
             {/* Sorting */}
             <Select
-              value={localFilters.sortBy}
+              value={filters.sortBy}
               onValueChange={(value) =>
-                setLocalFilters({
-                  ...localFilters,
-                  sortBy: value as typeof localFilters.sortBy,
+                setFilters({
+                  ...filters,
+                  sortBy: value as SortBy,
                 })
               }
             >
@@ -571,7 +508,7 @@ function AdminProductList() {
               <Button
                 size="sm"
                 onClick={handleApplyFilters}
-                disabled={productsLoading}
+                disabled={loading}
                 className="h-9 px-3"
                 title="Terapkan Filter"
               >
@@ -585,7 +522,7 @@ function AdminProductList() {
                   handleResetFilters();
                   handleApplyFilters();
                 }}
-                disabled={productsLoading}
+                disabled={loading}
                 title="Reset Filter"
                 className="h-9 px-3 ml-1"
               >
@@ -617,7 +554,7 @@ function AdminProductList() {
             Hasil untuk: <span className="font-medium">"{searchQuery}"</span>
             {products.length === 0
               ? " (tidak ditemukan)"
-              : `(${products.length} produk)`}
+              : `(${totalItems} produk)`}
           </div>
         )}
       </div>
@@ -635,7 +572,7 @@ function AdminProductList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {productsLoading && products.length === 0 ? (
+            {loading && products.length === 0 ? (
               renderProductSkeletons()
             ) : products.length === 0 ? (
               <TableRow>
@@ -644,80 +581,86 @@ function AdminProductList() {
                 </TableCell>
               </TableRow>
             ) : (
-              // Show products for the current page only
-              products
-                .slice(
-                  (currentPage - 1) * itemsPerPage,
-                  currentPage * itemsPerPage
-                )
-                .map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">
-                      {product.name}
-                    </TableCell>
-                    <TableCell>
+              // Show products for the current page
+              products.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>
+                    {product.categoryId ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {categories.find((c) => c.value === product.category)
-                          ?.label || "-"}
+                        {categories.find((c) => c.id === product.categoryId)
+                          ?.name || "-"}
                       </span>
-                    </TableCell>
-                    <TableCell>{getProductPrice(product)}</TableCell>
-                    <TableCell>{getProductStock(product)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link href={`/produk/${product.slug}`} target="_blank">
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell>{getProductPrice(product)}</TableCell>
+                  <TableCell>{getProductStock(product)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/produk/${product.slug}`} target="_blank">
+                        <Button variant="ghost" size="sm" title="Lihat Produk">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Link
+                        href={`/dashboard/admin/product/edit/${product.id}`}
+                      >
+                        <Button variant="ghost" size="sm" title="Edit Produk">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
                           <Button
                             variant="ghost"
                             size="sm"
-                            title="Lihat Produk"
+                            className="text-red-500 hover:text-red-600"
+                            title="Hapus Produk"
+                            disabled={deletingProducts[product.id]}
                           >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Link
-                          href={`/dashboard/admin/product/edit/${product.id}`}
-                        >
-                          <Button variant="ghost" size="sm" title="Edit Produk">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-red-500 hover:text-red-600"
-                              title="Hapus Produk"
-                            >
+                            {deletingProducts[product.id] ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
                               <Trash className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Apakah Anda yakin ingin menghapus produk ini?
-                                Tindakan ini tidak dapat dibatalkan.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Batal</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDelete(product.id)}
-                              >
-                                Hapus
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Apakah Anda yakin ingin menghapus produk ini?
+                              Tindakan ini tidak dapat dibatalkan.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(product.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              {deletingProducts[product.id] ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Menghapus...
+                                </>
+                              ) : (
+                                "Hapus"
+                              )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
 
             {/* Add inline loading indicator within proper TableRow and TableCell structure */}
-            {productsLoading && products.length > 0 && (
+            {loading && products.length > 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-4">
                   <div className="flex justify-center items-center">
@@ -732,88 +675,73 @@ function AdminProductList() {
           </TableBody>
         </Table>
 
-        {/* New pagination UI with inline loading indicator */}
+        {/* Pagination UI with inline loading indicator */}
         {products.length > 0 && (
           <div className="py-4 border-t">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => {
-                      const isDisabled = currentPage === 1 || productsLoading;
-                      if (!isDisabled) {
-                        handlePageChange(currentPage - 1);
-                      }
-                    }}
-                    className={`cursor-pointer ${
-                      productsLoading || currentPage === 1
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }`}
-                    aria-disabled={currentPage === 1 || productsLoading}
-                  >
-                    {productsLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
-                        Prev
-                      </>
-                    ) : (
-                      "Prev"
-                    )}
-                  </PaginationPrevious>
-                </PaginationItem>
+            <div className="flex items-center justify-between px-2">
+              <p className="text-sm text-muted-foreground px-2">
+                Menampilkan {products.length} dari {totalItems} produk
+              </p>
 
-                {/* If loading, show spinner in pagination */}
-                {productsLoading ? (
+              <Pagination>
+                <PaginationContent>
                   <PaginationItem>
-                    <div className="flex items-center justify-center px-4">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    </div>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={`cursor-pointer ${
+                        loading || currentPage === 1
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
+                      aria-disabled={currentPage === 1 || loading}
+                    >
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
+                          Prev
+                        </>
+                      ) : (
+                        "Prev"
+                      )}
+                    </PaginationPrevious>
                   </PaginationItem>
-                ) : (
-                  renderPaginationItems()
-                )}
 
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => {
-                      const isDisabled =
-                        currentPage === totalPages ||
-                        productsLoading ||
-                        (!hasMore && currentPage === totalPages);
-                      if (!isDisabled) {
-                        handlePageChange(currentPage + 1);
-                      }
-                    }}
-                    className={`cursor-pointer ${
-                      productsLoading ||
-                      currentPage === totalPages ||
-                      (!hasMore && currentPage === totalPages)
-                        ? "opacity-50 cursor-not-allowed"
-                        : ""
-                    }`}
-                    aria-disabled={
-                      currentPage === totalPages ||
-                      productsLoading ||
-                      (!hasMore && currentPage === totalPages)
-                    }
-                  >
-                    {productsLoading ? (
-                      <>
-                        Next
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current ml-1"></div>
-                      </>
-                    ) : (
-                      "Next"
-                    )}
-                  </PaginationNext>
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+                  {/* If loading, show spinner in pagination */}
+                  {loading ? (
+                    <PaginationItem>
+                      <div className="flex items-center justify-center px-4">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      </div>
+                    </PaginationItem>
+                  ) : (
+                    renderPaginationItems()
+                  )}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={`cursor-pointer ${
+                        loading || currentPage === totalPages
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                      }`}
+                      aria-disabled={currentPage === totalPages || loading}
+                    >
+                      {loading ? (
+                        <>
+                          Next
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current ml-1"></div>
+                        </>
+                      ) : (
+                        "Next"
+                      )}
+                    </PaginationNext>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           </div>
         )}
-
-        {/* Remove the full-page loading overlay */}
       </div>
     </div>
   );
