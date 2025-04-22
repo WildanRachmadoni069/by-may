@@ -2,69 +2,92 @@ import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { verifyToken } from "@/lib/auth/auth";
 
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
+/**
+ * Konfigurasi Cloudinary hanya di sisi server
+ */
+function initCloudinary() {
+  cloudinary.config({
+    cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true,
+  });
+  return cloudinary;
+}
 
-export async function POST(request: NextRequest) {
+/**
+ * POST /api/cloudinary/update-image
+ *
+ * Update existing Cloudinary image while preserving the public ID
+ * Requires admin authentication
+ */
+export async function POST(req: NextRequest) {
   try {
-    // Check authentication using JWT token
-    const token = request.cookies.get("authToken")?.value;
-
+    // Check authorization
+    const token = req.cookies.get("authToken")?.value;
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify token
-    const payload = verifyToken(token);
-
-    if (!payload || !payload.id) {
+    const user = verifyToken(token);
+    if (!user || user.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get("image") as File;
+    // Handle form data
+    const formData = await req.formData();
+    const image = formData.get("image") as File;
     const publicId = formData.get("publicId") as string;
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    if (!publicId) {
+    if (!image || !publicId) {
       return NextResponse.json(
-        { error: "No publicId provided" },
+        { error: "Image and publicId are required" },
         { status: 400 }
       );
     }
 
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
+    // Convert File to Buffer for Cloudinary upload
+    const arrayBuffer = await image.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Create a data URL for the upload
-    const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
+    // Initialize Cloudinary and upload the new image
+    const client = initCloudinary();
 
-    // Upload with overwrite option
-    const uploadResult = await cloudinary.uploader.upload(dataUrl, {
-      public_id: publicId,
-      overwrite: true,
-      invalidate: true,
-      folder: "bymay-banners",
-      resource_type: "auto",
+    // Create upload stream with options to override existing image
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = client.uploader.upload_stream(
+        {
+          public_id: publicId,
+          overwrite: true,
+          invalidate: true,
+          resource_type: "auto",
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+
+      // Write buffer to stream
+      uploadStream.write(buffer);
+      uploadStream.end();
     });
 
-    return NextResponse.json({
-      secure_url: uploadResult.secure_url,
-      public_id: uploadResult.public_id,
-    });
+    return NextResponse.json(uploadResult);
   } catch (error) {
-    console.error("Error updating image:", error);
+    console.error("Error in Cloudinary update:", error);
     return NextResponse.json(
       { error: "Failed to update image" },
       { status: 500 }
     );
   }
 }
+
+/**
+ * Sets the maximum request body size for file uploads
+ */
+export const config = {
+  api: {
+    bodyParser: false, // Disables bodyParser to handle form data
+  },
+};

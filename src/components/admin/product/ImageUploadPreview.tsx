@@ -23,6 +23,7 @@ function ImageUploadPreview({
   const { toast } = useToast();
   const [preview, setPreview] = useState<string | null>(value ?? null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +43,24 @@ function ImageUploadPreview({
     };
   }, []);
 
+  /**
+   * Extract publicId from URL Cloudinary for image updates
+   * @param url Cloudinary image URL
+   * @returns PublicId of the image
+   */
+  const extractPublicId = (url: string) => {
+    try {
+      if (!url) return null;
+
+      // Match pattern for Cloudinary URLs
+      // Example: https://res.cloudinary.com/cloud-name/image/upload/v1234567890/folder/filename.jpg
+      const match = url.match(/\/v\d+\/(.+?)(?:\.[^.]+)?$/);
+      return match ? match[1] : null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     fileDialogOpenRef.current = false;
@@ -51,7 +70,10 @@ function ImageUploadPreview({
       safetyTimeoutRef.current = null;
     }
 
-    if (!file) return;
+    if (!file) {
+      setIsEditing(false);
+      return;
+    }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
@@ -60,6 +82,7 @@ function ImageUploadPreview({
         title: "File terlalu besar",
         description: "Ukuran file maksimal 5MB",
       });
+      setIsEditing(false);
       return;
     }
 
@@ -70,35 +93,41 @@ function ImageUploadPreview({
         title: "Format file tidak didukung",
         description: "Silakan upload file gambar (JPG, PNG, atau WebP)",
       });
+      setIsEditing(false);
       return;
     }
 
     setIsUploading(true);
+    if (preview) {
+      setIsEditing(true);
+    }
 
     try {
-      // Delete existing image if any
+      const formData = new FormData();
+      let response;
+
       if (preview) {
-        await fetch("/api/cloudinary/delete", {
+        // Update existing image
+        const publicId = extractPublicId(preview);
+        formData.append("image", file);
+        formData.append("publicId", publicId || "");
+
+        response = await fetch("/api/cloudinary/update-image", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url: preview }),
+          body: formData,
+        });
+      } else {
+        // Upload new image
+        formData.append("file", file);
+        formData.append("folder", "products");
+        formData.append("upload_preset", "product_bymay");
+        formData.append("tags", "product,catalog");
+
+        response = await fetch("/api/cloudinary/upload", {
+          method: "POST",
+          body: formData,
         });
       }
-
-      // Prepare form data for uploading new image
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "products");
-      formData.append("upload_preset", "product_bymay");
-      formData.append("tags", "product,catalog");
-
-      // Upload image
-      const response = await fetch("/api/cloudinary/upload", {
-        method: "POST",
-        body: formData,
-      });
 
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.statusText}`);
@@ -111,18 +140,21 @@ function ImageUploadPreview({
       onChange(imageUrl);
 
       toast({
-        title: "Upload berhasil",
-        description: "Gambar produk berhasil diupload",
+        title: preview ? "Gambar diperbarui" : "Upload berhasil",
+        description: preview
+          ? "Gambar berhasil diperbarui tanpa menghapus gambar lama"
+          : "Gambar produk berhasil diupload",
       });
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error handling image:", error);
       toast({
         variant: "destructive",
-        title: "Upload gagal",
-        description: "Gagal mengupload gambar. Silakan coba lagi.",
+        title: "Operasi gagal",
+        description: "Gagal memproses gambar. Silakan coba lagi.",
       });
     } finally {
       setIsUploading(false);
+      setIsEditing(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -167,12 +199,14 @@ function ImageUploadPreview({
   };
 
   const handleEdit = () => {
-    if (isUploading || isDeleting) return;
+    if (isEditing || isUploading || isDeleting) return;
 
+    setIsEditing(true);
     fileDialogOpenRef.current = true;
 
     safetyTimeoutRef.current = setTimeout(() => {
       if (fileDialogOpenRef.current) {
+        setIsEditing(false);
         fileDialogOpenRef.current = false;
       }
     }, 1000);
@@ -196,16 +230,20 @@ function ImageUploadPreview({
         onClick={handleFileInputClick}
         className="hidden"
         id={`image-upload-${id}`}
-        disabled={isUploading || isDeleting}
+        disabled={isUploading || isEditing || isDeleting}
       />
 
       {preview ? (
         <div className="relative h-full w-full">
-          {(isUploading || isDeleting) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/75 rounded-lg text-white z-10">
+          {(isUploading || isEditing || isDeleting) && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/75 rounded-lg text-white z-10">
               <Loader2 className="h-6 w-6 animate-spin mb-1" />
               <p className="text-xs">
-                {isDeleting ? "Menghapus..." : "Mengunggah..."}
+                {isDeleting
+                  ? "Menghapus..."
+                  : isEditing
+                  ? "Mengganti..."
+                  : "Mengunggah..."}
               </p>
             </div>
           )}
@@ -225,7 +263,7 @@ function ImageUploadPreview({
               size="icon"
               className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
               onClick={handleEdit}
-              disabled={isUploading || isDeleting}
+              disabled={isUploading || isEditing || isDeleting}
             >
               <Pencil className="h-4 w-4" />
             </Button>
@@ -235,7 +273,7 @@ function ImageUploadPreview({
               size="icon"
               className="h-8 w-8 rounded-full opacity-90 hover:opacity-100"
               onClick={handleRemove}
-              disabled={isUploading || isDeleting}
+              disabled={isUploading || isEditing || isDeleting}
             >
               <Trash className="h-4 w-4" />
             </Button>
@@ -246,7 +284,8 @@ function ImageUploadPreview({
           htmlFor={`image-upload-${id}`}
           className={cn(
             "flex flex-col items-center justify-center h-full border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors",
-            (isUploading || isDeleting) && "opacity-50 cursor-not-allowed"
+            (isUploading || isEditing || isDeleting) &&
+              "opacity-50 cursor-not-allowed"
           )}
         >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
