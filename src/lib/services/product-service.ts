@@ -12,6 +12,7 @@ import { CloudinaryService } from "./cloudinary-service";
 import {
   Product,
   ProductCreateInput,
+  ProductFormValues,
   ProductUpdateInput,
   ProductsFilter,
   ProductsResponse,
@@ -472,6 +473,136 @@ export const ProductService = {
   },
 
   /**
+   * Memperbarui produk yang sudah ada berdasarkan slug
+   * @param slug - Slug produk yang akan diperbarui
+   * @param data - Data produk yang diperbarui
+   * @returns Produk yang telah diperbarui
+   */
+  async updateProductBySlug(
+    slug: string,
+    data: ProductUpdateInput
+  ): Promise<Product> {
+    try {
+      // Get existing product by slug
+      const existingProduct = await db.product.findUnique({
+        where: { slug },
+        include: {
+          variations: {
+            include: {
+              options: true,
+            },
+          },
+          priceVariants: true,
+        },
+      });
+
+      if (!existingProduct) {
+        throw new Error("Product not found");
+      }
+
+      // Prepare data for database update
+      const preparedData = this._prepareProductData(data);
+
+      // Update the base product
+      const product = await db.product.update({
+        where: { slug },
+        data: {
+          name: preparedData.name || "Untitled Product",
+          slug: preparedData.slug || `untitled-${Date.now()}`,
+          description: preparedData.description || "",
+          featuredImage: preparedData.featuredImage,
+          additionalImages: preparedData.additionalImages,
+          basePrice: preparedData.basePrice,
+          baseStock: preparedData.baseStock,
+          hasVariations: preparedData.hasVariations,
+          specialLabel: preparedData.specialLabel,
+          weight: preparedData.weight,
+          dimensions: preparedData.dimensions,
+          meta: preparedData.meta,
+          categoryId: preparedData.category || null,
+          collectionId:
+            preparedData.collection === "none"
+              ? null
+              : preparedData.collection || null,
+        },
+      });
+
+      // Delete existing variations, options and price variants to replace with new ones
+      await db.productVariation.deleteMany({
+        where: { productId: product.id },
+      });
+
+      await db.priceVariant.deleteMany({
+        where: { productId: product.id },
+      });
+
+      // Create new variations and options if the product has variations
+      if (
+        preparedData.hasVariations &&
+        (preparedData.variations?.length ?? 0) > 0
+      ) {
+        for (const variation of preparedData.variations ?? []) {
+          const createdVariation = await db.productVariation.create({
+            data: {
+              name: variation.name,
+              productId: product.id,
+              options: {
+                create: variation.options.map(
+                  (option: { name: string; imageUrl?: string | null }) => ({
+                    name: option.name,
+                    imageUrl: option.imageUrl || null,
+                  })
+                ),
+              },
+            },
+          });
+        }
+
+        // Create new price variants
+        if (Object.keys(preparedData.variationPrices || {}).length > 0) {
+          for (const [combinationKey, { price, stock }] of Object.entries(
+            preparedData.variationPrices || {}
+          )) {
+            await db.priceVariant.create({
+              data: {
+                productId: product.id,
+                price,
+                stock,
+                combinationKey,
+              },
+            });
+          }
+        }
+      }
+
+      // Retrieve the complete updated product with relationships
+      const updatedProduct = await db.product.findUnique({
+        where: { id: product.id },
+        include: {
+          variations: {
+            include: {
+              options: true,
+            },
+          },
+          priceVariants: true,
+        },
+      });
+
+      if (!updatedProduct) {
+        throw new Error("Failed to retrieve updated product");
+      }
+
+      // Clean up old images that are no longer used
+      this._cleanupUnusedImages(existingProduct, updatedProduct);
+
+      return this._formatProductResponse(updatedProduct);
+    } catch (error) {
+      console.error("Error updating product by slug:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Menghapus produk dan gambar terkait
    * @param id - ID produk yang akan dihapus
    */
@@ -509,6 +640,43 @@ export const ProductService = {
   },
 
   /**
+   * Menghapus produk dan gambar terkait berdasarkan slug
+   * @param slug - Slug produk yang akan dihapus
+   */
+  async deleteProductBySlug(slug: string): Promise<boolean> {
+    try {
+      // Get product details to delete associated images
+      const product = await db.product.findUnique({
+        where: { slug },
+        include: {
+          variations: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      });
+
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      // Delete from database
+      await db.product.delete({
+        where: { slug },
+      });
+
+      // Delete images
+      await this._deleteProductImages(product);
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting product by slug:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Helper untuk mempersiapkan data produk untuk operasi database
    */
   _prepareProductData(productData: Partial<ProductCreateInput>): {
@@ -532,13 +700,13 @@ export const ProductService = {
     // Create a working copy
     const preparedData = { ...productData } as any;
 
-    // Transform mainImage to featuredImage format if it exists
-    if (productData.mainImage) {
+    // Transform featuredImage to expected format if it's a string
+    if (typeof productData.featuredImage === "string") {
       preparedData.featuredImage = {
-        url: productData.mainImage,
+        url: productData.featuredImage,
         alt: productData.name || "Product image",
       };
-    } else {
+    } else if (productData.featuredImage === null) {
       preparedData.featuredImage = null;
     }
 
@@ -547,12 +715,15 @@ export const ProductService = {
       productData.additionalImages &&
       Array.isArray(productData.additionalImages)
     ) {
-      preparedData.additionalImages = productData.additionalImages
+      // Filter out null/undefined values and transform to object format
+      const processedImages = productData.additionalImages
         .filter((img): img is string => Boolean(img))
         .map((url) => ({
           url,
           alt: productData.name || "Product image",
         }));
+
+      preparedData.additionalImages = processedImages;
     } else {
       preparedData.additionalImages = [];
     }
@@ -563,14 +734,7 @@ export const ProductService = {
       preparedData.baseStock = 0;
     }
 
-    // Format meta/seo data
-    if (productData.meta) {
-      preparedData.meta = productData.meta;
-    } else if ((productData as any).seo) {
-      preparedData.meta = (productData as any).seo;
-    }
-
-    return preparedData as any;
+    return preparedData;
   },
 
   /**
@@ -761,6 +925,45 @@ export const ProductService = {
       mainImage: featuredImage?.url || null, // For client compatibility
       createdAt: dbProduct.createdAt,
       updatedAt: dbProduct.updatedAt,
+    };
+  },
+
+  /**
+   * Helper untuk transformasi antara Product API dan ProductFormValues
+   */
+  transformToFormValues(product: Product): ProductFormValues & { id: string } {
+    // Get the existing additional images and pad to exactly 8 slots
+    const existingImages =
+      product.additionalImages?.map((img) => img.url) || [];
+
+    // Make sure we have exactly 8 slots by padding with nulls or trimming if needed
+    const paddedAdditionalImages = [
+      ...existingImages,
+      ...Array(8).fill(null),
+    ].slice(0, 8);
+
+    return {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      description: product.description || "",
+      featuredImage: product.featuredImage?.url || null,
+      additionalImages: paddedAdditionalImages,
+      basePrice: product.basePrice !== null ? product.basePrice : undefined,
+      baseStock: product.baseStock !== null ? product.baseStock : undefined,
+      hasVariations: product.hasVariations,
+      specialLabel: product.specialLabel || "",
+      weight: product.weight || 0,
+      dimensions: product.dimensions || { width: 0, length: 0, height: 0 },
+      meta: product.meta || {
+        title: product.name,
+        description: product.description || "",
+        keywords: [],
+      },
+      category: product.categoryId || "",
+      collection: product.collectionId || "none",
+      variations: product.variations || [],
+      variationPrices: product.variationPrices || {},
     };
   },
 };

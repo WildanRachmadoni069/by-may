@@ -6,23 +6,24 @@ import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useParams } from "next/navigation";
+import { ProductService } from "@/lib/services/product-service";
 
 export default function EditProductPage() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const {
     selectedProduct: product,
     loading,
     error,
-    fetchProduct,
+    fetchProductBySlug,
   } = useProductStore();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (id) {
-      console.log("Fetching product with ID:", id);
-      fetchProduct(id as string);
+    if (slug) {
+      console.log("Fetching product with slug:", slug);
+      fetchProductBySlug(slug as string);
     }
-  }, [id, fetchProduct]);
+  }, [slug, fetchProductBySlug]);
 
   if (loading) {
     return (
@@ -53,6 +54,9 @@ export default function EditProductPage() {
     );
   }
 
+  // Use ProductService's transformToFormValues method to properly format product data
+  const formData = ProductService.transformToFormValues(product);
+
   return (
     <div className="space-y-6">
       <div>
@@ -62,7 +66,7 @@ export default function EditProductPage() {
         </p>
       </div>
 
-      <ProductForm productId={id as string} initialData={product} />
+      <ProductForm productSlug={product.slug} initialData={formData} />
     </div>
   );
 }

@@ -74,7 +74,7 @@ export interface ProductFormValues {
   name: string;
   slug: string;
   description: string;
-  mainImage: string | null;
+  featuredImage: string | null; // Changed from mainImage to featuredImage
   additionalImages: (string | null)[];
   basePrice?: number;
   baseStock?: number;
@@ -82,7 +82,7 @@ export interface ProductFormValues {
   specialLabel: string;
   weight: number;
   dimensions: Dimensions;
-  seo: MetaSEO;
+  meta: MetaSEO; // Changed from seo to meta
   category: string;
   collection?: string;
   variations: ProductVariation[];
@@ -106,8 +106,8 @@ export interface ProductsFilter {
 export type ProductsResponse = PaginatedResult<Product>;
 
 // Create/Update types
-export interface ProductCreateInput extends Omit<ProductFormValues, "seo"> {
-  meta: MetaSEO;
+export interface ProductCreateInput extends Omit<ProductFormValues, ""> {
+  // Removed the "seo" omit since we're now using meta directly
 }
 
 export interface ProductUpdateInput extends Partial<ProductCreateInput> {

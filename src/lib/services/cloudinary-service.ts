@@ -1,30 +1,11 @@
 /**
  * Layanan Cloudinary
  *
- * Layanan untuk mengelola operasi gambar Cloudinary termasuk:
- * - Penanganan konfigurasi
- * - Penguraian URL gambar
- * - Operasi penghapusan
- * - Ekstraksi gambar dari konten HTML
+ * Layanan untuk mengelola operasi gambar Cloudinary tanpa ketergantungan pada SDK Node.js.
+ * Dirancang untuk bekerja di sisi server dan browser.
  */
 
-import { v2 as cloudinary } from "cloudinary";
-
 export const CloudinaryService = {
-  /**
-   * Konfigurasi Cloudinary dengan variabel lingkungan
-   * @returns Instance Cloudinary yang telah dikonfigurasi
-   */
-  init() {
-    cloudinary.config({
-      cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-      secure: true,
-    });
-    return cloudinary;
-  },
-
   /**
    * Mengekstrak public_id dari URL Cloudinary
    * @param url URL gambar Cloudinary
@@ -60,34 +41,20 @@ export const CloudinaryService = {
     if (!url) return false;
 
     try {
-      // First try server-side deletion if in server context
-      if (typeof window === "undefined") {
-        const client = this.init();
-        const publicId = this.extractPublicIdFromUrl(url);
+      const publicId = this.extractPublicIdFromUrl(url);
+      if (!publicId) return false;
 
-        if (!publicId) {
-          return false;
-        }
+      // Use the API endpoint for image deletion
+      // This works in both server and client environments
+      const response = await fetch("/api/cloudinary/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ publicId }),
+      });
 
-        const result = await client.uploader.destroy(publicId);
-        return result.result === "ok" || result.result === "not found";
-      }
-      // Otherwise use API endpoint for client-side requests
-      else {
-        const publicId = this.extractPublicIdFromUrl(url);
-        if (!publicId) return false;
-
-        // Call the API to delete the image
-        const response = await fetch("/api/cloudinary/delete", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url }),
-        });
-
-        return response.ok;
-      }
+      return response.ok;
     } catch (error) {
       console.error("Error deleting image from Cloudinary:", error);
       return false;
@@ -103,9 +70,9 @@ export const CloudinaryService = {
     if (!html) return [];
 
     try {
-      const cloudinaryDomain = process.env.CLOUDINARY_CLOUD_NAME
-        ? `res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}`
-        : "res.cloudinary.com";
+      // Since we don't have access to process.env in browser,
+      // we'll just look for the cloudinary.com domain
+      const cloudinaryDomain = "res.cloudinary.com";
 
       // Dual approach to match images:
 

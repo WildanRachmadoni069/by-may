@@ -28,11 +28,12 @@ interface ProductState {
   fetchProducts: (options?: ProductsFilter) => Promise<void>;
   fetchProductBySlug: (slug: string) => Promise<Product | null>;
   fetchProductById: (id: string) => Promise<Product | null>;
+  fetchProduct: (idOrSlug: string) => Promise<Product | null>;
   setFilters: (filters: Partial<ProductsFilter>) => void;
   resetFilters: () => void;
   addProduct: (product: ProductCreateInput) => Promise<Product>;
-  updateProduct: (id: string, data: ProductUpdateInput) => Promise<Product>;
-  removeProduct: (id: string) => Promise<boolean>;
+  updateProduct: (slug: string, data: ProductUpdateInput) => Promise<Product>;
+  removeProduct: (slug: string) => Promise<boolean>;
   setSelectedProduct: (product: Product | null) => void;
 }
 
@@ -112,6 +113,18 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
+  fetchProduct: async (idOrSlug: string) => {
+    // Check if it's a UUID or a slug
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (uuidPattern.test(idOrSlug)) {
+      return get().fetchProductById(idOrSlug);
+    } else {
+      return get().fetchProductBySlug(idOrSlug);
+    }
+  },
+
   setFilters: (newFilters) => {
     set((state) => ({
       filters: { ...state.filters, ...newFilters },
@@ -148,15 +161,19 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
-  updateProduct: async (id: string, data: ProductUpdateInput) => {
+  /**
+   * Memperbarui produk yang sudah ada
+   */
+  updateProduct: async (slug: string, data: ProductUpdateInput) => {
     set({ loading: true, error: null });
     try {
-      // Pass both id and data to updateProductApi
-      const updatedProduct = await updateProductApi(id, data);
+      const updatedProduct = await updateProductApi(slug, data);
       set((state) => ({
-        products: state.products.map((p) => (p.id === id ? updatedProduct : p)),
+        products: state.products.map((p) =>
+          p.slug === slug ? updatedProduct : p
+        ),
         selectedProduct:
-          state.selectedProduct?.id === id
+          state.selectedProduct?.slug === slug
             ? updatedProduct
             : state.selectedProduct,
         loading: false,
@@ -171,14 +188,17 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
-  removeProduct: async (id: string) => {
+  /**
+   * Menghapus produk
+   */
+  removeProduct: async (slug: string) => {
     try {
-      const success = await deleteProduct(id);
+      const success = await deleteProduct(slug);
       if (success) {
         set((state) => ({
-          products: state.products.filter((p) => p.id !== id),
+          products: state.products.filter((p) => p.slug !== slug),
           selectedProduct:
-            state.selectedProduct?.id === id ? null : state.selectedProduct,
+            state.selectedProduct?.slug === slug ? null : state.selectedProduct,
         }));
       }
       return success;

@@ -605,7 +605,7 @@ function AdminProductList() {
                         </Button>
                       </Link>
                       <Link
-                        href={`/dashboard/admin/product/edit/${product.id}`}
+                        href={`/dashboard/admin/product/edit/${product.slug}`}
                       >
                         <Button variant="ghost" size="sm" title="Edit Produk">
                           <Pencil className="h-4 w-4" />

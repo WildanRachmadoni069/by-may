@@ -15,7 +15,7 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const slug = params.slug;
+    const { slug } = await Promise.resolve(params);
 
     // Handle ID-based lookup (if the slug matches a UUID pattern)
     const uuidPattern =
@@ -72,29 +72,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const slug = params.slug;
+    const { slug } = await Promise.resolve(params);
     const data = await req.json();
 
-    // Handle ID-based update (if the slug matches a UUID pattern)
-    const uuidPattern =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    let product;
-
-    if (uuidPattern.test(slug)) {
-      // If it looks like an ID, update by ID
-      product = await ProductService.updateProduct(slug, data);
-    } else {
-      // First get the product ID from the slug
-      const existingProduct = await ProductService.getProductBySlug(slug);
-      if (!existingProduct) {
-        return NextResponse.json(
-          { error: "Produk tidak ditemukan" },
-          { status: 404 }
-        );
-      }
-
-      product = await ProductService.updateProduct(existingProduct.id, data);
-    }
+    // Update directly by slug
+    const product = await ProductService.updateProductBySlug(slug, data);
 
     return NextResponse.json(product);
   } catch (error) {
@@ -135,28 +117,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const slug = params.slug;
+    const { slug } = await Promise.resolve(params);
 
-    // Handle ID-based deletion (if the slug matches a UUID pattern)
-    const uuidPattern =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    let success;
-
-    if (uuidPattern.test(slug)) {
-      // If it looks like an ID, delete by ID
-      success = await ProductService.deleteProduct(slug);
-    } else {
-      // First get the product ID from the slug
-      const product = await ProductService.getProductBySlug(slug);
-      if (!product) {
-        return NextResponse.json(
-          { error: "Produk tidak ditemukan" },
-          { status: 404 }
-        );
-      }
-
-      success = await ProductService.deleteProduct(product.id);
-    }
+    // Delete directly by slug
+    const success = await ProductService.deleteProductBySlug(slug);
 
     return NextResponse.json(success);
   } catch (error) {

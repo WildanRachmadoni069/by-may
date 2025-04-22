@@ -35,7 +35,7 @@ import ProductDescriptionEditor from "@/components/editor/ProductDescriptionEdit
 import { createProduct, updateProduct } from "@/lib/api/products";
 
 interface ProductFormProps {
-  productId?: string;
+  productSlug?: string;
   initialData?: ProductFormValues & { id: string };
 }
 
@@ -45,7 +45,7 @@ const ProductSchema = Yup.object().shape({
   description: Yup.string().required("Deskripsi produk wajib diisi"),
   category: Yup.string().required("Kategori wajib dipilih"),
   specialLabel: Yup.string(),
-  mainImage: Yup.string().nullable(),
+  featuredImage: Yup.string().nullable(), // Changed from mainImage to featuredImage
   additionalImages: Yup.array().of(Yup.string().nullable()),
   hasVariations: Yup.boolean(),
   basePrice: Yup.number().when("hasVariations", (hasVariations, schema) =>
@@ -85,7 +85,8 @@ const ProductSchema = Yup.object().shape({
       .required("Tinggi wajib diisi")
       .positive("Tinggi harus positif"),
   }),
-  seo: Yup.object().shape({
+  meta: Yup.object().shape({
+    // Changed from seo to meta
     title: Yup.string().required("Meta title wajib diisi"),
     description: Yup.string().required("Meta description wajib diisi"),
     keywords: Yup.array().of(Yup.string()),
@@ -99,7 +100,7 @@ const initialValues: ProductFormValues = {
   description: "",
   category: "",
   specialLabel: "",
-  mainImage: null,
+  featuredImage: null, // Changed from mainImage to featuredImage
   additionalImages: Array(8).fill(null),
   hasVariations: false,
   basePrice: undefined,
@@ -108,7 +109,8 @@ const initialValues: ProductFormValues = {
   variationPrices: {},
   weight: 0,
   dimensions: { width: 0, length: 0, height: 0 },
-  seo: {
+  meta: {
+    // Changed from seo to meta
     title: "",
     description: "",
     keywords: [],
@@ -116,7 +118,7 @@ const initialValues: ProductFormValues = {
   collection: "none",
 };
 
-export function ProductForm({ productId, initialData }: ProductFormProps) {
+export function ProductForm({ productSlug, initialData }: ProductFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const {
@@ -156,24 +158,31 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
       try {
         setSubmitting(true);
 
-        // Convert from ProductFormValues to ProductCreateInput/ProductUpdateInput
+        // Prepare data for API submission
         const productData = {
           ...values,
-          // Convert seo to meta for PostgreSQL backend
-          meta: values.seo,
+          // No need for any name conversion since we standardized field names
         };
 
         let result;
-        if (productId) {
-          // Use updateProduct from API for existing products
-          result = await updateProduct(productId, {
+        if (productSlug) {
+          // Make sure we have a valid ID before updating
+          if (!initialData?.id) {
+            throw new Error("Product ID is required for updates");
+          }
+
+          // Use updateProduct from API with slug
+          result = await updateProduct(productSlug, {
             ...productData,
-            id: productId,
+            id: initialData.id, // Keep ID for backend reference but send as part of data
           });
           toast({
             title: "Produk berhasil diperbarui",
             description: "Perubahan telah disimpan",
           });
+
+          // Redirect to product listing page after successful update
+          router.push("/dashboard/admin/product");
         } else {
           // Use createProduct from API for new products
           result = await createProduct(productData);
@@ -181,9 +190,10 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
             title: "Produk berhasil ditambahkan",
             description: "Produk baru telah disimpan",
           });
-        }
 
-        router.push("/dashboard/admin/product");
+          // Redirect to product listing page after successful creation
+          router.push("/dashboard/admin/product");
+        }
       } catch (error) {
         console.error("Error submitting form:", error);
         toast({
@@ -653,10 +663,10 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
           <div>
             <Label>Foto Utama</Label>
             <ImageUploadPreview
-              value={formik.values.mainImage}
-              onChange={(url) => formik.setFieldValue("mainImage", url)}
+              value={formik.values.featuredImage} // Changed from mainImage to featuredImage
+              onChange={(url) => formik.setFieldValue("featuredImage", url)} // Changed from mainImage to featuredImage
               className="max-w-[200px]"
-              id="main-image"
+              id="featured-image" // Changed from main-image to featured-image
             />
           </div>
           <div>
@@ -873,38 +883,40 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
           <div className="space-y-4">
             <div className="space-y-2">
               <LabelWithTooltip
-                htmlFor="seo.title"
+                htmlFor="meta.title" // Changed from seo.title to meta.title
                 label="Meta Title"
                 tooltip="Judul yang muncul di hasil pencarian Google. Idealnya 50-60 karakter."
               />
-              <Input id="seo.title" {...formik.getFieldProps("seo.title")} />
+              <Input id="meta.title" {...formik.getFieldProps("meta.title")} />{" "}
+              {/* Changed from seo.title to meta.title */}
               <CharacterCountSEO
-                current={formik.values.seo.title.length}
+                current={formik.values.meta.title.length} // Changed from seo.title to meta.title
                 type="title"
               />
-              {formik.touched.seo?.title && formik.errors.seo?.title && (
-                <div className="text-red-500">{formik.errors.seo.title}</div>
-              )}
+              {formik.touched.meta?.title &&
+                formik.errors.meta?.title && ( // Changed from seo to meta
+                  <div className="text-red-500">{formik.errors.meta.title}</div>
+                )}
             </div>
 
             <div className="space-y-2">
               <LabelWithTooltip
-                htmlFor="seo.description"
+                htmlFor="meta.description" // Changed from seo.description to meta.description
                 label="Meta Description"
                 tooltip="Deskripsi singkat yang muncul di hasil pencarian. Idealnya 120-160 karakter."
               />
               <Textarea
-                id="seo.description"
-                {...formik.getFieldProps("seo.description")}
+                id="meta.description" // Changed from seo.description to meta.description
+                {...formik.getFieldProps("meta.description")}
               />
               <CharacterCountSEO
-                current={formik.values.seo.description.length}
+                current={formik.values.meta.description.length} // Changed from seo.description to meta.description
                 type="description"
               />
-              {formik.touched.seo?.description &&
-                formik.errors.seo?.description && (
+              {formik.touched.meta?.description && // Changed from seo to meta
+                formik.errors.meta?.description && (
                   <div className="text-red-500">
-                    {formik.errors.seo.description}
+                    {formik.errors.meta.description}
                   </div>
                 )}
             </div>
@@ -914,8 +926,8 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
                 Pratinjau Hasil Pencarian Google
               </h4>
               <GoogleSearchPreview
-                title={formik.values.seo.title || formik.values.name}
-                description={formik.values.seo.description}
+                title={formik.values.meta.title || formik.values.name} // Changed from seo.title to meta.title
+                description={formik.values.meta.description} // Changed from seo.description to meta.description
                 slug={`products/${formik.values.name
                   .toLowerCase()
                   .replace(/[^a-z0-9]+/g, "-")}`}
@@ -938,7 +950,7 @@ export function ProductForm({ productId, initialData }: ProductFormProps) {
           <Button type="submit" disabled={submitting || formik.isSubmitting}>
             {submitting || formik.isSubmitting
               ? "Menyimpan..."
-              : productId
+              : productSlug
               ? "Perbarui Produk"
               : "Simpan Produk"}
           </Button>

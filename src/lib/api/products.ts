@@ -112,11 +112,11 @@ export async function createProduct(
  * Memperbarui produk yang sudah ada
  */
 export async function updateProduct(
-  id: string,
+  slug: string,
   data: ProductUpdateInput
 ): Promise<Product> {
-  // Use the consolidated API endpoint - ID is treated as the slug
-  const res = await fetch(`/api/products/${encodeURIComponent(id)}`, {
+  // Always use slug for product identification
+  const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -135,9 +135,9 @@ export async function updateProduct(
 /**
  * Menghapus produk
  */
-export async function deleteProduct(id: string): Promise<boolean> {
-  // Use the consolidated API endpoint - ID is treated as the slug
-  const res = await fetch(`/api/products/${encodeURIComponent(id)}`, {
+export async function deleteProduct(slug: string): Promise<boolean> {
+  // Always use slug for product identification
+  const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
     method: "DELETE",
   });
 
