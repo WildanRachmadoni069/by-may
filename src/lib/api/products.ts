@@ -135,18 +135,26 @@ export async function updateProduct(
 /**
  * Menghapus produk
  */
-export async function deleteProduct(slug: string): Promise<boolean> {
-  // Always use slug for product identification
-  const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
-    method: "DELETE",
-  });
+export async function deleteProduct(
+  slug: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    // Always use slug for product identification
+    const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
+      method: "DELETE",
+    });
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Failed to delete product: ${error}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to delete product");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Delete product error:", error);
+    throw error;
   }
-
-  return await res.json();
 }
 
 /**

@@ -131,30 +131,39 @@ function AdminProductList() {
   };
 
   // Handle product deletion
-  const handleDelete = async (productId: string) => {
+  const handleDelete = async (slug: string) => {
     try {
-      setDeletingProducts((prev) => ({ ...prev, [productId]: true }));
+      setDeletingProducts((prev) => ({ ...prev, [slug]: true }));
 
-      await deleteProduct(productId);
+      const result = await deleteProduct(slug);
 
-      toast({
-        title: "Sukses",
-        description: "Produk berhasil dihapus",
-      });
+      if (result.success) {
+        toast({
+          title: "Berhasil",
+          description: "Produk dan gambar terkait berhasil dihapus",
+        });
 
-      // Refresh product list
-      fetchProducts(
-        products.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage
-      );
+        // Refresh product list
+        fetchProducts(
+          products.length === 1 && currentPage > 1
+            ? currentPage - 1
+            : currentPage
+        );
+      } else {
+        throw new Error(result.message || "Failed to delete product");
+      }
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Gagal menghapus produk",
+        description:
+          error instanceof Error
+            ? `Gagal menghapus produk: ${error.message}`
+            : "Gagal menghapus produk",
       });
       console.error("Error deleting product:", error);
     } finally {
-      setDeletingProducts((prev) => ({ ...prev, [productId]: false }));
+      setDeletingProducts((prev) => ({ ...prev, [slug]: false }));
     }
   };
 
@@ -618,9 +627,9 @@ function AdminProductList() {
                             size="sm"
                             className="text-red-500 hover:text-red-600"
                             title="Hapus Produk"
-                            disabled={deletingProducts[product.id]}
+                            disabled={deletingProducts[product.slug]}
                           >
-                            {deletingProducts[product.id] ? (
+                            {deletingProducts[product.slug] ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Trash className="h-4 w-4" />
@@ -631,17 +640,18 @@ function AdminProductList() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Hapus Produk</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Apakah Anda yakin ingin menghapus produk ini?
-                              Tindakan ini tidak dapat dibatalkan.
+                              Apakah Anda yakin ingin menghapus produk ini
+                              beserta semua gambarnya? Tindakan ini tidak dapat
+                              dibatalkan.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Batal</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDelete(product.id)}
+                              onClick={() => handleDelete(product.slug)}
                               className="bg-red-600 hover:bg-red-700"
                             >
-                              {deletingProducts[product.id] ? (
+                              {deletingProducts[product.slug] ? (
                                 <>
                                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                   Menghapus...

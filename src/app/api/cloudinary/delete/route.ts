@@ -11,53 +11,119 @@ cloudinary.config({
   secure: true,
 });
 
+/**
+ * Extract public_id from Cloudinary URL
+ */
+function extractPublicIdFromUrl(url: string): string | null {
+  try {
+    if (!url || typeof url !== "string") return null;
+
+    // Extract the part after /upload/
+    const uploadMatch = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+    if (!uploadMatch || !uploadMatch[1]) {
+      return null;
+    }
+
+    // Remove any transformation parameters and file extension
+    let publicId = uploadMatch[1];
+
+    // Remove file extension if present
+    if (publicId.includes(".")) {
+      publicId = publicId.substring(0, publicId.lastIndexOf("."));
+    }
+
+    return publicId;
+  } catch (error) {
+    console.error("Error extracting public ID:", error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const token = request.cookies.get("authToken")?.value;
+    console.log("Cloudinary delete API called");
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Verify token
-    const payload = verifyToken(token);
-
-    if (!payload || !payload.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Get the URL from the request body
-    const { url } = await request.json();
-
-    if (!url) {
-      return NextResponse.json(
-        { error: "Image URL is required" },
-        { status: 400 }
-      );
-    }
-
-    // Extract public_id from Cloudinary URL
-    const publicId = CloudinaryService.extractPublicIdFromUrl(url);
-
-    if (!publicId) {
-      return NextResponse.json(
-        { error: "Invalid Cloudinary URL" },
-        { status: 400 }
-      );
-    }
-
-    // Delete from Cloudinary
-    const result = await cloudinary.uploader.destroy(publicId);
-
-    return NextResponse.json({
-      success: true,
-      result,
+    // Get the data from request body
+    const body = await request.json().catch((e) => {
+      console.error("Failed to parse request body:", e);
+      return {};
     });
+
+    console.log("Request body:", body);
+
+    // Extract necessary data - support both direct publicId and url
+    const { url, publicId: directPublicId } = body;
+
+    // Track if we had public ID directly or extracted it
+    let imageId: string | null = null;
+    let fromUrl = false;
+
+    // Handle missing required parameters
+    if (!directPublicId && !url) {
+      return NextResponse.json(
+        { error: "Either image URL or publicId is required" },
+        { status: 400 }
+      );
+    }
+
+    // If publicId is provided directly, use it
+    if (directPublicId) {
+      imageId = directPublicId;
+    }
+    // If only URL is provided, extract publicId from URL
+    else if (url) {
+      fromUrl = true;
+      imageId = extractPublicIdFromUrl(url);
+
+      if (!imageId) {
+        return NextResponse.json(
+          { error: "Unable to extract publicId from URL", url },
+          { status: 400 }
+        );
+      }
+    }
+
+    console.log(
+      `Attempting to delete image with publicId: ${imageId}, fromUrl: ${fromUrl}`
+    );
+
+    try {
+      // Delete from Cloudinary
+      const result = await cloudinary.uploader.destroy(imageId!);
+      console.log(`Cloudinary delete result:`, result);
+
+      return NextResponse.json({
+        success: true,
+        result,
+      });
+    } catch (cloudinaryError: any) {
+      console.error("Cloudinary API error:", cloudinaryError);
+
+      // If resource not found but we're deleting, consider it a success
+      if (cloudinaryError.error?.message?.includes("not found")) {
+        return NextResponse.json({
+          success: true,
+          result: { result: "not found" },
+          message:
+            "Resource not found in Cloudinary (already deleted or never existed)",
+        });
+      }
+
+      return NextResponse.json(
+        {
+          error: "Cloudinary API error",
+          details: cloudinaryError?.error?.message || String(cloudinaryError),
+        },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error("Error deleting from Cloudinary:", error);
+    console.error("General error in Cloudinary deletion endpoint:", error);
     return NextResponse.json(
-      { error: "Failed to delete image" },
+      {
+        error: "Failed to process delete request",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

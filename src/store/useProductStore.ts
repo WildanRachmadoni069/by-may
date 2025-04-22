@@ -193,15 +193,18 @@ export const useProductStore = create<ProductState>((set, get) => ({
    */
   removeProduct: async (slug: string) => {
     try {
-      const success = await deleteProduct(slug);
-      if (success) {
+      const result = await deleteProduct(slug);
+
+      if (result.success) {
         set((state) => ({
           products: state.products.filter((p) => p.slug !== slug),
           selectedProduct:
             state.selectedProduct?.slug === slug ? null : state.selectedProduct,
         }));
+        return true;
       }
-      return success;
+
+      throw new Error(result.message || "Failed to delete product");
     } catch (error) {
       console.error("Error removing product:", error);
       const errorMessage =
