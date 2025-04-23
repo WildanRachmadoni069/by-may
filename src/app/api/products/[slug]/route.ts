@@ -8,7 +8,7 @@ import { verifyToken } from "@/lib/auth/auth";
  * Mengambil produk berdasarkan slug
  * @param req Request object
  * @param params Slug parameter
- * @returns Product data or error
+ * @returns Product data atau error
  */
 export async function GET(
   req: NextRequest,
@@ -39,7 +39,7 @@ export async function GET(
 
     return NextResponse.json(product);
   } catch (error) {
-    console.error(`Error in GET /api/products/${params.slug}:`, error);
+    console.error(`Error di GET /api/products/${params.slug}:`, error);
     return NextResponse.json(
       { error: "Gagal mengambil produk" },
       { status: 500 }
@@ -53,7 +53,7 @@ export async function GET(
  * Memperbarui produk berdasarkan slug
  * @param req Request object
  * @param params Slug parameter
- * @returns Updated product data or error
+ * @returns Data produk yang diperbarui atau error
  */
 export async function PATCH(
   req: NextRequest,
@@ -63,13 +63,19 @@ export async function PATCH(
     // Check authentication using your custom auth system
     const token = req.cookies.get("authToken")?.value;
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Tidak terotorisasi" },
+        { status: 401 }
+      );
     }
 
     // Verify the token and check role
     const user = verifyToken(token);
     if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Tidak terotorisasi" },
+        { status: 401 }
+      );
     }
 
     const { slug } = await Promise.resolve(params);
@@ -80,11 +86,11 @@ export async function PATCH(
 
     return NextResponse.json(product);
   } catch (error) {
-    console.error(`Error in PATCH /api/products/${params.slug}:`, error);
+    console.error(`Error di PATCH /api/products/${params.slug}:`, error);
     return NextResponse.json(
       {
         error: `Gagal memperbarui produk: ${
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : "Kesalahan tidak diketahui"
         }`,
       },
       { status: 500 }
@@ -98,7 +104,7 @@ export async function PATCH(
  * Menghapus produk berdasarkan slug
  * @param req Request object
  * @param params Slug parameter
- * @returns Success status or error
+ * @returns Status keberhasilan atau error
  */
 export async function DELETE(
   req: NextRequest,
@@ -109,7 +115,7 @@ export async function DELETE(
     const token = req.cookies.get("authToken")?.value;
     if (!token) {
       return NextResponse.json(
-        { error: "Unauthorized - Token missing" },
+        { error: "Tidak terotorisasi - Token tidak ada" },
         { status: 401 }
       );
     }
@@ -119,9 +125,9 @@ export async function DELETE(
 
     // Handle null user case
     if (!user) {
-      console.error("Token verification failed - received null user");
+      console.error("Verifikasi token gagal - user null");
       return NextResponse.json(
-        { error: "Unauthorized - Invalid token" },
+        { error: "Tidak terotorisasi - Token tidak valid" },
         { status: 401 }
       );
     }
@@ -129,24 +135,21 @@ export async function DELETE(
     // Check role
     if (user.role !== "admin") {
       console.error(
-        `User role check failed - expected admin, got ${user.role}`
+        `Verifikasi role user gagal - diharapkan admin, didapat ${user.role}`
       );
       return NextResponse.json(
-        { error: "Unauthorized - Insufficient privileges" },
+        { error: "Tidak terotorisasi - Hak akses tidak cukup" },
         { status: 403 }
       );
     }
 
-    const { slug } = params;
+    const { slug } = await Promise.resolve(params);
     if (!slug) {
       return NextResponse.json(
-        { error: "Product slug is required" },
+        { error: "Slug produk diperlukan" },
         { status: 400 }
       );
     }
-
-    console.log(`Processing DELETE request for product: ${slug}`);
-
     try {
       // Call the service to delete the product
       const success = await ProductService.deleteProductBySlug(slug);
@@ -154,31 +157,33 @@ export async function DELETE(
       if (success) {
         return NextResponse.json({
           success: true,
-          message: "Product and associated images deleted successfully",
+          message: "Produk dan gambar terkait berhasil dihapus",
         });
       } else {
         return NextResponse.json(
-          { error: "Failed to complete deletion process" },
+          { error: "Gagal menyelesaikan proses penghapusan" },
           { status: 500 }
         );
       }
     } catch (deleteError) {
-      console.error(`Error during delete operation for ${slug}:`, deleteError);
+      console.error(`Error saat operasi hapus untuk ${slug}:`, deleteError);
       return NextResponse.json(
         {
-          error: `Failed to delete product: ${
-            deleteError instanceof Error ? deleteError.message : "Unknown error"
+          error: `Gagal menghapus produk: ${
+            deleteError instanceof Error
+              ? deleteError.message
+              : "Kesalahan tidak diketahui"
           }`,
         },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error(`Error in DELETE /api/products/${params.slug}:`, error);
+    console.error(`Error di DELETE /api/products/${params.slug}:`, error);
     return NextResponse.json(
       {
-        error: `Failed to process request: ${
-          error instanceof Error ? error.message : "Unknown error"
+        error: `Gagal memproses permintaan: ${
+          error instanceof Error ? error.message : "Kesalahan tidak diketahui"
         }`,
       },
       { status: 500 }

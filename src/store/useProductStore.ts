@@ -24,7 +24,6 @@ interface ProductState {
   pagination: PaginationInfo;
   filters: ProductsFilter;
 
-  // Actions
   fetchProducts: (options?: ProductsFilter) => Promise<void>;
   fetchProductBySlug: (slug: string) => Promise<Product | null>;
   fetchProductById: (id: string) => Promise<Product | null>;
@@ -57,8 +56,6 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
   fetchProducts: async (options = {}) => {
     const { filters } = get();
-
-    // Merge current filters with provided options
     const mergedOptions = { ...filters, ...options };
 
     set({ loading: true, error: null });
@@ -71,8 +68,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to fetch products";
-      console.error("Error fetching products:", error);
+        error instanceof Error ? error.message : "Gagal mengambil produk";
+      console.error("Error saat mengambil produk:", error);
       set({ error: errorMessage, loading: false });
     }
   },
@@ -88,8 +85,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
       return product;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to fetch product";
-      console.error("Error fetching product by slug:", error);
+        error instanceof Error ? error.message : "Gagal mengambil produk";
+      console.error("Error saat mengambil produk berdasarkan slug:", error);
       set({ error: errorMessage, loading: false });
       return null;
     }
@@ -106,15 +103,14 @@ export const useProductStore = create<ProductState>((set, get) => ({
       return product;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to fetch product";
-      console.error("Error fetching product by ID:", error);
+        error instanceof Error ? error.message : "Gagal mengambil produk";
+      console.error("Error saat mengambil produk berdasarkan ID:", error);
       set({ error: errorMessage, loading: false });
       return null;
     }
   },
 
   fetchProduct: async (idOrSlug: string) => {
-    // Check if it's a UUID or a slug
     const uuidPattern =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -154,16 +150,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
       return newProduct;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to add product";
-      console.error("Error adding product:", error);
+        error instanceof Error ? error.message : "Gagal menambahkan produk";
       set({ error: errorMessage, loading: false });
       throw error;
     }
   },
 
-  /**
-   * Memperbarui produk yang sudah ada
-   */
   updateProduct: async (slug: string, data: ProductUpdateInput) => {
     set({ loading: true, error: null });
     try {
@@ -181,16 +173,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
       return updatedProduct;
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to update product";
-      console.error("Error updating product:", error);
+        error instanceof Error ? error.message : "Gagal memperbarui produk";
       set({ error: errorMessage, loading: false });
       throw error;
     }
   },
 
-  /**
-   * Menghapus produk
-   */
   removeProduct: async (slug: string) => {
     try {
       const result = await deleteProduct(slug);
@@ -204,11 +192,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
         return true;
       }
 
-      throw new Error(result.message || "Failed to delete product");
+      throw new Error(result.message || "Gagal menghapus produk");
     } catch (error) {
-      console.error("Error removing product:", error);
+      console.error("Error saat menghapus produk:", error);
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to remove product";
+        error instanceof Error ? error.message : "Gagal menghapus produk";
       set({ error: errorMessage });
       throw error;
     }

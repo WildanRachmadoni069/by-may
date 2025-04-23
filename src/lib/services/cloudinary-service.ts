@@ -7,54 +7,56 @@
 
 export const CloudinaryService = {
   /**
-   * Extracts the public ID from a Cloudinary URL
-   * Enhanced with better regex patterns
+   * Ekstraksi public ID dari URL Cloudinary
+   * Fungsi ini menggunakan regex untuk mendapatkan ID publik dari URL Cloudinary
+   *
+   * @param url URL gambar Cloudinary
+   * @returns Public ID atau null jika tidak dapat diekstrak
    */
   extractPublicIdFromUrl(url: string): string | null {
     try {
       if (!url || typeof url !== "string") return null;
 
-      // Handle URLs with or without transformation parameters
-      // Match pattern: https://res.cloudinary.com/[cloud-name]/image/upload/[optional-transform]/[folder]/[filename]
+      // Handle URLs dengan atau tanpa parameter transformasi
+      // Pattern: https://res.cloudinary.com/[cloud-name]/image/upload/[optional-transform]/[folder]/[filename]
 
-      // First, check if it's a Cloudinary URL
+      // Periksa apakah URL dari Cloudinary
       if (!url.includes("cloudinary.com")) {
         return null;
       }
 
-      // Extract the part after /upload/
+      // Ekstrak bagian setelah /upload/
       const uploadMatch = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
       if (!uploadMatch || !uploadMatch[1]) {
         return null;
       }
 
-      // Remove any transformation parameters and file extension
+      // Hapus parameter transformasi dan ekstensi file
       let publicId = uploadMatch[1];
 
-      // Remove transformation parameters if any
+      // Hapus parameter transformasi jika ada
       if (publicId.includes("/")) {
         const parts = publicId.split("/");
         if (parts[0].includes(",") || parts[0].includes("_")) {
-          // This might be a transformation parameter
+          // Ini mungkin parameter transformasi
           publicId = parts.slice(1).join("/");
         }
       }
 
-      // Remove file extension if present
+      // Hapus ekstensi file jika ada
       if (publicId.includes(".")) {
         publicId = publicId.substring(0, publicId.lastIndexOf("."));
       }
 
       return publicId;
     } catch (error) {
-      console.error("Error extracting public ID:", error);
       return null;
     }
   },
 
   /**
-   * Legacy method for backward compatibility
-   * @deprecated Use extractPublicIdFromUrl instead
+   * Metode lama untuk kompatibilitas
+   * @deprecated Gunakan extractPublicIdFromUrl sebagai gantinya
    */
   extractPublicId(url: string): string | null {
     return this.extractPublicIdFromUrl(url);
@@ -67,7 +69,6 @@ export const CloudinaryService = {
    */
   async deleteImageByUrl(url: string): Promise<boolean> {
     if (!url) {
-      console.log("Empty URL provided to deleteImageByUrl");
       return false;
     }
 
@@ -75,15 +76,13 @@ export const CloudinaryService = {
       const publicId = this.extractPublicIdFromUrl(url);
 
       if (!publicId) {
-        console.error("Failed to extract public ID from URL:", url);
         return false;
       }
 
-      // Fix: Use absolute URL path with origin for server-side operations
-      // This ensures the fetch works in both browser and Node.js environments
+      // Gunakan URL path yang tepat untuk operasi server-side
       let endpoint = "/api/cloudinary/delete";
 
-      // When running on the server, we need to construct a full URL
+      // Saat berjalan di server, kita perlu membuat URL lengkap
       if (typeof window === "undefined") {
         const baseUrl =
           process.env.NEXTAUTH_URL ||
@@ -92,7 +91,7 @@ export const CloudinaryService = {
         endpoint = `${baseUrl}${endpoint}`;
       }
 
-      // Use the API endpoint for image deletion
+      // Gunakan endpoint API untuk penghapusan gambar
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -100,27 +99,24 @@ export const CloudinaryService = {
         },
         body: JSON.stringify({
           publicId,
-          url, // Send both for backup extraction on server if needed
+          url, // Kirim keduanya untuk ekstraksi cadangan di server jika diperlukan
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Error response from Cloudinary delete API:", errorData);
         return false;
       }
 
       const result = await response.json();
 
-      // Even if Cloudinary returns "not found", consider it a success
-      // since the image is no longer there
+      // Bahkan jika Cloudinary mengembalikan "not found", anggap sukses
+      // karena gambar sudah tidak ada lagi
       if (result && (result.success || result.result?.result === "not found")) {
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error("Error deleting image from Cloudinary:", error);
       return false;
     }
   },
@@ -134,13 +130,13 @@ export const CloudinaryService = {
     if (!html) return [];
 
     try {
-      // Since we don't have access to process.env in browser,
-      // we'll just look for the cloudinary.com domain
+      // Karena kita tidak punya akses ke process.env di browser,
+      // kita akan mencari domain cloudinary.com
       const cloudinaryDomain = "res.cloudinary.com";
 
-      // Dual approach to match images:
+      // Pendekatan ganda untuk mencocokkan gambar:
 
-      // 1. Match image tags with src attributes
+      // 1. Cocokkan tag gambar dengan atribut src
       const imgRegex = /<img[^>]+src="([^">]+)"/g;
       const imgMatches: string[] = [];
       let match;
@@ -152,17 +148,16 @@ export const CloudinaryService = {
         }
       }
 
-      // 2. Direct URL matching as fallback
+      // 2. Pencocokan URL langsung sebagai fallback
       const directUrlRegex = new RegExp(
         `https?:\/\/${cloudinaryDomain}\/[^'"\\s]+`,
         "g"
       );
       const directMatches = html.match(directUrlRegex) || [];
 
-      // Combine and deduplicate results
+      // Gabungkan dan hapus duplikasi hasil
       return Array.from(new Set([...imgMatches, ...directMatches]));
     } catch (error) {
-      console.error("Error extracting images from HTML:", error);
       return [];
     }
   },

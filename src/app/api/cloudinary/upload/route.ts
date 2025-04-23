@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { verifyToken } from "@/lib/auth/auth";
 
-// Configure Cloudinary
+// Konfigurasi Cloudinary
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -12,54 +12,63 @@ cloudinary.config({
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication using JWT token
+    // Verifikasi autentikasi dengan token JWT
     const token = request.cookies.get("authToken")?.value;
 
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Tidak terotorisasi" },
+        { status: 401 }
+      );
     }
 
-    // Verify token
+    // Verifikasi token
     const payload = verifyToken(token);
 
     if (!payload || !payload.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Tidak terotorisasi" },
+        { status: 401 }
+      );
     }
 
-    // Parse the multipart form data
+    // Parse data multipart form
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return NextResponse.json(
+        { error: "File tidak disediakan" },
+        { status: 400 }
+      );
     }
 
-    // Extract upload parameters with defaults
+    // Ambil parameter upload dengan nilai default
     const folder = (formData.get("folder") as string) || "general";
     const uploadPreset = (formData.get("upload_preset") as string) || undefined;
     const tags = (formData.get("tags") as string) || undefined;
     const resourceType = (formData.get("resource_type") as string) || "auto";
 
-    // Convert file to buffer
+    // Konversi file ke buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
 
-    // Create a unique filename
+    // Buat nama file unik
     const timestamp = Date.now();
     const filename = `${timestamp}_${file.name.replace(/\s+/g, "_")}`;
 
-    // Prepare upload options
+    // Persiapkan opsi upload
     const uploadOptions: Record<string, any> = {
       folder: folder,
       resource_type: resourceType,
       public_id: filename.split(".")[0],
     };
 
-    // Add optional parameters if provided
+    // Tambahkan parameter opsional jika disediakan
     if (uploadPreset) uploadOptions.upload_preset = uploadPreset;
     if (tags) uploadOptions.tags = tags.split(",");
 
-    // Upload to Cloudinary
+    // Upload ke Cloudinary
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(uploadOptions, (error, result) => {
@@ -71,9 +80,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error uploading to Cloudinary:", error);
     return NextResponse.json(
-      { error: "Failed to upload image" },
+      { error: "Gagal mengupload gambar" },
       { status: 500 }
     );
   }

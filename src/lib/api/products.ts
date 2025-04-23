@@ -2,7 +2,7 @@
  * API Produk untuk Client Components
  *
  * File ini berisi fungsi untuk interaksi dengan API produk
- * dari client components. Untuk operasi server, gunakan product-actions.ts.
+ * dari client components.
  */
 
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/types/product";
 import { PaginatedResult, PaginationInfo } from "@/types/common";
 
-// Export types for usage in other modules
+// Export tipe untuk penggunaan di modul lain
 export type { Product, ProductCreateInput, ProductUpdateInput };
 export type PaginationResult<T> = PaginatedResult<T>;
 
@@ -52,7 +52,7 @@ export async function getProducts(
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(`Failed to fetch products: ${error}`);
+    throw new Error(`Gagal mengambil produk: ${error}`);
   }
 
   return await res.json();
@@ -62,7 +62,6 @@ export async function getProducts(
  * Mengambil produk berdasarkan ID
  */
 export async function getProductById(id: string): Promise<Product | null> {
-  // Use the consolidated API - ID is treated as the slug
   return getProductBySlug(id);
 }
 
@@ -70,7 +69,6 @@ export async function getProductById(id: string): Promise<Product | null> {
  * Mengambil produk berdasarkan slug
  */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  // Use the new consolidated API endpoint
   const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
     next: { tags: [`product-${slug}`] },
   });
@@ -80,7 +78,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 
   if (!res.ok) {
-    throw new Error(`Failed to retrieve product: ${await res.text()}`);
+    throw new Error(`Gagal mengambil produk: ${await res.text()}`);
   }
 
   return await res.json();
@@ -102,7 +100,7 @@ export async function createProduct(
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(`Failed to create product: ${error}`);
+    throw new Error(`Gagal membuat produk: ${error}`);
   }
 
   return await res.json();
@@ -115,7 +113,6 @@ export async function updateProduct(
   slug: string,
   data: ProductUpdateInput
 ): Promise<Product> {
-  // Always use slug for product identification
   const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
     method: "PATCH",
     headers: {
@@ -126,7 +123,7 @@ export async function updateProduct(
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(`Failed to update product: ${error}`);
+    throw new Error(`Gagal memperbarui produk: ${error}`);
   }
 
   return await res.json();
@@ -139,7 +136,6 @@ export async function deleteProduct(
   slug: string
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    // Always use slug for product identification
     const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
       method: "DELETE",
     });
@@ -147,12 +143,11 @@ export async function deleteProduct(
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || "Failed to delete product");
+      throw new Error(data.error || "Gagal menghapus produk");
     }
 
     return data;
   } catch (error) {
-    console.error("Delete product error:", error);
     throw error;
   }
 }
@@ -180,7 +175,7 @@ export async function getRelatedProducts(options: {
   });
 
   if (!res.ok) {
-    console.error("Error fetching related products:", await res.text());
+    console.error("Gagal mengambil produk terkait:", await res.text());
     return [];
   }
 
@@ -202,7 +197,7 @@ export async function getFeaturedProducts(
   });
 
   if (!res.ok) {
-    console.error("Error fetching featured products:", await res.text());
+    console.error("Gagal mengambil produk unggulan:", await res.text());
     return [];
   }
 
@@ -222,7 +217,7 @@ export async function getNewProducts(limit: number = 8): Promise<Product[]> {
   });
 
   if (!res.ok) {
-    console.error("Error fetching new products:", await res.text());
+    console.error("Gagal mengambil produk baru:", await res.text());
     return [];
   }
 

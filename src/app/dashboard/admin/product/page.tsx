@@ -67,7 +67,6 @@ function AdminProductList() {
   const { categories, fetchCategories } = useCategoryStore();
   const { collections, fetchCollections } = useCollectionStore();
 
-  // State for products and loading
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,27 +74,23 @@ function AdminProductList() {
     Record<string, boolean>
   >({});
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 10;
 
-  // Filter state
   const [filters, setFilters] = useState({
     category: "all",
     collection: "all",
     sortBy: "newest" as SortBy,
   });
 
-  // Fetch initial data
   useEffect(() => {
     fetchCategories();
     fetchCollections();
     fetchProducts();
   }, []);
 
-  // Fetch products with current filters
   const fetchProducts = async (page = 1) => {
     setLoading(true);
     setError(null);
@@ -115,14 +110,13 @@ function AdminProductList() {
       setTotalItems(response.pagination.total);
       setCurrentPage(response.pagination.page);
     } catch (err) {
-      console.error("Error fetching products:", err);
-      setError("Failed to load products");
+      console.error("Gagal mengambil daftar produk:", err);
+      setError("Gagal memuat data produk");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle page change
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages || page === currentPage || loading)
       return;
@@ -130,7 +124,6 @@ function AdminProductList() {
     fetchProducts(page);
   };
 
-  // Handle product deletion
   const handleDelete = async (slug: string) => {
     try {
       setDeletingProducts((prev) => ({ ...prev, [slug]: true }));
@@ -143,14 +136,13 @@ function AdminProductList() {
           description: "Produk dan gambar terkait berhasil dihapus",
         });
 
-        // Refresh product list
         fetchProducts(
           products.length === 1 && currentPage > 1
             ? currentPage - 1
             : currentPage
         );
       } else {
-        throw new Error(result.message || "Failed to delete product");
+        throw new Error(result.message || "Gagal menghapus produk");
       }
     } catch (error) {
       toast({
@@ -161,32 +153,28 @@ function AdminProductList() {
             ? `Gagal menghapus produk: ${error.message}`
             : "Gagal menghapus produk",
       });
-      console.error("Error deleting product:", error);
+      console.error("Error saat menghapus produk:", error);
     } finally {
       setDeletingProducts((prev) => ({ ...prev, [slug]: false }));
     }
   };
 
-  // Handle search
   const handleSearch = () => {
     setCurrentPage(1);
     fetchProducts(1);
   };
 
-  // Reset search but keep filters
   const handleResetSearch = () => {
     setSearchQuery("");
     setCurrentPage(1);
     fetchProducts(1);
   };
 
-  // Apply all filters at once
   const handleApplyFilters = () => {
     setCurrentPage(1);
     fetchProducts(1);
   };
 
-  // Reset filters to defaults but keep search
   const handleResetFilters = () => {
     setFilters({
       category: "all",
@@ -197,11 +185,9 @@ function AdminProductList() {
 
   const getProductPrice = (product: Product) => {
     if (!product.hasVariations) {
-      // Format price for products without variations
       return formatRupiah(product.basePrice || 0);
     }
 
-    // Format price for products with variations
     if (!product.priceVariants || product.priceVariants.length === 0) {
       return formatRupiah(0);
     }
@@ -228,11 +214,9 @@ function AdminProductList() {
     );
   };
 
-  // Generate pagination items
   const renderPaginationItems = () => {
     const items = [];
 
-    // Always show first page
     items.push(
       <PaginationItem key="first">
         <PaginationLink
@@ -245,7 +229,6 @@ function AdminProductList() {
       </PaginationItem>
     );
 
-    // Add ellipsis if needed
     if (currentPage > 3) {
       items.push(
         <PaginationItem key="ellipsis-1">
@@ -254,13 +237,12 @@ function AdminProductList() {
       );
     }
 
-    // Show current page and neighbors
     for (
       let i = Math.max(2, currentPage - 1);
       i <= Math.min(totalPages - 1, currentPage + 1);
       i++
     ) {
-      if (i <= 1 || i >= totalPages) continue; // Skip first and last page as they're always shown
+      if (i <= 1 || i >= totalPages) continue;
 
       items.push(
         <PaginationItem key={i}>
@@ -275,7 +257,6 @@ function AdminProductList() {
       );
     }
 
-    // Add ellipsis if needed
     if (currentPage < totalPages - 2) {
       items.push(
         <PaginationItem key="ellipsis-2">
@@ -284,7 +265,6 @@ function AdminProductList() {
       );
     }
 
-    // Always show last page if more than 1 page
     if (totalPages > 1) {
       items.push(
         <PaginationItem key="last">
@@ -302,7 +282,6 @@ function AdminProductList() {
     return items;
   };
 
-  // Add product table skeleton loader
   const renderProductSkeletons = () => {
     return Array(itemsPerPage)
       .fill(null)
@@ -331,7 +310,6 @@ function AdminProductList() {
       ));
   };
 
-  // Render empty or not found state
   const renderEmptyState = () => {
     if (loading && products.length === 0) {
       return (
@@ -342,7 +320,6 @@ function AdminProductList() {
     }
 
     if (searchQuery) {
-      // Show "not found" message for empty search results
       return (
         <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
           <CircleSlashed className="h-8 w-8" />
@@ -359,7 +336,6 @@ function AdminProductList() {
       );
     }
 
-    // Show "no products" message when there are no products at all
     return (
       <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
         <PackageOpen className="h-8 w-8" />
@@ -407,11 +383,8 @@ function AdminProductList() {
         </Link>
       </div>
 
-      {/* Minimalist search and filter section without heading */}
       <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-        {/* Search and filters in a single row on desktop */}
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search with compact styling */}
           <div className="relative flex-1 flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -449,9 +422,7 @@ function AdminProductList() {
             )}
           </div>
 
-          {/* Compact filter dropdowns */}
           <div className="flex flex-wrap gap-2 sm:w-auto w-full">
-            {/* Category filter */}
             <Select
               value={filters.category}
               onValueChange={(value) =>
@@ -471,7 +442,6 @@ function AdminProductList() {
               </SelectContent>
             </Select>
 
-            {/* Collection filter */}
             <Select
               value={filters.collection}
               onValueChange={(value) =>
@@ -492,7 +462,6 @@ function AdminProductList() {
               </SelectContent>
             </Select>
 
-            {/* Sorting */}
             <Select
               value={filters.sortBy}
               onValueChange={(value) =>
@@ -512,7 +481,6 @@ function AdminProductList() {
               </SelectContent>
             </Select>
 
-            {/* Button group with icons only */}
             <div className="flex">
               <Button
                 size="sm"
@@ -556,7 +524,6 @@ function AdminProductList() {
           </div>
         </div>
 
-        {/* Search results feedback - more subtle */}
         {searchQuery && (
           <div className="mt-2 text-xs flex items-center gap-2 text-muted-foreground">
             <Search className="h-3 w-3" />
@@ -568,7 +535,6 @@ function AdminProductList() {
         )}
       </div>
 
-      {/* Products table - now more prominent */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 relative">
         <Table>
           <TableHeader>
@@ -590,7 +556,6 @@ function AdminProductList() {
                 </TableCell>
               </TableRow>
             ) : (
-              // Show products for the current page
               products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.name}</TableCell>
@@ -669,7 +634,6 @@ function AdminProductList() {
               ))
             )}
 
-            {/* Add inline loading indicator within proper TableRow and TableCell structure */}
             {loading && products.length > 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-4">
@@ -685,7 +649,6 @@ function AdminProductList() {
           </TableBody>
         </Table>
 
-        {/* Pagination UI with inline loading indicator */}
         {products.length > 0 && (
           <div className="py-4 border-t">
             <div className="flex items-center justify-between px-2">
@@ -708,15 +671,14 @@ function AdminProductList() {
                       {loading ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
-                          Prev
+                          Sebelumnya
                         </>
                       ) : (
-                        "Prev"
+                        "Sebelumnya"
                       )}
                     </PaginationPrevious>
                   </PaginationItem>
 
-                  {/* If loading, show spinner in pagination */}
                   {loading ? (
                     <PaginationItem>
                       <div className="flex items-center justify-center px-4">
@@ -739,11 +701,11 @@ function AdminProductList() {
                     >
                       {loading ? (
                         <>
-                          Next
+                          Selanjutnya
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current ml-1"></div>
                         </>
                       ) : (
-                        "Next"
+                        "Selanjutnya"
                       )}
                     </PaginationNext>
                   </PaginationItem>

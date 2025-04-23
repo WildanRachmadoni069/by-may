@@ -621,7 +621,7 @@ export const ProductService = {
       });
 
       if (!product) {
-        throw new Error("Product not found");
+        throw new Error("Produk tidak ditemukan");
       }
 
       // Delete from database
@@ -634,7 +634,6 @@ export const ProductService = {
 
       return true;
     } catch (error) {
-      console.error("Error deleting product:", error);
       throw error;
     }
   },
@@ -645,8 +644,6 @@ export const ProductService = {
    */
   async deleteProductBySlug(slug: string): Promise<boolean> {
     try {
-      console.log(`Starting to delete product with slug: ${slug}`);
-
       // Get product details to delete associated images
       const product = await db.product.findUnique({
         where: { slug },
@@ -660,11 +657,8 @@ export const ProductService = {
       });
 
       if (!product) {
-        console.log(`Product with slug ${slug} not found`);
-        throw new Error("Product not found");
+        throw new Error("Produk tidak ditemukan");
       }
-
-      console.log(`Found product: ${product.id}, collecting images...`);
 
       // Collect all image URLs that need to be deleted
       const imagesToDelete: string[] = [];
@@ -677,7 +671,7 @@ export const ProductService = {
             imagesToDelete.push(featuredImage.url);
           }
         } catch (err) {
-          console.error("Error extracting featured image:", err);
+          // Ignore extraction errors
         }
       }
 
@@ -688,7 +682,7 @@ export const ProductService = {
             if (img && img.url) imagesToDelete.push(img.url);
           });
         } catch (err) {
-          console.error("Error extracting additional images:", err);
+          // Ignore extraction errors
         }
       }
 
@@ -703,79 +697,47 @@ export const ProductService = {
             }
           });
         } catch (err) {
-          console.error("Error extracting variation images:", err);
+          // Ignore extraction errors
         }
       }
-
-      console.log(`Collected ${imagesToDelete.length} images to delete`);
 
       // First, delete the product from the database to ensure data consistency
       try {
         await db.product.delete({
           where: { slug },
         });
-        console.log(`Product deleted from database: ${slug}`);
       } catch (dbError) {
-        console.error(`Failed to delete product from database: ${dbError}`);
         throw new Error(
-          `Database deletion error: ${
+          `Gagal menghapus produk dari database: ${
             dbError instanceof Error ? dbError.message : String(dbError)
           }`
         );
       }
 
-      // Now attempt to delete images
+      // Now attempt to delete images using the API endpoint
       if (imagesToDelete.length > 0) {
-        console.log(`Now deleting ${imagesToDelete.length} images...`);
-
-        // Use direct Cloudinary SDK approach for server-side deletion
-        // This is more reliable than going through our own API endpoints
         try {
-          // Initialize Cloudinary SDK (server-side only)
-          const cloudinary = require("cloudinary").v2;
-          cloudinary.config({
-            cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-            api_key: process.env.CLOUDINARY_API_KEY,
-            api_secret: process.env.CLOUDINARY_API_SECRET,
-          });
-
           // Delete images in sequence with small delay to avoid rate limits
           for (const imageUrl of imagesToDelete) {
             try {
-              console.log(`Deleting image: ${imageUrl}`);
+              // Use the CloudinaryService helper to delete via API
+              await CloudinaryService.deleteImageByUrl(imageUrl);
 
-              // Extract publicId
-              const publicId =
-                CloudinaryService.extractPublicIdFromUrl(imageUrl);
-              if (!publicId) {
-                console.warn(`Could not extract publicId from ${imageUrl}`);
-                continue;
-              }
-
-              // Delete directly using SDK
-              await cloudinary.uploader.destroy(publicId);
-
-              // Small delay to avoid overwhelming Cloudinary API
+              // Small delay to avoid overwhelming API
               await new Promise((resolve) => setTimeout(resolve, 100));
             } catch (imgError) {
-              console.error(`Failed to delete image ${imageUrl}:`, imgError);
               // Continue with other images even if one fails
+              console.error("Failed to delete image:", imgError);
             }
           }
-
-          console.log(`Image deletion completed`);
         } catch (cloudinaryError) {
-          console.error(
-            "Error initializing Cloudinary or deleting images:",
-            cloudinaryError
-          );
           // Don't fail the overall operation if image deletion fails
+          console.error("Error during image cleanup:", cloudinaryError);
         }
       }
 
       return true;
     } catch (error) {
-      console.error(`Error in deleteProductBySlug for slug ${slug}:`, error);
       throw error;
     }
   },
@@ -872,22 +834,18 @@ export const ProductService = {
         });
       }
 
-      // Delete images from Cloudinary
+      // Delete images from Cloudinary using our API endpoint
       await Promise.allSettled(
         imagesToDelete.map(async (imageUrl) => {
           try {
             await CloudinaryService.deleteImageByUrl(imageUrl);
           } catch (error) {
-            console.error("Failed to delete image:", imageUrl, error);
+            // Ignore individual image deletion errors
           }
         })
       );
-
-      console.log(
-        `Deleted ${imagesToDelete.length} images for product: ${product.id}`
-      );
     } catch (error) {
-      console.error("Error deleting product images:", error);
+      // Log but don't throw to prevent blocking operations
     }
   },
 
@@ -937,20 +895,18 @@ export const ProductService = {
         (url) => !newImages.has(url)
       );
 
-      // Delete unused images
+      // Delete unused images using API
       await Promise.allSettled(
         imagesToDelete.map(async (imageUrl) => {
           try {
             await CloudinaryService.deleteImageByUrl(imageUrl);
           } catch (error) {
-            console.error("Failed to delete unused image:", imageUrl, error);
+            // Ignore individual image deletion errors
           }
         })
       );
-
-      console.log(`Cleaned up ${imagesToDelete.length} unused images`);
     } catch (error) {
-      console.error("Error cleaning up unused images:", error);
+      // Log but don't throw to prevent blocking operations
     }
   },
 

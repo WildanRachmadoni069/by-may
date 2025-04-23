@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { ProductService } from "@/lib/services/product-service";
 import { verifyToken } from "@/lib/auth/auth";
 
+/**
+ * GET /api/products
+ */
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
@@ -9,7 +12,6 @@ export async function GET(req: NextRequest) {
 
     switch (action) {
       case "list":
-        // Extract filter params for regular product listing
         const category = url.searchParams.get("category") || "all";
         const collection = url.searchParams.get("collection") || "all";
         const sortBy = url.searchParams.get("sortBy") || "newest";
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest) {
         const productId = url.searchParams.get("productId");
         if (!productId) {
           return NextResponse.json(
-            { error: "Product ID is required for related products" },
+            { error: "ID produk diperlukan untuk produk terkait" },
             { status: 400 }
           );
         }
@@ -66,31 +68,37 @@ export async function GET(req: NextRequest) {
 
       default:
         return NextResponse.json(
-          { error: "Invalid action parameter" },
+          { error: "Parameter action tidak valid" },
           { status: 400 }
         );
     }
   } catch (error) {
-    console.error("Error in GET /api/products:", error);
     return NextResponse.json(
-      { error: "Failed to fetch products" },
+      { error: "Gagal mengambil produk" },
       { status: 500 }
     );
   }
 }
 
+/**
+ * POST /api/products
+ */
 export async function POST(req: NextRequest) {
   try {
-    // Check authentication using your custom auth system
     const token = req.cookies.get("authToken")?.value;
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Tidak terotorisasi" },
+        { status: 401 }
+      );
     }
 
-    // Verify the token and check role
     const user = verifyToken(token);
     if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Tidak terotorisasi" },
+        { status: 401 }
+      );
     }
 
     const data = await req.json();
@@ -98,11 +106,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
-    console.error("Error in POST /api/products:", error);
     return NextResponse.json(
       {
-        error: `Failed to create product: ${
-          error instanceof Error ? error.message : "Unknown error"
+        error: `Gagal membuat produk: ${
+          error instanceof Error ? error.message : "Kesalahan tidak diketahui"
         }`,
       },
       { status: 500 }

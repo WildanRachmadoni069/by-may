@@ -1,8 +1,8 @@
 import { PaginationInfo, PaginatedResult } from "./common";
 
-// Type definitions for product-related models
+// Definisi tipe untuk model terkait produk
 
-// Base types
+// Tipe dasar
 export type Image = {
   url: string;
   alt: string;
@@ -21,7 +21,7 @@ export type MetaSEO = {
   keywords?: string[];
 };
 
-// Product Variation Types
+// Tipe Variasi Produk
 export interface ProductVariationOption {
   id: string;
   name: string;
@@ -34,7 +34,7 @@ export interface ProductVariation {
   options: ProductVariationOption[];
 }
 
-// Price Variant Types
+// Tipe Varian Harga
 export interface PriceVariant {
   id?: string;
   price: number;
@@ -43,7 +43,7 @@ export interface PriceVariant {
   descriptiveName?: string;
 }
 
-// Product Types
+// Tipe Produk
 export interface Product {
   id: string;
   name: string;
@@ -64,17 +64,17 @@ export interface Product {
   priceVariants: PriceVariant[];
   createdAt: Date;
   updatedAt: Date;
-  // For client-side compatibility
+  // Untuk kompatibilitas dengan komponen klien
   mainImage?: string | null;
   variationPrices?: Record<string, { price: number; stock: number }>;
 }
 
-// Form Values Type
+// Tipe Nilai Form
 export interface ProductFormValues {
   name: string;
   slug: string;
   description: string;
-  featuredImage: string | null; // Changed from mainImage to featuredImage
+  featuredImage: string | null;
   additionalImages: (string | null)[];
   basePrice?: number;
   baseStock?: number;
@@ -82,7 +82,7 @@ export interface ProductFormValues {
   specialLabel: string;
   weight: number;
   dimensions: Dimensions;
-  meta: MetaSEO; // Changed from seo to meta
+  meta: MetaSEO;
   category: string;
   collection?: string;
   variations: ProductVariation[];
@@ -90,7 +90,7 @@ export interface ProductFormValues {
   searchKeywords?: string[];
 }
 
-// Product filtering types
+// Tipe filter produk
 export type SortBy = "newest" | "price-asc" | "price-desc";
 
 export interface ProductsFilter {
@@ -102,13 +102,11 @@ export interface ProductsFilter {
   limit?: number;
 }
 
-// Use the shared types for consistency
+// Menggunakan tipe bersama untuk konsistensi
 export type ProductsResponse = PaginatedResult<Product>;
 
-// Create/Update types
-export interface ProductCreateInput extends Omit<ProductFormValues, ""> {
-  // Removed the "seo" omit since we're now using meta directly
-}
+// Tipe untuk pembuatan/pembaruan
+export interface ProductCreateInput extends Omit<ProductFormValues, ""> {}
 
 export interface ProductUpdateInput extends Partial<ProductCreateInput> {
   id: string;

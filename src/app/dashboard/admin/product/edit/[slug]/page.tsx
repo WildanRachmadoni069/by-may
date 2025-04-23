@@ -20,7 +20,7 @@ export default function EditProductPage() {
 
   useEffect(() => {
     if (slug) {
-      console.log("Fetching product with slug:", slug);
+      console.log("Mengambil produk dengan slug:", slug);
       fetchProductBySlug(slug as string);
     }
   }, [slug, fetchProductBySlug]);
@@ -54,7 +54,6 @@ export default function EditProductPage() {
     );
   }
 
-  // Use ProductService's transformToFormValues method to properly format product data
   const formData = ProductService.transformToFormValues(product);
 
   return (
