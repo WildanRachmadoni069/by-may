@@ -236,18 +236,16 @@ model ProductVariationOption {
 
 // Model untuk varian harga dan stok berdasarkan kombinasi opsi
 model PriceVariant {
-    id              String                 @id @default(uuid())
-    productId       String
-    product         Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
-    price           Float
-    stock           Int
-    combinationKey  String // Contoh: "color-1_size-2" untuk kombinasi unik
-    descriptiveName String? // contoh: "Merah - XL"
-    options         PriceVariantToOption[]
-    createdAt       DateTime               @default(now())
-    updatedAt       DateTime               @updatedAt
+    id        String                 @id @default(uuid())
+    productId String
+    product   Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+    price     Float
+    stock     Int
+    sku       String? // SKU (Stock Keeping Unit) untuk manajemen inventaris
+    options   PriceVariantToOption[]
+    createdAt DateTime               @default(now())
+    updatedAt DateTime               @updatedAt // Memperbaiki dari @default(now()) ke @updatedAt
 
-    @@unique([productId, combinationKey])
     @@index([productId])
 }
 
@@ -259,6 +257,9 @@ model PriceVariantToOption {
     option         ProductVariationOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
 
     @@id([priceVariantId, optionId])
+    @@unique([priceVariantId, optionId])
+    @@index([optionId])
+    @@index([priceVariantId])
 }
 
 // Model untuk alamat pengiriman user

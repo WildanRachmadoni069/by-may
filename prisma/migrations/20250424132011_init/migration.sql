@@ -2,6 +2,7 @@
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "passwordHash" TEXT,
     "fullName" TEXT,
     "phoneNumber" TEXT,
     "address" TEXT,
@@ -18,21 +19,15 @@ CREATE TABLE "Product" (
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "description" TEXT,
-    "mainImage" TEXT,
-    "additionalImages" TEXT[],
+    "featuredImage" JSONB,
+    "additionalImages" JSONB[],
     "basePrice" DOUBLE PRECISION,
     "baseStock" INTEGER,
     "hasVariations" BOOLEAN NOT NULL DEFAULT false,
     "specialLabel" TEXT,
-    "featured" BOOLEAN NOT NULL DEFAULT false,
-    "new" BOOLEAN NOT NULL DEFAULT false,
     "weight" INTEGER,
     "dimensions" JSONB,
-    "seo" JSONB,
-    "searchKeywords" TEXT[],
-    "nameVector" tsvector,
-    "descriptionVector" tsvector,
-    "searchVector" tsvector,
+    "meta" JSONB,
     "categoryId" TEXT,
     "collectionId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -80,13 +75,13 @@ CREATE TABLE "Article" (
     "slug" TEXT NOT NULL,
     "content" TEXT NOT NULL,
     "excerpt" TEXT,
-    "featured_image" JSONB,
+    "featuredImage" JSONB,
     "status" TEXT NOT NULL,
     "meta" JSONB,
     "author" JSONB,
+    "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "category" TEXT,
 
     CONSTRAINT "Article_pkey" PRIMARY KEY ("id")
 );
@@ -111,7 +106,7 @@ CREATE TABLE "SEOSetting" (
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "keywords" TEXT,
-    "og_image" TEXT,
+    "ogImage" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -193,8 +188,7 @@ CREATE TABLE "PriceVariant" (
     "productId" TEXT NOT NULL,
     "price" DOUBLE PRECISION NOT NULL,
     "stock" INTEGER NOT NULL,
-    "combinationKey" TEXT NOT NULL,
-    "descriptiveName" TEXT,
+    "sku" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -251,13 +245,13 @@ CREATE INDEX "User_role_idx" ON "User"("role");
 CREATE UNIQUE INDEX "Product_slug_key" ON "Product"("slug");
 
 -- CreateIndex
+CREATE INDEX "Product_slug_idx" ON "Product"("slug");
+
+-- CreateIndex
 CREATE INDEX "Product_categoryId_idx" ON "Product"("categoryId");
 
 -- CreateIndex
 CREATE INDEX "Product_collectionId_idx" ON "Product"("collectionId");
-
--- CreateIndex
-CREATE INDEX "Product_slug_idx" ON "Product"("slug");
 
 -- CreateIndex
 CREATE INDEX "Product_specialLabel_idx" ON "Product"("specialLabel");
@@ -267,15 +261,6 @@ CREATE INDEX "Product_name_idx" ON "Product"("name");
 
 -- CreateIndex
 CREATE INDEX "Product_basePrice_idx" ON "Product"("basePrice");
-
--- CreateIndex
-CREATE INDEX "Product_featured_idx" ON "Product"("featured");
-
--- CreateIndex
-CREATE INDEX "Product_new_idx" ON "Product"("new");
-
--- CreateIndex
-CREATE INDEX "Product_searchKeywords_idx" ON "Product"("searchKeywords");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Category_name_key" ON "Category"("name");
@@ -299,10 +284,10 @@ CREATE INDEX "Article_status_idx" ON "Article"("status");
 CREATE INDEX "Article_title_idx" ON "Article"("title");
 
 -- CreateIndex
-CREATE INDEX "Article_category_idx" ON "Article"("category");
+CREATE INDEX "Article_createdAt_idx" ON "Article"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "Article_createdAt_idx" ON "Article"("createdAt");
+CREATE INDEX "Article_publishedAt_idx" ON "Article"("publishedAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SEOSetting_pageId_key" ON "SEOSetting"("pageId");
@@ -341,7 +326,13 @@ CREATE INDEX "ProductVariationOption_variationId_idx" ON "ProductVariationOption
 CREATE INDEX "PriceVariant_productId_idx" ON "PriceVariant"("productId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PriceVariant_productId_combinationKey_key" ON "PriceVariant"("productId", "combinationKey");
+CREATE INDEX "PriceVariantToOption_optionId_idx" ON "PriceVariantToOption"("optionId");
+
+-- CreateIndex
+CREATE INDEX "PriceVariantToOption_priceVariantId_idx" ON "PriceVariantToOption"("priceVariantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PriceVariantToOption_priceVariantId_optionId_key" ON "PriceVariantToOption"("priceVariantId", "optionId");
 
 -- CreateIndex
 CREATE INDEX "Address_userId_idx" ON "Address"("userId");
