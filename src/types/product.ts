@@ -1,113 +1,124 @@
-import { PaginationInfo, PaginatedResult } from "./common";
-
-// Definisi tipe untuk model terkait produk
-
-// Tipe dasar
-export type Image = {
+export interface Image {
   url: string;
   alt: string;
-};
+}
 
-export type Dimensions = {
+export interface Dimensions {
   width: number;
   length: number;
   height: number;
-};
+}
 
-export type MetaSEO = {
+export interface Meta {
   title: string;
   description: string;
   ogImage?: string;
-  keywords?: string[];
-};
+}
 
-// Tipe Variasi Produk
 export interface ProductVariationOption {
   id: string;
+  variationId: string;
   name: string;
-  imageUrl?: string | null;
+  imageUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ProductVariation {
   id: string;
+  productId: string;
   name: string;
   options: ProductVariationOption[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// Tipe Varian Harga
+export interface PriceVariantToOption {
+  priceVariantId: string;
+  optionId: string;
+  option: ProductVariationOption;
+}
+
 export interface PriceVariant {
-  id?: string;
+  id: string;
+  productId: string;
   price: number;
   stock: number;
-  combinationKey: string;
-  descriptiveName?: string;
+  sku?: string;
+  options: PriceVariantToOption[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// Tipe Produk
 export interface Product {
   id: string;
   name: string;
   slug: string;
   description?: string;
   featuredImage?: Image;
-  additionalImages?: Image[];
-  basePrice?: number | null;
-  baseStock?: number | null;
+  additionalImages: Image[];
+  basePrice?: number;
+  baseStock?: number;
   hasVariations: boolean;
   specialLabel?: string;
   weight?: number;
   dimensions?: Dimensions;
-  meta?: MetaSEO;
+  meta?: Meta;
   categoryId?: string;
   collectionId?: string;
   variations: ProductVariation[];
   priceVariants: PriceVariant[];
   createdAt: Date;
   updatedAt: Date;
-  // Untuk kompatibilitas dengan komponen klien
-  mainImage?: string | null;
-  variationPrices?: Record<string, { price: number; stock: number }>;
 }
 
-// Tipe Nilai Form
-export interface ProductFormValues {
+// Form submission types
+export interface CreateProductInput {
   name: string;
   slug: string;
-  description: string;
-  featuredImage: string | null;
-  additionalImages: (string | null)[];
-  basePrice?: number;
-  baseStock?: number;
+  description?: string | null;
+  featuredImage?: Image | null;
+  additionalImages?: Image[] | null;
+  basePrice?: number | null;
+  baseStock?: number | null;
   hasVariations: boolean;
-  specialLabel: string;
-  weight: number;
-  dimensions: Dimensions;
-  meta: MetaSEO;
-  category: string;
-  collection?: string;
-  variations: ProductVariation[];
-  variationPrices: Record<string, { price: number; stock: number }>;
-  searchKeywords?: string[];
+  specialLabel?: string | null;
+  weight?: number | null;
+  dimensions?: Dimensions | null;
+  meta?: Meta | null;
+  categoryId?: string | null;
+  collectionId?: string | null;
 }
 
-// Tipe filter produk
-export type SortBy = "newest" | "price-asc" | "price-desc";
-
-export interface ProductsFilter {
-  category?: string;
-  collection?: string;
-  sortBy?: SortBy;
-  searchQuery?: string;
-  page?: number;
-  limit?: number;
-}
-
-// Menggunakan tipe bersama untuk konsistensi
-export type ProductsResponse = PaginatedResult<Product>;
-
-// Tipe untuk pembuatan/pembaruan
-export interface ProductCreateInput extends Omit<ProductFormValues, ""> {}
-
-export interface ProductUpdateInput extends Partial<ProductCreateInput> {
+export interface UpdateProductInput extends Partial<CreateProductInput> {
   id: string;
+}
+
+// Types for product variation management
+export interface CreateVariationInput {
+  productId: string;
+  name: string;
+  options: { name: string; imageUrl?: string }[];
+}
+
+export interface UpdateVariationInput {
+  id: string;
+  name?: string;
+  options?: { id?: string; name: string; imageUrl?: string }[];
+}
+
+export interface CreatePriceVariantInput {
+  productId: string;
+  price: number;
+  stock: number;
+  sku?: string;
+  optionIds: string[]; // IDs of the selected options
+}
+
+export interface UpdatePriceVariantInput {
+  id: string;
+  price?: number;
+  stock?: number;
+  sku?: string;
+  optionIds?: string[];
 }

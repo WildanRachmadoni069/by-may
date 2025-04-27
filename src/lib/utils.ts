@@ -152,3 +152,48 @@ export function formatDate(
     return "Error";
   }
 }
+
+/**
+ * Mengubah string menjadi format slug yang SEO-friendly
+ * @param text - Teks yang akan diubah menjadi slug
+ * @returns String dalam format slug (huruf kecil, tanpa spasi, hanya karakter alfanumerik dan tanda hubung)
+ */
+export function slugify(text: string): string {
+  return text
+    .toString()
+    .normalize("NFD") // Normalize to decomposed form for handling accents
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics/accents
+    .toLowerCase() // Convert to lowercase
+    .replace(/[^\w\s-]/g, "") // Remove all non-word chars (keep spaces and hyphens)
+    .trim() // Trim whitespace from both ends
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}
+
+/**
+ * Mengekstrak teks dari HTML dan membuat excerpt dengan panjang tertentu
+ * @param html - String HTML yang akan diekstrak teksnya
+ * @param maxLength - Panjang maksimum excerpt (default: 160 karakter)
+ * @returns Plain text excerpt dengan panjang tertentu
+ */
+export function createExcerptFromHtml(
+  html: string,
+  maxLength: number = 160
+): string {
+  if (!html) return "";
+
+  // Hapus semua tag HTML
+  const plainText = html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Potong teks sesuai panjang yang diinginkan
+  if (plainText.length <= maxLength) {
+    return plainText;
+  }
+
+  // Potong pada batas kata dan tambahkan ellipsis
+  return plainText.substring(0, maxLength).replace(/\s+\S*$/, "") + "...";
+}

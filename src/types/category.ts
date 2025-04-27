@@ -1,36 +1,27 @@
 /**
- * Tipe Data untuk Category
+ * Category Types
  *
- * File ini berisi definisi tipe data yang digunakan untuk kategori produk
- * di seluruh aplikasi, termasuk data dari API, database, dan form.
+ * Tipe-tipe data untuk fitur kategori
  */
 
-/**
- * Data kategori dari database atau API
- */
 export interface CategoryData {
-  /** ID unik kategori */
   id: string;
-  /** Nama kategori */
   name: string;
-  /** Tanggal kategori dibuat */
-  createdAt: string;
-  /** Tanggal kategori terakhir diperbarui */
-  updatedAt: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-/**
- * Input data untuk membuat kategori baru
- */
+export interface CategoryOption {
+  id: string;
+  name: string;
+  value: string; // Biasanya sama dengan ID
+  label: string; // Biasanya sama dengan nama
+}
+
 export interface CategoryCreateInput {
-  /** Nama kategori */
   name: string;
 }
 
-/**
- * Input data untuk mengupdate kategori
- */
 export interface CategoryUpdateInput {
-  /** Nama kategori */
   name: string;
 }

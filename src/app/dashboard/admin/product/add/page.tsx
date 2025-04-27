@@ -1,5 +1,5 @@
 "use client";
-import { ProductForm } from "@/components/admin/product/ProductForm";
+import ProductForm from "@/components/admin/product/ProductForm";
 import React from "react";
 
 function Page() {

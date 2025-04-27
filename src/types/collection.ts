@@ -1,50 +1,27 @@
 /**
- * Tipe Data untuk Collection
+ * Collection Types
  *
- * File ini berisi definisi tipe data yang digunakan untuk koleksi produk
- * di seluruh aplikasi, termasuk data dari API, database, dan form.
+ * Tipe-tipe data untuk fitur koleksi
  */
 
-/**
- * Data koleksi dari database atau API
- */
 export interface CollectionData {
-  /** ID unik koleksi */
   id: string;
-  /** Nama koleksi */
   name: string;
-  /** Tanggal koleksi dibuat */
-  createdAt: string;
-  /** Tanggal koleksi terakhir diperbarui */
-  updatedAt: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-/**
- * Input data untuk membuat koleksi baru
- */
-export interface CollectionCreateInput {
-  /** Nama koleksi */
-  name: string;
-}
-
-/**
- * Input data untuk mengupdate koleksi
- */
-export interface CollectionUpdateInput {
-  /** Nama koleksi */
-  name: string;
-}
-
-/**
- * Koleksi dengan format untuk komponen select
- */
 export interface CollectionOption {
-  /** ID koleksi (digunakan sebagai value) */
-  value: string;
-  /** Nama koleksi (digunakan sebagai label) */
-  label: string;
-  /** ID koleksi */
   id: string;
-  /** Nama koleksi */
+  name: string;
+  value: string; // Biasanya sama dengan ID
+  label: string; // Biasanya sama dengan nama
+}
+
+export interface CollectionCreateInput {
+  name: string;
+}
+
+export interface CollectionUpdateInput {
   name: string;
 }

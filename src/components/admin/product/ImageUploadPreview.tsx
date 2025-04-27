@@ -294,7 +294,9 @@ function ImageUploadPreview({
             ) : (
               <>
                 <Plus className="h-8 w-8 text-gray-400 mb-1" />
-                <p className="text-xs text-gray-500">Unggah Gambar</p>
+                <p className="text-xs text-center text-gray-500">
+                  Unggah Gambar
+                </p>
               </>
             )}
           </div>
