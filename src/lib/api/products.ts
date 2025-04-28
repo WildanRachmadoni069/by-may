@@ -1,75 +1,59 @@
 /**
- * API Produk untuk Client Components
+ * API Products untuk Client Components
  *
  * File ini berisi fungsi untuk interaksi dengan API produk
- * dari client components.
+ * dari client components. Untuk operasi server, gunakan product-actions.ts.
  */
 
-import {
-  Product,
-  ProductCreateInput,
-  ProductUpdateInput,
-  ProductsFilter,
-  ProductsResponse,
-} from "@/types/product";
-import { PaginatedResult, PaginationInfo } from "@/types/common";
+import { PaginatedResult } from "@/types/common";
+import { Product, CreateProductInput } from "@/types/product";
 
-// Export tipe untuk penggunaan di modul lain
-export type { Product, ProductCreateInput, ProductUpdateInput };
-export type PaginationResult<T> = PaginatedResult<T>;
-
-/**
- * Mengambil daftar produk dengan filter dan paginasi
- */
+// Get products with filtering and pagination
 export async function getProducts(
-  options: ProductsFilter = {}
+  options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    categoryId?: string;
+    collectionId?: string;
+    specialLabel?: string;
+    sortBy?: string;
+  } = {}
 ): Promise<PaginatedResult<Product>> {
   const {
-    category = "all",
-    collection = "all",
-    sortBy = "newest",
-    searchQuery = "",
     page = 1,
     limit = 10,
+    search,
+    categoryId,
+    collectionId,
+    specialLabel,
+    sortBy,
   } = options;
 
   const params = new URLSearchParams();
-  params.append("action", "list");
-  if (category !== "all") params.append("category", category);
-  if (collection !== "all" && collection !== "none") {
-    params.append("collection", collection);
-  } else if (collection === "none") {
-    params.append("collection", "none");
-  }
-  params.append("sortBy", sortBy);
   params.append("page", page.toString());
   params.append("limit", limit.toString());
-  if (searchQuery) params.append("search", searchQuery);
+
+  if (search) params.append("search", search);
+  if (categoryId) params.append("categoryId", categoryId);
+  if (collectionId) params.append("collectionId", collectionId);
+  if (specialLabel) params.append("specialLabel", specialLabel);
+  if (sortBy) params.append("sortBy", sortBy);
 
   const res = await fetch(`/api/products?${params.toString()}`, {
     next: { tags: ["products"] },
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Gagal mengambil produk: ${error}`);
+    throw new Error("Failed to fetch products");
   }
 
-  return await res.json();
+  return res.json();
 }
 
-/**
- * Mengambil produk berdasarkan ID
- */
-export async function getProductById(id: string): Promise<Product | null> {
-  return getProductBySlug(id);
-}
-
-/**
- * Mengambil produk berdasarkan slug
- */
+// Get product by slug
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
+  const res = await fetch(`/api/products/${slug}`, {
     next: { tags: [`product-${slug}`] },
   });
 
@@ -78,17 +62,15 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 
   if (!res.ok) {
-    throw new Error(`Gagal mengambil produk: ${await res.text()}`);
+    throw new Error("Failed to fetch product");
   }
 
-  return await res.json();
+  return res.json();
 }
 
-/**
- * Membuat produk baru
- */
+// Create a new product
 export async function createProduct(
-  data: ProductCreateInput
+  data: CreateProductInput
 ): Promise<Product> {
   const res = await fetch("/api/products", {
     method: "POST",
@@ -99,21 +81,21 @@ export async function createProduct(
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Gagal membuat produk: ${error}`);
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(
+      errorData?.details || errorData?.error || "Failed to create product"
+    );
   }
 
-  return await res.json();
+  return res.json();
 }
 
-/**
- * Memperbarui produk yang sudah ada
- */
+// Update a product
 export async function updateProduct(
   slug: string,
-  data: ProductUpdateInput
+  data: Partial<CreateProductInput>
 ): Promise<Product> {
-  const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
+  const res = await fetch(`/api/products/${slug}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -122,104 +104,31 @@ export async function updateProduct(
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(`Gagal memperbarui produk: ${error}`);
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(
+      errorData?.details || errorData?.error || "Failed to update product"
+    );
   }
 
-  return await res.json();
+  return res.json();
 }
 
-/**
- * Menghapus produk
- */
+// Delete a product
 export async function deleteProduct(
   slug: string
 ): Promise<{ success: boolean; message?: string }> {
-  try {
-    const res = await fetch(`/api/products/${encodeURIComponent(slug)}`, {
-      method: "DELETE",
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || "Gagal menghapus produk");
-    }
-
-    return data;
-  } catch (error) {
-    throw error;
-  }
-}
-
-/**
- * Mengambil produk terkait
- */
-export async function getRelatedProducts(options: {
-  productId: string;
-  categoryId?: string;
-  collectionId?: string;
-  limit?: number;
-}): Promise<Product[]> {
-  const { productId, categoryId, collectionId, limit = 4 } = options;
-
-  const params = new URLSearchParams();
-  params.append("action", "related");
-  params.append("productId", productId);
-  if (categoryId) params.append("categoryId", categoryId);
-  if (collectionId) params.append("collectionId", collectionId);
-  params.append("limit", limit.toString());
-
-  const res = await fetch(`/api/products?${params.toString()}`, {
-    next: { tags: [`related-${productId}`] },
+  const res = await fetch(`/api/products/${slug}`, {
+    method: "DELETE",
   });
 
   if (!res.ok) {
-    console.error("Gagal mengambil produk terkait:", await res.text());
-    return [];
+    const errorData = await res.json().catch(() => ({}));
+    return {
+      success: false,
+      message:
+        errorData?.details || errorData?.error || "Failed to delete product",
+    };
   }
 
-  return await res.json();
-}
-
-/**
- * Mengambil produk unggulan
- */
-export async function getFeaturedProducts(
-  limit: number = 8
-): Promise<Product[]> {
-  const params = new URLSearchParams();
-  params.append("action", "featured");
-  params.append("limit", limit.toString());
-
-  const res = await fetch(`/api/products?${params.toString()}`, {
-    next: { tags: ["featured-products"] },
-  });
-
-  if (!res.ok) {
-    console.error("Gagal mengambil produk unggulan:", await res.text());
-    return [];
-  }
-
-  return await res.json();
-}
-
-/**
- * Mengambil produk baru
- */
-export async function getNewProducts(limit: number = 8): Promise<Product[]> {
-  const params = new URLSearchParams();
-  params.append("action", "new");
-  params.append("limit", limit.toString());
-
-  const res = await fetch(`/api/products?${params.toString()}`, {
-    next: { tags: ["new-products"] },
-  });
-
-  if (!res.ok) {
-    console.error("Gagal mengambil produk baru:", await res.text());
-    return [];
-  }
-
-  return await res.json();
+  return { success: true };
 }

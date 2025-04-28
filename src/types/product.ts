@@ -54,22 +54,34 @@ export interface Product {
   id: string;
   name: string;
   slug: string;
-  description?: string;
-  featuredImage?: Image;
+  description?: string | null;
+  featuredImage?: Image | null;
   additionalImages: Image[];
-  basePrice?: number;
-  baseStock?: number;
+  basePrice?: number | null;
+  baseStock?: number | null;
   hasVariations: boolean;
-  specialLabel?: string;
-  weight?: number;
-  dimensions?: Dimensions;
-  meta?: Meta;
-  categoryId?: string;
-  collectionId?: string;
+  specialLabel?: string | null;
+  weight?: number | null;
+  dimensions?: Dimensions | null;
+  meta?: Meta | null;
+  categoryId?: string | null;
+  collectionId?: string | null;
+  category?: { id: string; name: string } | null;
+  collection?: { id: string; name: string } | null;
   variations: ProductVariation[];
   priceVariants: PriceVariant[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+// For internal use (price variants in variation store)
+export interface PriceVariantItem {
+  id?: string;
+  optionCombination: string[]; // Array of option IDs or names that make up this combination
+  optionLabels: string[]; // Human-readable labels for display
+  price: number | null;
+  stock: number | null;
+  sku?: string;
 }
 
 // Form submission types
@@ -88,11 +100,19 @@ export interface CreateProductInput {
   meta?: Meta | null;
   categoryId?: string | null;
   collectionId?: string | null;
+  variations?: Array<{
+    id?: string;
+    name: string;
+    options: Array<{
+      id?: string;
+      name: string;
+      imageUrl?: string;
+    }>;
+  }>;
+  priceVariants?: PriceVariantItem[];
 }
 
-export interface UpdateProductInput extends Partial<CreateProductInput> {
-  id: string;
-}
+export interface UpdateProductInput extends Partial<CreateProductInput> {}
 
 // Types for product variation management
 export interface CreateVariationInput {

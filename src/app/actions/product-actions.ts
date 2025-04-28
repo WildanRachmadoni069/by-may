@@ -9,79 +9,109 @@
  */
 
 import { revalidatePath } from "next/cache";
-import {
-  Product,
-  ProductCreateInput,
-  ProductUpdateInput,
-  ProductsFilter,
-  ProductsResponse,
-} from "@/types/product";
-import { PaginatedResult } from "@/types/common";
 import { ProductService } from "@/lib/services/product-service";
-
-/**
- * Mengambil produk berdasarkan ID
- */
-export async function getProductAction(id: string): Promise<Product | null> {
-  return await ProductService.getProductById(id);
-}
-
-/**
- * Mengambil produk berdasarkan slug
- */
-export async function getProductBySlugAction(
-  slug: string
-): Promise<Product | null> {
-  return await ProductService.getProductBySlug(slug);
-}
-
-/**
- * Mengambil produk terpaginasi dengan opsi filter
- */
-export async function getProductsAction(
-  options: ProductsFilter = {}
-): Promise<PaginatedResult<Product>> {
-  return await ProductService.getProducts(options);
-}
+import { CreateProductInput, Product } from "@/types/product";
+import { PaginatedResult } from "@/types/common";
 
 /**
  * Membuat produk baru
+ * @param data Data produk yang akan dibuat
+ * @returns Produk yang dibuat
  */
 export async function createProductAction(
-  data: ProductCreateInput
+  data: CreateProductInput
 ): Promise<Product> {
-  const product = await ProductService.createProduct(data);
-  revalidatePath("/produk");
-  revalidatePath(`/produk/${product.slug}`);
-  revalidatePath("/dashboard/admin/product");
-  return product;
+  try {
+    console.log(
+      "Creating product with data:",
+      JSON.stringify(
+        {
+          ...data,
+          description: data.description ? "...content..." : null,
+          priceVariants: data.priceVariants
+            ? `${data.priceVariants.length} variants`
+            : null,
+        },
+        null,
+        2
+      )
+    );
+
+    const product = await ProductService.createProduct(data);
+
+    // Revalidate related paths
+    revalidatePath("/products");
+    revalidatePath("/dashboard/admin/product");
+
+    return product;
+  } catch (error) {
+    console.error("Error in createProductAction:", error);
+    throw error;
+  }
 }
 
 /**
  * Memperbarui produk yang sudah ada
+ * @param slug Slug produk yang akan diperbarui
+ * @param data Data produk yang diperbarui
+ * @returns Produk yang diperbarui
  */
 export async function updateProductAction(
-  id: string,
-  data: ProductUpdateInput
+  slug: string,
+  data: Partial<CreateProductInput>
 ): Promise<Product> {
-  const product = await ProductService.updateProduct(id, data);
-  revalidatePath("/produk");
-  revalidatePath(`/produk/${product.slug}`);
+  const updatedProduct = await ProductService.updateProduct(slug, data);
+
+  // Revalidate related paths
+  revalidatePath("/products");
+  revalidatePath(`/products/${updatedProduct.slug}`);
   revalidatePath("/dashboard/admin/product");
-  return product;
+
+  return updatedProduct;
 }
 
 /**
  * Menghapus produk dan gambar terkait
+ * @param slug Slug produk yang akan dihapus
  */
-export async function deleteProductAction(id: string): Promise<boolean> {
-  const product = await ProductService.getProductById(id);
-  const success = await ProductService.deleteProduct(id);
+export async function deleteProductAction(
+  slug: string
+): Promise<{ success: boolean; message?: string }> {
+  const result = await ProductService.deleteProduct(slug);
 
-  if (success && product) {
-    revalidatePath("/produk");
+  if (result.success) {
+    // Revalidate related paths
+    revalidatePath("/products");
     revalidatePath("/dashboard/admin/product");
   }
 
-  return success;
+  return result;
+}
+
+/**
+ * Mengambil produk berdasarkan slug
+ * @param slug Slug produk yang dicari
+ * @returns Produk atau null jika tidak ditemukan
+ */
+export async function getProductAction(slug: string): Promise<Product | null> {
+  return await ProductService.getProductBySlug(slug);
+}
+
+/**
+ * Mengambil daftar produk dengan paginasi dan filter
+ * @param options Opsi filter dan paginasi
+ * @returns Daftar produk terpaginasi
+ */
+export async function getProductsAction(
+  options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    categoryId?: string;
+    collectionId?: string;
+    specialLabel?: string;
+    sortBy?: string;
+  } = {}
+): Promise<PaginatedResult<Product>> {
+  return await ProductService.getProducts(options);
 }
