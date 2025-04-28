@@ -241,6 +241,10 @@ export const useProductVariationStore = create<ProductVariationState>(
 
       // Get existing price variants to preserve values
       const existingPriceVariants = get().priceVariants;
+      console.log(
+        `Generating price variants from ${variations.length} variations`
+      );
+      console.log(`Current variations:`, JSON.stringify(variations, null, 2));
 
       // Helper function to generate option combinations recursively
       const generateCombinations = (
@@ -258,7 +262,7 @@ export const useProductVariationStore = create<ProductVariationState>(
 
         // For each option in the current variation, create a new combination
         currentVariation.options.forEach((option) => {
-          // Create a unique ID for the option if it doesn't have one
+          // Use the actual ID if available, otherwise create a unique temp ID
           const optionId =
             option.id || `temp-${currentVariation.name}-${option.name}`;
           const optionLabel = `${currentVariation.name}: ${option.name}`;
@@ -278,6 +282,7 @@ export const useProductVariationStore = create<ProductVariationState>(
 
       // Generate all possible combinations
       const allCombinations = generateCombinations(0);
+      console.log(`Generated ${allCombinations.length} combinations`);
 
       // Map to price variant objects, preserving existing values
       const newPriceVariants = allCombinations.map(
@@ -288,6 +293,13 @@ export const useProductVariationStore = create<ProductVariationState>(
           // Find existing price variant with the same combination
           const existingVariant = existingPriceVariants.find(
             (pv) => pv.optionCombination.join("|") === combinationKey
+          );
+
+          // Log the mapping for debugging
+          console.log(`Combination: ${combinationKey}`);
+          console.log(`Labels: ${labels.join(", ")}`);
+          console.log(
+            `Found existing variant: ${existingVariant ? "yes" : "no"}`
           );
 
           // Use existing values or defaults

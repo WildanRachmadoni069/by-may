@@ -25,6 +25,8 @@ import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useDebug } from "@/hooks/use-debug";
+import DebugPanel from "@/components/admin/debug/DebugPanel";
 
 // Helper function to delete image from Cloudinary
 const deleteCloudinaryImage = async (imageUrl: string | undefined) => {
@@ -541,10 +543,12 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
   baseStock,
 }) => {
   const { toast } = useToast();
+  const isDebugEnabled = useDebug();
   const {
     hasVariations,
     variations,
     openVariationForms,
+    priceVariants,
     setHasVariations,
     addVariation,
     removeVariation,
@@ -762,6 +766,23 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
               </div>
             )}
           </div>
+        )}
+
+        {/* Debug information panel */}
+        {isDebugEnabled && (
+          <>
+            <DebugPanel
+              title="Variation Data"
+              data={{
+                hasVariations,
+                variations,
+                openVariationForms,
+                priceVariants,
+                basePrice,
+                baseStock,
+              }}
+            />
+          </>
         )}
       </CardContent>
     </Card>

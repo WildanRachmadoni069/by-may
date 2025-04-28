@@ -12,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import { ProductService } from "@/lib/services/product-service";
 import { CreateProductInput, Product } from "@/types/product";
 import { PaginatedResult } from "@/types/common";
+import { cookies } from "next/headers";
 
 /**
  * Membuat produk baru
@@ -22,14 +23,46 @@ export async function createProductAction(
   data: CreateProductInput
 ): Promise<Product> {
   try {
+    // Authentication for server actions
+    // In production, uncomment this
+    /*
+    const cookieStore = cookies();
+    const authToken = cookieStore.get("authToken")?.value;
+    
+    if (!authToken) {
+      throw new Error("Authentication required");
+    }
+    
+    const payload = verifyToken(authToken);
+    if (!payload || payload.role !== "admin") {
+      throw new Error("Unauthorized: Admin access required");
+    }
+    */
+
+    // Clean up the data to ensure all nulls are properly handled
+    const cleanedData = {
+      ...data,
+      description: data.description || null,
+      featuredImage: data.featuredImage || null,
+      additionalImages: data.additionalImages || [],
+      basePrice: data.hasVariations ? null : data.basePrice || null,
+      baseStock: data.hasVariations ? null : data.baseStock || null,
+      specialLabel: data.specialLabel || null,
+      weight: data.weight || null,
+      dimensions: data.dimensions || null,
+      meta: data.meta || null,
+      categoryId: data.categoryId || null,
+      collectionId: data.collectionId || null,
+    };
+
     console.log(
       "Creating product with data:",
       JSON.stringify(
         {
-          ...data,
-          description: data.description ? "...content..." : null,
-          priceVariants: data.priceVariants
-            ? `${data.priceVariants.length} variants`
+          ...cleanedData,
+          description: cleanedData.description ? "...content..." : null,
+          priceVariants: cleanedData.priceVariants
+            ? `${cleanedData.priceVariants.length} variants`
             : null,
         },
         null,
@@ -37,7 +70,7 @@ export async function createProductAction(
       )
     );
 
-    const product = await ProductService.createProduct(data);
+    const product = await ProductService.createProduct(cleanedData);
 
     // Revalidate related paths
     revalidatePath("/products");

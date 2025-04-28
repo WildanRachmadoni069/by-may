@@ -68,29 +68,58 @@ export const ProductService = {
    * @returns Produk yang ditemukan atau null jika tidak ada
    */
   async getProductBySlug(slug: string): Promise<Product | null> {
-    const product = await db.product.findUnique({
-      where: { slug },
-      include: {
-        variations: {
-          include: {
-            options: true,
+    try {
+      const product = await db.product.findUnique({
+        where: { slug },
+        include: {
+          variations: {
+            include: {
+              options: true,
+            },
           },
-        },
-        priceVariants: {
-          include: {
-            options: {
-              include: {
-                option: true,
+          priceVariants: {
+            include: {
+              options: {
+                include: {
+                  option: true,
+                },
               },
             },
           },
+          category: true,
+          collection: true,
         },
-        category: true,
-        collection: true,
-      },
-    });
+      });
 
-    return product as unknown as Product | null;
+      if (!product) return null;
+
+      // Log the found product's price variants and their options for debugging
+      if (product.priceVariants.length > 0) {
+        console.log(
+          `Found product ${product.name} with ${product.priceVariants.length} price variants`
+        );
+
+        for (const variant of product.priceVariants) {
+          console.log(
+            `Price variant ${variant.id}: price=${variant.price}, stock=${variant.stock}, with ${variant.options.length} options`
+          );
+
+          // Log each connected option
+          variant.options.forEach((connection) => {
+            console.log(
+              `- Connected to option: ${connection.option.name} (ID: ${connection.option.id})`
+            );
+          });
+        }
+      } else {
+        console.log(`Product ${product.name} has no price variants`);
+      }
+
+      return product as unknown as Product | null;
+    } catch (error) {
+      console.error(`Error fetching product by slug ${slug}:`, error);
+      throw error;
+    }
   },
 
   /**
@@ -248,119 +277,169 @@ export const ProductService = {
       baseStock = null;
     }
 
-    // Create the product
-    const product = await db.product.create({
-      data: {
-        name: data.name,
-        slug: slug,
-        description: data.description || null,
-        featuredImage,
-        additionalImages,
-        basePrice,
-        baseStock,
-        hasVariations: data.hasVariations,
-        specialLabel: data.specialLabel || null,
-        weight: data.weight || null,
-        dimensions,
-        meta,
-        categoryId: data.categoryId || null,
-        collectionId: data.collectionId || null,
-      },
-    });
+    try {
+      // Create the product
+      const product = await db.product.create({
+        data: {
+          name: data.name,
+          slug: slug,
+          description: data.description || null,
+          featuredImage,
+          additionalImages,
+          basePrice,
+          baseStock,
+          hasVariations: data.hasVariations,
+          specialLabel: data.specialLabel || null,
+          weight: data.weight || null,
+          dimensions,
+          meta,
+          categoryId: data.categoryId || null,
+          collectionId: data.collectionId || null,
+        },
+      });
 
-    // Create variations if they exist
-    if (data.hasVariations && data.variations && data.variations.length > 0) {
-      const variationOptionsMap = new Map<string, string>(); // Map to store temp ID -> actual ID
+      console.log(
+        `Created product with ID: ${product.id}, slug: ${product.slug}`
+      );
 
-      // Process each variation
-      for (const variation of data.variations) {
-        const createdVariation = await db.productVariation.create({
-          data: {
-            productId: product.id,
-            name: variation.name,
-          },
-        });
+      // Create variations if they exist
+      if (data.hasVariations && data.variations && data.variations.length > 0) {
+        const variationOptionsMap = new Map<string, string>(); // Map to store temp ID -> actual DB ID
 
-        // Create options for this variation
-        if (variation.options && variation.options.length > 0) {
-          for (const option of variation.options) {
-            const createdOption = await db.productVariationOption.create({
-              data: {
-                variationId: createdVariation.id,
-                name: option.name,
-                imageUrl: option.imageUrl,
-              },
-            });
+        // Process each variation
+        for (const variation of data.variations) {
+          console.log(`Creating variation: ${variation.name}`);
 
-            // Store mapping from temporary ID to real DB ID
-            if (option.id) {
-              variationOptionsMap.set(option.id, createdOption.id);
-            } else {
-              // If option has no ID (which can happen with new options),
-              // create a temp key based on variation and option name
-              const tempKey = `${variation.name}-${option.name}`;
-              variationOptionsMap.set(tempKey, createdOption.id);
-            }
-          }
-        }
-      }
-
-      // Create price variants if they exist
-      if (data.priceVariants && data.priceVariants.length > 0) {
-        for (const priceVariant of data.priceVariants) {
-          // Skip if missing required data
-          if (
-            priceVariant.price === null ||
-            priceVariant.stock === null ||
-            !priceVariant.optionCombination ||
-            priceVariant.optionCombination.length === 0
-          ) {
-            continue;
-          }
-
-          // Create the price variant
-          const createdPriceVariant = await db.priceVariant.create({
+          const createdVariation = await db.productVariation.create({
             data: {
               productId: product.id,
-              price: priceVariant.price || 0,
-              stock: priceVariant.stock || 0,
-              sku: priceVariant.sku,
+              name: variation.name,
             },
           });
 
-          // Handle option connections using our map
-          for (const optionKey of priceVariant.optionCombination) {
-            // Try to get the real option ID from our map
-            const realOptionId = variationOptionsMap.get(optionKey);
-
-            if (!realOptionId) {
-              console.error(
-                `Could not find real ID for option key: ${optionKey}`
-              );
-              continue;
-            }
-
-            try {
-              // Create the connection between price variant and option
-              await db.priceVariantToOption.create({
+          // Create options for this variation
+          if (variation.options && variation.options.length > 0) {
+            for (const option of variation.options) {
+              const createdOption = await db.productVariationOption.create({
                 data: {
-                  priceVariantId: createdPriceVariant.id,
-                  optionId: realOptionId,
+                  variationId: createdVariation.id,
+                  name: option.name,
+                  imageUrl: option.imageUrl,
                 },
               });
-            } catch (error) {
-              console.error(
-                `Failed to link option ${optionKey} to price variant:`,
-                error
+
+              // Store both the optionId directly and with temp prefixes
+              // This ensures we catch all possible formats from frontend
+              if (option.id) {
+                variationOptionsMap.set(option.id, createdOption.id);
+              }
+
+              // Also store with temp prefix for cases where it comes from the store
+              variationOptionsMap.set(
+                `temp-${variation.name}-${option.name}`,
+                createdOption.id
+              );
+
+              // And store direct mapping
+              variationOptionsMap.set(
+                `${variation.name}-${option.name}`,
+                createdOption.id
               );
             }
           }
         }
-      }
-    }
 
-    // Return the created product with relationships
-    return this.getProductBySlug(slug) as Promise<Product>;
+        // Create price variants if they exist
+        if (data.priceVariants && data.priceVariants.length > 0) {
+          for (const priceVariant of data.priceVariants) {
+            // Skip if missing required data
+            if (
+              priceVariant.price === null ||
+              priceVariant.stock === null ||
+              !priceVariant.optionCombination ||
+              priceVariant.optionCombination.length === 0
+            ) {
+              continue;
+            }
+
+            // Create the price variant
+            const createdPriceVariant = await db.priceVariant.create({
+              data: {
+                productId: product.id,
+                price: priceVariant.price || 0,
+                stock: priceVariant.stock || 0,
+                sku: priceVariant.sku,
+              },
+            });
+
+            // This array will collect options that need linking
+            const optionsToLink: string[] = [];
+
+            // Try to map each option to its real ID
+            for (let i = 0; i < priceVariant.optionCombination.length; i++) {
+              const optionKey = priceVariant.optionCombination[i];
+              let realOptionId = variationOptionsMap.get(optionKey);
+
+              // If we can't find it directly, try other formats
+              if (
+                !realOptionId &&
+                priceVariant.optionLabels &&
+                priceVariant.optionLabels[i]
+              ) {
+                // Format: "Variation: Option"
+                const label = priceVariant.optionLabels[i];
+                const parts = label.split(":").map((p) => p.trim());
+
+                if (parts.length === 2) {
+                  const variationName = parts[0];
+                  const optionName = parts[1];
+
+                  // Try to find by combined key
+                  realOptionId = variationOptionsMap.get(
+                    `${variationName}-${optionName}`
+                  );
+
+                  // Or by templatized key
+                  if (!realOptionId) {
+                    realOptionId = variationOptionsMap.get(
+                      `temp-${variationName}-${optionName}`
+                    );
+                  }
+                }
+              }
+
+              // If we found a valid ID, add it to our list
+              if (realOptionId) {
+                optionsToLink.push(realOptionId);
+              }
+            }
+
+            // Now create connections for all options that were successfully mapped
+            for (const realOptionId of optionsToLink) {
+              try {
+                await db.priceVariantToOption.create({
+                  data: {
+                    priceVariantId: createdPriceVariant.id,
+                    optionId: realOptionId,
+                  },
+                });
+              } catch (error) {
+                console.error(
+                  `Failed to link option ${realOptionId} to price variant:`,
+                  error
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // Return the created product with relationships
+      return this.getProductBySlug(slug) as Promise<Product>;
+    } catch (error) {
+      console.error("Error in createProduct:", error);
+      throw error;
+    }
   },
 
   /**
