@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { ProductService } from "@/lib/services/product-service";
 import { verifyToken } from "@/lib/auth/auth";
 
-// Get products with filtering and pagination
+/**
+ * Mengambil daftar produk dengan filter dan paginasi
+ *
+ * @param req - Request dari Next.js
+ * @returns Response JSON dengan daftar produk terpaginasi atau pesan kesalahan
+ */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -26,26 +31,30 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Failed to fetch products:", error);
+    console.error("Gagal mengambil produk:", error);
     return NextResponse.json(
-      { error: "Failed to fetch products" },
+      { error: "Gagal mengambil produk" },
       { status: 500 }
     );
   }
 }
 
-// Create a new product
+/**
+ * Membuat produk baru
+ *
+ * @param req - Request dari Next.js yang berisi data produk baru
+ * @returns Response JSON dengan produk yang berhasil dibuat atau pesan kesalahan
+ */
 export async function POST(req: NextRequest) {
   try {
-    // Verify authentication - make this more robust
+    // Verifikasi autentikasi (dinonaktifkan untuk pengembangan)
     const token = req.cookies.get("authToken")?.value;
 
-    // For development purposes, allow requests without auth token
-    // Remove this in production and uncomment the authentication check
+    // Untuk lingkungan produksi, aktifkan kode ini
     /*
     if (!token) {
       return NextResponse.json(
-        { error: "Authentication required" },
+        { error: "Autentikasi diperlukan" },
         { status: 401 }
       );
     }
@@ -53,7 +62,7 @@ export async function POST(req: NextRequest) {
     const payload = verifyToken(token);
     if (!payload || payload.role !== "admin") {
       return NextResponse.json(
-        { error: "Unauthorized: Admin access required" },
+        { error: "Tidak diizinkan: Akses admin diperlukan" },
         { status: 403 }
       );
     }
@@ -61,16 +70,17 @@ export async function POST(req: NextRequest) {
 
     const data = await req.json();
 
-    // Create the product
+    // Buat produk menggunakan layanan
     const product = await ProductService.createProduct(data);
 
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
-    console.error("Failed to create product:", error);
+    console.error("Gagal membuat produk:", error);
     return NextResponse.json(
       {
-        error: "Failed to create product",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: "Gagal membuat produk",
+        details:
+          error instanceof Error ? error.message : "Kesalahan tidak diketahui",
       },
       { status: 500 }
     );

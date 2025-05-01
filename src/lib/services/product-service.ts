@@ -7,7 +7,7 @@
  */
 
 import { db } from "@/lib/db";
-import { Prisma, Product as PrismaProduct } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { CloudinaryService } from "./cloudinary-service";
 import {
   CreateProductInput,
@@ -18,19 +18,19 @@ import {
   Meta,
 } from "@/types/product";
 import { PaginatedResult } from "@/types/common";
-import { generateSearchKeywords, slugify } from "@/lib/utils";
+import { slugify } from "@/lib/utils";
 
 /**
- * Helper type for Prisma JSON fields to ensure compatibility
- * This allows for any string key with any value
+ * Tipe pembantu untuk field JSON Prisma untuk memastikan kompatibilitas
+ * Ini memungkinkan key string dengan nilai apapun
  */
 type PrismaJsonObject = { [key: string]: any };
 
 export const ProductService = {
   /**
-   * Convert typed objects to Prisma-compatible JSON objects
-   * @param obj - The typed object to convert
-   * @returns A Prisma-compatible JSON object
+   * Mengkonversi objek bertipe ke objek JSON yang kompatibel dengan Prisma
+   * @param obj - Objek bertipe yang akan dikonversi
+   * @returns Objek JSON yang kompatibel dengan Prisma
    */
   _toPrismaJson<T>(
     obj: T | null | undefined
@@ -43,14 +43,14 @@ export const ProductService = {
       return undefined;
     }
 
-    // Convert the typed object to a plain object that Prisma can handle
+    // Konversi objek bertipe ke objek biasa yang dapat ditangani Prisma
     return JSON.parse(JSON.stringify(obj)) as PrismaJsonObject;
   },
 
   /**
-   * Helper to convert an array of typed objects to Prisma JSON array
-   * @param array - Array of typed objects
-   * @returns Prisma-compatible JSON array
+   * Pembantu untuk mengkonversi array objek bertipe ke array JSON Prisma
+   * @param array - Array objek bertipe
+   * @returns Array JSON yang kompatibel dengan Prisma
    */
   _toPrismaJsonArray<T>(
     array: T[] | null | undefined
@@ -93,31 +93,31 @@ export const ProductService = {
 
       if (!product) return null;
 
-      // Log the found product's price variants and their options for debugging
+      // Catat varian harga produk dan opsinya untuk debugging
       if (product.priceVariants.length > 0) {
         console.log(
-          `Found product ${product.name} with ${product.priceVariants.length} price variants`
+          `Produk ditemukan ${product.name} dengan ${product.priceVariants.length} varian harga`
         );
 
         for (const variant of product.priceVariants) {
           console.log(
-            `Price variant ${variant.id}: price=${variant.price}, stock=${variant.stock}, with ${variant.options.length} options`
+            `Varian harga ${variant.id}: harga=${variant.price}, stok=${variant.stock}, dengan ${variant.options.length} opsi`
           );
 
-          // Log each connected option
+          // Catat setiap opsi yang terhubung
           variant.options.forEach((connection) => {
             console.log(
-              `- Connected to option: ${connection.option.name} (ID: ${connection.option.id})`
+              `- Terhubung ke opsi: ${connection.option.name} (ID: ${connection.option.id})`
             );
           });
         }
       } else {
-        console.log(`Product ${product.name} has no price variants`);
+        console.log(`Produk ${product.name} tidak memiliki varian harga`);
       }
 
       return product as unknown as Product | null;
     } catch (error) {
-      console.error(`Error fetching product by slug ${slug}:`, error);
+      console.error(`Error mengambil produk dengan slug ${slug}:`, error);
       throw error;
     }
   },
@@ -150,10 +150,10 @@ export const ProductService = {
 
     const skip = (page - 1) * limit;
 
-    // Build query filters
+    // Bangun filter query
     const where: any = {};
 
-    // Add search
+    // Tambahkan pencarian
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -161,22 +161,22 @@ export const ProductService = {
       ];
     }
 
-    // Add category filter
+    // Tambahkan filter kategori
     if (categoryId && categoryId !== "all") {
       where.categoryId = categoryId;
     }
 
-    // Add collection filter
+    // Tambahkan filter koleksi
     if (collectionId && collectionId !== "all") {
       where.collectionId = collectionId;
     }
 
-    // Add special label filter
+    // Tambahkan filter label khusus
     if (specialLabel && specialLabel !== "all") {
       where.specialLabel = specialLabel;
     }
 
-    // Determine sorting
+    // Tentukan pengurutan
     const orderBy: any = {};
     switch (sortBy) {
       case "newest":
@@ -201,7 +201,7 @@ export const ProductService = {
         orderBy.createdAt = "desc";
     }
 
-    // Get products with pagination and filtering
+    // Ambil produk dengan paginasi dan filter
     const products = await db.product.findMany({
       where,
       include: {
@@ -213,7 +213,7 @@ export const ProductService = {
       orderBy,
     });
 
-    // Get total count for pagination
+    // Dapatkan jumlah total untuk paginasi
     const total = await db.product.count({ where });
 
     return {
@@ -228,7 +228,7 @@ export const ProductService = {
   },
 
   /**
-   * Helper untuk memproses field JSON dengan nilai null
+   * Pembantu untuk memproses field JSON dengan nilai null
    * @param value - Nilai yang mungkin null
    * @returns Nilai yang diformat untuk Prisma JSON
    */
@@ -247,10 +247,10 @@ export const ProductService = {
    * @returns Produk yang dibuat
    */
   async createProduct(data: CreateProductInput): Promise<Product> {
-    // Generate slug if not provided
+    // Hasilkan slug jika tidak disediakan
     const slug = data.slug || slugify(data.name);
 
-    // Check if slug already exists
+    // Periksa apakah slug sudah ada
     const existingProduct = await db.product.findUnique({
       where: { slug },
     });
@@ -259,7 +259,7 @@ export const ProductService = {
       throw new Error(`Produk dengan slug '${slug}' sudah ada`);
     }
 
-    // Process JSON fields using the converter functions
+    // Proses field JSON menggunakan fungsi konverter
     const featuredImage = this._toPrismaJson(data.featuredImage);
     const additionalImages = this._toPrismaJsonArray(
       data.additionalImages || []
@@ -267,8 +267,8 @@ export const ProductService = {
     const dimensions = this._toPrismaJson(data.dimensions);
     const meta = this._toPrismaJson(data.meta);
 
-    // For products with variations, ensure basePrice and baseStock are set to null
-    // This fixes the inconsistency when creating products with variations
+    // Untuk produk dengan variasi, pastikan basePrice dan baseStock diatur ke null
+    // Ini memperbaiki inkonsistensi saat membuat produk dengan variasi
     let basePrice = data.basePrice;
     let baseStock = data.baseStock;
 
@@ -278,7 +278,7 @@ export const ProductService = {
     }
 
     try {
-      // Create the product
+      // Buat produk
       const product = await db.product.create({
         data: {
           name: data.name,
@@ -299,16 +299,16 @@ export const ProductService = {
       });
 
       console.log(
-        `Created product with ID: ${product.id}, slug: ${product.slug}`
+        `Produk berhasil dibuat dengan ID: ${product.id}, slug: ${product.slug}`
       );
 
-      // Create variations if they exist
+      // Buat variasi jika ada
       if (data.hasVariations && data.variations && data.variations.length > 0) {
-        const variationOptionsMap = new Map<string, string>(); // Map to store temp ID -> actual DB ID
+        const variationOptionsMap = new Map<string, string>(); // Map untuk menyimpan ID temporer -> ID database sebenarnya
 
-        // Process each variation
+        // Proses setiap variasi
         for (const variation of data.variations) {
-          console.log(`Creating variation: ${variation.name}`);
+          console.log(`Membuat variasi: ${variation.name}`);
 
           const createdVariation = await db.productVariation.create({
             data: {
@@ -317,7 +317,11 @@ export const ProductService = {
             },
           });
 
-          // Create options for this variation
+          console.log(
+            `Variasi berhasil dibuat dengan ID: ${createdVariation.id}`
+          );
+
+          // Buat opsi untuk variasi ini
           if (variation.options && variation.options.length > 0) {
             for (const option of variation.options) {
               const createdOption = await db.productVariationOption.create({
@@ -328,19 +332,22 @@ export const ProductService = {
                 },
               });
 
-              // Store both the optionId directly and with temp prefixes
-              // This ensures we catch all possible formats from frontend
+              console.log(
+                `Opsi dibuat: ${option.name} dengan ID: ${createdOption.id}`
+              );
+
+              // Simpan pemetaan ID dari ID temporer ke ID database sebenarnya
               if (option.id) {
                 variationOptionsMap.set(option.id, createdOption.id);
               }
 
-              // Also store with temp prefix for cases where it comes from the store
+              // Simpan dengan prefiks temporer untuk kasus dari store
               variationOptionsMap.set(
                 `temp-${variation.name}-${option.name}`,
                 createdOption.id
               );
 
-              // And store direct mapping
+              // Simpan pemetaan langsung
               variationOptionsMap.set(
                 `${variation.name}-${option.name}`,
                 createdOption.id
@@ -349,10 +356,10 @@ export const ProductService = {
           }
         }
 
-        // Create price variants if they exist
+        // Buat varian harga jika ada
         if (data.priceVariants && data.priceVariants.length > 0) {
           for (const priceVariant of data.priceVariants) {
-            // Skip if missing required data
+            // Lewati jika data yang diperlukan tidak ada
             if (
               priceVariant.price === null ||
               priceVariant.stock === null ||
@@ -362,7 +369,7 @@ export const ProductService = {
               continue;
             }
 
-            // Create the price variant
+            // Buat varian harga
             const createdPriceVariant = await db.priceVariant.create({
               data: {
                 productId: product.id,
@@ -372,21 +379,21 @@ export const ProductService = {
               },
             });
 
-            // This array will collect options that need linking
+            // Array ini akan mengumpulkan opsi yang perlu dihubungkan
             const optionsToLink: string[] = [];
 
-            // Try to map each option to its real ID
+            // Coba mapkan setiap opsi ke ID sebenarnya
             for (let i = 0; i < priceVariant.optionCombination.length; i++) {
               const optionKey = priceVariant.optionCombination[i];
               let realOptionId = variationOptionsMap.get(optionKey);
 
-              // If we can't find it directly, try other formats
+              // Jika tidak dapat menemukannya secara langsung, coba format lain
               if (
                 !realOptionId &&
                 priceVariant.optionLabels &&
                 priceVariant.optionLabels[i]
               ) {
-                // Format: "Variation: Option"
+                // Format: "Variasi: Opsi"
                 const label = priceVariant.optionLabels[i];
                 const parts = label.split(":").map((p) => p.trim());
 
@@ -394,12 +401,12 @@ export const ProductService = {
                   const variationName = parts[0];
                   const optionName = parts[1];
 
-                  // Try to find by combined key
+                  // Coba temukan berdasarkan key gabungan
                   realOptionId = variationOptionsMap.get(
                     `${variationName}-${optionName}`
                   );
 
-                  // Or by templatized key
+                  // Atau dengan key template
                   if (!realOptionId) {
                     realOptionId = variationOptionsMap.get(
                       `temp-${variationName}-${optionName}`
@@ -408,13 +415,13 @@ export const ProductService = {
                 }
               }
 
-              // If we found a valid ID, add it to our list
+              // Jika ditemukan ID yang valid, tambahkan ke daftar
               if (realOptionId) {
                 optionsToLink.push(realOptionId);
               }
             }
 
-            // Now create connections for all options that were successfully mapped
+            // Sekarang buat koneksi untuk semua opsi yang berhasil dipetakan
             for (const realOptionId of optionsToLink) {
               try {
                 await db.priceVariantToOption.create({
@@ -425,7 +432,7 @@ export const ProductService = {
                 });
               } catch (error) {
                 console.error(
-                  `Failed to link option ${realOptionId} to price variant:`,
+                  `Gagal menghubungkan opsi ${realOptionId} ke varian harga:`,
                   error
                 );
               }
@@ -434,10 +441,10 @@ export const ProductService = {
         }
       }
 
-      // Return the created product with relationships
+      // Kembalikan produk yang dibuat dengan relasi
       return this.getProductBySlug(slug) as Promise<Product>;
     } catch (error) {
-      console.error("Error in createProduct:", error);
+      console.error("Error dalam createProduct:", error);
       throw error;
     }
   },
@@ -458,10 +465,10 @@ export const ProductService = {
       throw new Error(`Produk dengan slug '${slug}' tidak ditemukan`);
     }
 
-    // Process JSON fields for Prisma using the new converter functions
+    // Proses field JSON untuk Prisma menggunakan fungsi konverter
     let updateData: any = { ...data };
 
-    // Handle any JSON fields
+    // Tangani field JSON
     if ("featuredImage" in data) {
       updateData.featuredImage = this._toPrismaJson(data.featuredImage);
     }
@@ -480,7 +487,7 @@ export const ProductService = {
       updateData.meta = this._toPrismaJson(data.meta);
     }
 
-    // Handle featured image changes - cleanup old image if changed
+    // Tangani perubahan gambar utama - bersihkan gambar lama jika berubah
     if (
       data.featuredImage &&
       product.featuredImage &&
@@ -491,15 +498,15 @@ export const ProductService = {
           await CloudinaryService.deleteImageByUrl(product.featuredImage.url);
         }
       } catch (error) {
-        // Log but continue with update
-        console.error("Failed to delete old featured image:", error);
+        // Catat tapi lanjutkan dengan pembaruan
+        console.error("Gagal menghapus gambar utama lama:", error);
       }
     }
 
-    // Handle additional images changes
+    // Tangani perubahan gambar tambahan
     if (data.additionalImages) {
       try {
-        // Find images that are in the old set but not in the new set
+        // Temukan gambar yang ada di set lama tapi tidak ada di set baru
         const oldUrls = (product.additionalImages || [])
           .map((img) => img?.url)
           .filter(Boolean);
@@ -507,20 +514,20 @@ export const ProductService = {
           .map((img) => img?.url)
           .filter(Boolean);
 
-        // Determine images to delete
+        // Tentukan gambar yang akan dihapus
         const urlsToDelete = oldUrls.filter((url) => !newUrls.includes(url));
 
-        // Delete removed images
+        // Hapus gambar yang dihapus
         for (const url of urlsToDelete) {
           await CloudinaryService.deleteImageByUrl(url);
         }
       } catch (error) {
-        // Log but continue with update
-        console.error("Error cleaning up additional images:", error);
+        // Catat tapi lanjutkan dengan pembaruan
+        console.error("Error membersihkan gambar tambahan:", error);
       }
     }
 
-    // If slug is changing, check for uniqueness
+    // Jika slug berubah, periksa keunikannya
     if (data.slug && data.slug !== slug) {
       const existingWithSlug = await db.product.findUnique({
         where: { slug: data.slug },
@@ -531,16 +538,16 @@ export const ProductService = {
       }
     }
 
-    // Update the base product
+    // Perbarui produk dasar
     const updatedProduct = await db.product.update({
       where: { id: product.id },
       data: updateData,
     });
 
-    // Handle variation updates
+    // Tangani pembaruan variasi
     if (data.hasVariations && data.variations) {
-      // Complex variation updates would go here
-      // This would involve comparing old vs new variations and updating accordingly
+      // Pembaruan variasi yang kompleks akan di sini
+      // Ini akan melibatkan perbandingan variasi lama vs baru dan memperbarui sesuai
     }
 
     return this.getProductBySlug(updatedProduct.slug) as Promise<Product>;
@@ -549,6 +556,7 @@ export const ProductService = {
   /**
    * Menghapus produk dan gambar terkait
    * @param slug - Slug produk
+   * @returns Status keberhasilan dan pesan opsional
    */
   async deleteProduct(
     slug: string
@@ -560,19 +568,19 @@ export const ProductService = {
     }
 
     try {
-      // Delete the product from database first
+      // Hapus produk dari database terlebih dahulu
       await db.product.delete({
         where: { id: product.id },
       });
 
-      // Clean up images
+      // Bersihkan gambar
       try {
-        // Delete featured image
+        // Hapus gambar utama
         if (product.featuredImage?.url) {
           await CloudinaryService.deleteImageByUrl(product.featuredImage.url);
         }
 
-        // Delete additional images
+        // Hapus gambar tambahan
         if (
           product.additionalImages &&
           Array.isArray(product.additionalImages)
@@ -584,19 +592,19 @@ export const ProductService = {
           }
         }
       } catch (error) {
-        // Log but continue (product is already deleted from DB)
-        console.error("Error cleaning up product images:", error);
+        // Catat tapi lanjutkan (produk sudah dihapus dari DB)
+        console.error("Error membersihkan gambar produk:", error);
       }
 
       return { success: true };
     } catch (error) {
-      console.error("Error deleting product:", error);
+      console.error("Error menghapus produk:", error);
       return {
         success: false,
         message:
           error instanceof Error
             ? error.message
-            : "Unknown error deleting product",
+            : "Error tidak diketahui saat menghapus produk",
       };
     }
   },

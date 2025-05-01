@@ -3,7 +3,13 @@ import { ProductService } from "@/lib/services/product-service";
 import { verifyToken } from "@/lib/auth/auth";
 import { revalidatePath } from "next/cache";
 
-// Get a single product by slug
+/**
+ * Mengambil produk berdasarkan slug
+ *
+ * @param req - Request dari Next.js
+ * @param params - Parameter dinamis dari URL (slug)
+ * @returns Response JSON dengan detail produk atau pesan kesalahan
+ */
 export async function GET(
   req: NextRequest,
   { params }: { params: { slug: string } }
@@ -13,30 +19,39 @@ export async function GET(
     const product = await ProductService.getProductBySlug(slug);
 
     if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Produk tidak ditemukan" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(product);
   } catch (error) {
-    console.error("Error fetching product:", error);
+    console.error("Gagal mengambil produk:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Kesalahan server internal" },
       { status: 500 }
     );
   }
 }
 
-// Update a product
+/**
+ * Memperbarui produk berdasarkan slug
+ *
+ * @param req - Request dari Next.js dengan data pembaruan
+ * @param params - Parameter dinamis dari URL (slug)
+ * @returns Response JSON dengan produk yang diperbarui atau pesan kesalahan
+ */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    // Verify authentication
+    // Verifikasi autentikasi
     const token = req.cookies.get("authToken")?.value;
     if (!token) {
       return NextResponse.json(
-        { error: "Authentication required" },
+        { error: "Autentikasi diperlukan" },
         { status: 401 }
       );
     }
@@ -44,7 +59,7 @@ export async function PATCH(
     const payload = verifyToken(token);
     if (!payload || payload.role !== "admin") {
       return NextResponse.json(
-        { error: "Unauthorized: Admin access required" },
+        { error: "Tidak diizinkan: Akses admin diperlukan" },
         { status: 403 }
       );
     }
@@ -54,35 +69,42 @@ export async function PATCH(
 
     const product = await ProductService.updateProduct(slug, body);
 
-    // Revalidate paths
+    // Perbarui cache untuk path terkait
     revalidatePath("/products");
     revalidatePath(`/products/${product.slug}`);
     revalidatePath("/dashboard/admin/product");
 
     return NextResponse.json(product);
   } catch (error) {
-    console.error("Error updating product:", error);
+    console.error("Gagal memperbarui produk:", error);
     return NextResponse.json(
       {
-        error: "Failed to update product",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: "Gagal memperbarui produk",
+        details:
+          error instanceof Error ? error.message : "Kesalahan tidak diketahui",
       },
       { status: 500 }
     );
   }
 }
 
-// Delete a product
+/**
+ * Menghapus produk berdasarkan slug
+ *
+ * @param req - Request dari Next.js
+ * @param params - Parameter dinamis dari URL (slug)
+ * @returns Response JSON dengan status keberhasilan atau pesan kesalahan
+ */
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    // Verify authentication
+    // Verifikasi autentikasi
     const token = req.cookies.get("authToken")?.value;
     if (!token) {
       return NextResponse.json(
-        { error: "Authentication required" },
+        { error: "Autentikasi diperlukan" },
         { status: 401 }
       );
     }
@@ -90,7 +112,7 @@ export async function DELETE(
     const payload = verifyToken(token);
     if (!payload || payload.role !== "admin") {
       return NextResponse.json(
-        { error: "Unauthorized: Admin access required" },
+        { error: "Tidak diizinkan: Akses admin diperlukan" },
         { status: 403 }
       );
     }
@@ -100,22 +122,23 @@ export async function DELETE(
 
     if (!result.success) {
       return NextResponse.json(
-        { error: result.message || "Failed to delete product" },
+        { error: result.message || "Gagal menghapus produk" },
         { status: 500 }
       );
     }
 
-    // Revalidate paths
+    // Perbarui cache untuk path terkait
     revalidatePath("/products");
     revalidatePath("/dashboard/admin/product");
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting product:", error);
+    console.error("Gagal menghapus produk:", error);
     return NextResponse.json(
       {
-        error: "Failed to delete product",
-        details: error instanceof Error ? error.message : "Unknown error",
+        error: "Gagal menghapus produk",
+        details:
+          error instanceof Error ? error.message : "Kesalahan tidak diketahui",
       },
       { status: 500 }
     );

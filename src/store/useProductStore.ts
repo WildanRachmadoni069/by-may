@@ -1,41 +1,79 @@
+/**
+ * Store Produk
+ *
+ * Store ini mengelola state produk untuk digunakan di seluruh aplikasi,
+ * termasuk daftar produk, filter, paginasi, dan operasi CRUD.
+ */
+
 import { create } from "zustand";
 import {
   Product,
-  ProductCreateInput,
-  ProductUpdateInput,
-  ProductsFilter,
-  ProductsResponse,
+  CreateProductInput,
+  UpdateProductInput,
 } from "@/types/product";
 import { PaginationInfo } from "@/types/common";
 import {
   getProducts,
   getProductBySlug,
-  getProductById,
   createProduct,
   updateProduct as updateProductApi,
   deleteProduct,
 } from "@/lib/api/products";
 
+/**
+ * Tipe data untuk filter pencarian produk
+ */
+interface ProductsFilter {
+  /** Kategori produk */
+  category: string;
+  /** Koleksi produk */
+  collection: string;
+  /** Metode pengurutan */
+  sortBy: string;
+  /** Kata kunci pencarian */
+  searchQuery: string;
+  /** Nomor halaman saat ini */
+  page?: number;
+}
+
+/**
+ * Interface untuk state store produk
+ */
 interface ProductState {
+  /** Daftar produk saat ini */
   products: Product[];
+  /** Produk yang sedang dipilih */
   selectedProduct: Product | null;
+  /** Status loading */
   loading: boolean;
+  /** Pesan error */
   error: string | null;
+  /** Informasi paginasi */
   pagination: PaginationInfo;
+  /** Filter pencarian */
   filters: ProductsFilter;
 
-  fetchProducts: (options?: ProductsFilter) => Promise<void>;
+  /** Mengambil daftar produk dengan filter */
+  fetchProducts: (options?: Partial<ProductsFilter>) => Promise<void>;
+  /** Mengambil produk berdasarkan slug */
   fetchProductBySlug: (slug: string) => Promise<Product | null>;
-  fetchProductById: (id: string) => Promise<Product | null>;
-  fetchProduct: (idOrSlug: string) => Promise<Product | null>;
+  /** Mengatur filter pencarian */
   setFilters: (filters: Partial<ProductsFilter>) => void;
+  /** Mengatur ulang filter ke nilai default */
   resetFilters: () => void;
-  addProduct: (product: ProductCreateInput) => Promise<Product>;
-  updateProduct: (slug: string, data: ProductUpdateInput) => Promise<Product>;
+  /** Menambahkan produk baru */
+  addProduct: (product: CreateProductInput) => Promise<Product>;
+  /** Memperbarui produk yang ada */
+  updateProduct: (slug: string, data: UpdateProductInput) => Promise<Product>;
+  /** Menghapus produk */
   removeProduct: (slug: string) => Promise<boolean>;
+  /** Mengatur produk yang dipilih */
   setSelectedProduct: (product: Product | null) => void;
 }
 
+/**
+ * Store Zustand untuk mengelola produk
+ */
 export const useProductStore = create<ProductState>((set, get) => ({
   products: [],
   selectedProduct: null,
@@ -54,6 +92,9 @@ export const useProductStore = create<ProductState>((set, get) => ({
     searchQuery: "",
   },
 
+  /**
+   * Mengambil daftar produk dengan filter dan paginasi
+   */
   fetchProducts: async (options = {}) => {
     const { filters } = get();
     const mergedOptions = { ...filters, ...options };
@@ -74,6 +115,9 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
+  /**
+   * Mengambil produk berdasarkan slug
+   */
   fetchProductBySlug: async (slug: string) => {
     set({ loading: true, error: null });
     try {
@@ -92,41 +136,18 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
-  fetchProductById: async (id: string) => {
-    set({ loading: true, error: null });
-    try {
-      const product = await getProductById(id);
-      if (product) {
-        set({ selectedProduct: product });
-      }
-      set({ loading: false });
-      return product;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Gagal mengambil produk";
-      console.error("Error saat mengambil produk berdasarkan ID:", error);
-      set({ error: errorMessage, loading: false });
-      return null;
-    }
-  },
-
-  fetchProduct: async (idOrSlug: string) => {
-    const uuidPattern =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-    if (uuidPattern.test(idOrSlug)) {
-      return get().fetchProductById(idOrSlug);
-    } else {
-      return get().fetchProductBySlug(idOrSlug);
-    }
-  },
-
+  /**
+   * Mengatur filter pencarian
+   */
   setFilters: (newFilters) => {
     set((state) => ({
       filters: { ...state.filters, ...newFilters },
     }));
   },
 
+  /**
+   * Mengatur ulang filter ke nilai default
+   */
   resetFilters: () => {
     set({
       filters: {
@@ -139,7 +160,10 @@ export const useProductStore = create<ProductState>((set, get) => ({
     });
   },
 
-  addProduct: async (productData: ProductCreateInput) => {
+  /**
+   * Menambahkan produk baru
+   */
+  addProduct: async (productData: CreateProductInput) => {
     set({ loading: true, error: null });
     try {
       const newProduct = await createProduct(productData);
@@ -156,7 +180,10 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
-  updateProduct: async (slug: string, data: ProductUpdateInput) => {
+  /**
+   * Memperbarui produk yang ada
+   */
+  updateProduct: async (slug: string, data: UpdateProductInput) => {
     set({ loading: true, error: null });
     try {
       const updatedProduct = await updateProductApi(slug, data);
@@ -179,6 +206,9 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
+  /**
+   * Menghapus produk
+   */
   removeProduct: async (slug: string) => {
     try {
       const result = await deleteProduct(slug);
@@ -202,6 +232,9 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 
+  /**
+   * Mengatur produk yang dipilih
+   */
   setSelectedProduct: (product) => {
     set({ selectedProduct: product });
   },

@@ -1,82 +1,136 @@
+/**
+ * Store Variasi Produk
+ *
+ * Store ini mengelola state variasi produk, opsi variasi, dan varian harga
+ * untuk digunakan dalam formulir pembuatan dan pengeditan produk.
+ */
+
 import { create } from "zustand";
 
-// Type definitions for variations
+/**
+ * Tipe data untuk opsi variasi
+ */
 export interface VariationOption {
+  /** ID opsi, opsional untuk opsi baru */
   id?: string;
+  /** Nama opsi (contoh: "Merah", "XL") */
   name: string;
+  /** URL gambar opsi, opsional */
   imageUrl?: string;
 }
 
+/**
+ * Tipe data untuk variasi produk
+ */
 export interface Variation {
+  /** ID variasi, opsional untuk variasi baru */
   id?: string;
+  /** Nama variasi (contoh: "Warna", "Ukuran") */
   name: string;
+  /** Daftar opsi dalam variasi ini */
   options: VariationOption[];
 }
 
+/**
+ * Tipe data untuk varian harga
+ */
 export interface PriceVariant {
+  /** ID varian harga, opsional untuk varian baru */
   id?: string;
+  /** ID-ID opsi yang membentuk kombinasi ini */
   optionIds: string[];
+  /** Harga varian */
   price: number;
+  /** Stok varian */
   stock: number;
+  /** Kode SKU opsional */
   sku?: string;
 }
 
-// Add these types to the store
+/**
+ * Tipe data untuk item varian harga yang digunakan dalam UI
+ */
 export interface PriceVariantItem {
+  /** ID varian harga, opsional untuk varian baru */
   id?: string;
-  optionCombination: string[]; // Array of option IDs or names that make up this combination
-  optionLabels: string[]; // Human-readable labels for display
+  /** Array ID atau nama opsi yang membentuk kombinasi ini */
+  optionCombination: string[];
+  /** Label yang dapat dibaca untuk tampilan UI */
+  optionLabels: string[];
+  /** Harga varian */
   price: number | null;
+  /** Stok varian */
   stock: number | null;
+  /** Kode SKU varian */
   sku?: string;
 }
 
+/**
+ * Interface untuk state store variasi produk
+ */
 interface ProductVariationState {
-  // State
+  /** Menunjukkan apakah produk memiliki variasi */
   hasVariations: boolean;
+  /** Daftar variasi produk */
   variations: Variation[];
-  openVariationForms: number[]; // Track which variation forms are open
+  /** Indeks variasi yang sedang dalam mode edit */
+  openVariationForms: number[];
+  /** Daftar varian harga beserta kombinasi opsinya */
   priceVariants: PriceVariantItem[];
 
-  // Actions
+  // Aksi-aksi yang dapat dilakukan pada store
+  /** Mengatur status memiliki variasi */
   setHasVariations: (hasVariations: boolean) => void;
+  /** Menambahkan variasi baru */
   addVariation: () => void;
+  /** Memperbarui variasi yang ada */
   updateVariation: (index: number, variation: Partial<Variation>) => void;
+  /** Menghapus variasi */
   removeVariation: (index: number) => void;
+  /** Menambahkan opsi baru ke variasi */
   addOptionToVariation: (variationIndex: number) => void;
+  /** Memperbarui opsi dalam variasi */
   updateOptionInVariation: (
     variationIndex: number,
     optionIndex: number,
     option: Partial<VariationOption>
   ) => void;
+  /** Menghapus opsi dari variasi */
   removeOptionFromVariation: (
     variationIndex: number,
     optionIndex: number
   ) => void;
+  /** Mengatur ulang semua variasi */
   resetVariations: () => void;
+  /** Mengimpor variasi dari sumber eksternal */
   importVariations: (variations: Variation[]) => void;
+  /** Mengatur status formulir variasi terbuka/tertutup */
   setVariationFormOpen: (index: number, isOpen: boolean) => void;
 
-  // New actions for price variant management
+  /** Menghasilkan varian harga berdasarkan kombinasi opsi */
   generatePriceVariants: () => void;
+  /** Memperbarui varian harga */
   updatePriceVariant: (
     combinationKey: string,
     data: Partial<PriceVariantItem>
   ) => void;
 }
 
+/**
+ * Store Zustand untuk mengelola variasi produk dan varian harga
+ */
 export const useProductVariationStore = create<ProductVariationState>(
   (set, get) => ({
-    // Initial state
+    // State awal
     hasVariations: false,
     variations: [],
     openVariationForms: [],
     priceVariants: [],
 
-    // Toggle variations on/off
+    // Mengaktifkan atau menonaktifkan variasi
     setHasVariations: (hasVariations) =>
       set((state) => {
-        // If turning on variations and none exist, create an initial one
+        // Jika mengaktifkan variasi dan belum ada variasi, buat satu variasi awal
         if (hasVariations && state.variations.length === 0) {
           return {
             hasVariations,
@@ -84,7 +138,7 @@ export const useProductVariationStore = create<ProductVariationState>(
           };
         }
 
-        // If turning off variations, clear price variants
+        // Jika menonaktifkan variasi, hapus varian harga
         if (!hasVariations) {
           return {
             hasVariations,
@@ -95,7 +149,7 @@ export const useProductVariationStore = create<ProductVariationState>(
         return { hasVariations };
       }),
 
-    // Add a new variation (limited to 2)
+    // Menambahkan variasi baru (dibatasi hingga 2 variasi)
     addVariation: () =>
       set((state) => {
         if (state.variations.length >= 2) return state;
@@ -108,7 +162,7 @@ export const useProductVariationStore = create<ProductVariationState>(
         };
       }),
 
-    // Update a variation's properties
+    // Memperbarui properti variasi
     updateVariation: (index, variation) =>
       set((state) => {
         const newVariations = [...state.variations];
@@ -118,14 +172,14 @@ export const useProductVariationStore = create<ProductVariationState>(
         return { variations: newVariations };
       }),
 
-    // Remove a variation
+    // Menghapus variasi
     removeVariation: (index) =>
       set((state) => {
         const newVariations = [...state.variations];
         if (index >= 0 && index < newVariations.length) {
           newVariations.splice(index, 1);
 
-          // If removing the last variation, turn off hasVariations
+          // Jika menghapus variasi terakhir, nonaktifkan hasVariations
           if (newVariations.length === 0) {
             return { variations: newVariations, hasVariations: false };
           }
@@ -135,7 +189,7 @@ export const useProductVariationStore = create<ProductVariationState>(
         return state;
       }),
 
-    // Add a new option to a variation
+    // Menambahkan opsi baru ke variasi
     addOptionToVariation: (variationIndex) =>
       set((state) => {
         const newVariations = [...state.variations];
@@ -149,7 +203,7 @@ export const useProductVariationStore = create<ProductVariationState>(
         return state;
       }),
 
-    // Update an option in a variation
+    // Memperbarui opsi dalam variasi
     updateOptionInVariation: (variationIndex, optionIndex, option) =>
       set((state) => {
         const newVariations = [...state.variations];
@@ -175,7 +229,7 @@ export const useProductVariationStore = create<ProductVariationState>(
         return state;
       }),
 
-    // Remove an option from a variation
+    // Menghapus opsi dari variasi
     removeOptionFromVariation: (variationIndex, optionIndex) =>
       set((state) => {
         const newVariations = [...state.variations];
@@ -185,7 +239,7 @@ export const useProductVariationStore = create<ProductVariationState>(
           optionIndex >= 0 &&
           optionIndex < newVariations[variationIndex].options.length
         ) {
-          // Don't remove if it's the last option
+          // Jangan hapus jika ini adalah opsi terakhir
           if (newVariations[variationIndex].options.length <= 1) {
             return state;
           }
@@ -203,17 +257,17 @@ export const useProductVariationStore = create<ProductVariationState>(
         return state;
       }),
 
-    // Reset all variations
+    // Mengatur ulang semua variasi
     resetVariations: () => set({ variations: [], hasVariations: false }),
 
-    // Import variations from an external source (e.g. for editing)
+    // Mengimpor variasi dari sumber eksternal
     importVariations: (variations) =>
       set({
         variations,
         hasVariations: variations.length > 0,
       }),
 
-    // Toggle variation form open/closed
+    // Mengatur status formulir variasi terbuka/tertutup
     setVariationFormOpen: (index, isOpen) =>
       set((state) => {
         if (isOpen && !state.openVariationForms.includes(index)) {
@@ -229,30 +283,30 @@ export const useProductVariationStore = create<ProductVariationState>(
         return state;
       }),
 
-    // Generate price variants based on current variations
+    // Menghasilkan varian harga berdasarkan kombinasi opsi yang ada
     generatePriceVariants: () => {
       const { variations } = get();
 
-      // If there are no variations, don't generate price variants
+      // Jika tidak ada variasi, jangan hasilkan varian harga
       if (variations.length === 0) {
         set({ priceVariants: [] });
         return;
       }
 
-      // Get existing price variants to preserve values
+      // Dapatkan varian harga yang sudah ada untuk mempertahankan nilai
       const existingPriceVariants = get().priceVariants;
       console.log(
-        `Generating price variants from ${variations.length} variations`
+        `Menghasilkan varian harga dari ${variations.length} variasi`
       );
-      console.log(`Current variations:`, JSON.stringify(variations, null, 2));
+      console.log(`Variasi saat ini:`, JSON.stringify(variations, null, 2));
 
-      // Helper function to generate option combinations recursively
+      // Fungsi pembantu untuk menghasilkan kombinasi opsi secara rekursif
       const generateCombinations = (
         currentVariationIndex: number,
         currentCombination: string[] = [],
         currentLabels: string[] = []
       ): { combination: string[]; labels: string[] }[] => {
-        // Base case: if we've processed all variations, return the current combination
+        // Kasus dasar: jika semua variasi telah diproses, kembalikan kombinasi saat ini
         if (currentVariationIndex >= variations.length) {
           return [{ combination: currentCombination, labels: currentLabels }];
         }
@@ -260,14 +314,14 @@ export const useProductVariationStore = create<ProductVariationState>(
         const currentVariation = variations[currentVariationIndex];
         let results: { combination: string[]; labels: string[] }[] = [];
 
-        // For each option in the current variation, create a new combination
+        // Untuk setiap opsi dalam variasi saat ini, buat kombinasi baru
         currentVariation.options.forEach((option) => {
-          // Use the actual ID if available, otherwise create a unique temp ID
+          // Gunakan ID yang sebenarnya jika tersedia, jika tidak buat ID sementara
           const optionId =
             option.id || `temp-${currentVariation.name}-${option.name}`;
           const optionLabel = `${currentVariation.name}: ${option.name}`;
 
-          // Recursively generate combinations for the next variation level
+          // Secara rekursif hasilkan kombinasi untuk level variasi berikutnya
           const nextCombinations = generateCombinations(
             currentVariationIndex + 1,
             [...currentCombination, optionId],
@@ -280,29 +334,29 @@ export const useProductVariationStore = create<ProductVariationState>(
         return results;
       };
 
-      // Generate all possible combinations
+      // Hasilkan semua kombinasi yang mungkin
       const allCombinations = generateCombinations(0);
-      console.log(`Generated ${allCombinations.length} combinations`);
+      console.log(`Menghasilkan ${allCombinations.length} kombinasi`);
 
-      // Map to price variant objects, preserving existing values
+      // Petakan ke objek varian harga, pertahankan nilai yang sudah ada
       const newPriceVariants = allCombinations.map(
         ({ combination, labels }) => {
-          // Create a unique key for this combination
+          // Buat kunci unik untuk kombinasi ini
           const combinationKey = combination.join("|");
 
-          // Find existing price variant with the same combination
+          // Temukan varian harga yang ada dengan kombinasi yang sama
           const existingVariant = existingPriceVariants.find(
             (pv) => pv.optionCombination.join("|") === combinationKey
           );
 
-          // Log the mapping for debugging
-          console.log(`Combination: ${combinationKey}`);
-          console.log(`Labels: ${labels.join(", ")}`);
+          // Log pemetaan untuk debugging
+          console.log(`Kombinasi: ${combinationKey}`);
+          console.log(`Label: ${labels.join(", ")}`);
           console.log(
-            `Found existing variant: ${existingVariant ? "yes" : "no"}`
+            `Ditemukan varian yang ada: ${existingVariant ? "ya" : "tidak"}`
           );
 
-          // Use existing values or defaults
+          // Gunakan nilai yang ada atau default
           return {
             id: existingVariant?.id,
             optionCombination: combination,
@@ -317,7 +371,7 @@ export const useProductVariationStore = create<ProductVariationState>(
       set({ priceVariants: newPriceVariants });
     },
 
-    // Update a specific price variant by combination key
+    // Perbarui varian harga tertentu berdasarkan kunci kombinasi
     updatePriceVariant: (combinationKey, data) => {
       set((state) => {
         const updatedVariants = state.priceVariants.map((variant) => {

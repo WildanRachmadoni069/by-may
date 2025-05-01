@@ -1,14 +1,18 @@
 /**
- * API Products untuk Client Components
+ * API Produk untuk Komponen Klien
  *
- * File ini berisi fungsi untuk interaksi dengan API produk
- * dari client components. Untuk operasi server, gunakan product-actions.ts.
+ * File ini berisi fungsi untuk berinteraksi dengan API produk
+ * dari komponen klien. Untuk operasi server, gunakan product-actions.ts.
  */
 
 import { PaginatedResult } from "@/types/common";
 import { Product, CreateProductInput } from "@/types/product";
 
-// Get products with filtering and pagination
+/**
+ * Mengambil produk dengan filter dan paginasi
+ * @param options Opsi filter dan paginasi
+ * @returns Hasil produk terpaginasi
+ */
 export async function getProducts(
   options: {
     page?: number;
@@ -45,13 +49,17 @@ export async function getProducts(
   });
 
   if (!res.ok) {
-    throw new Error("Failed to fetch products");
+    throw new Error("Gagal mengambil produk");
   }
 
   return res.json();
 }
 
-// Get product by slug
+/**
+ * Mengambil produk berdasarkan slug
+ * @param slug Slug produk yang dicari
+ * @returns Produk atau null jika tidak ditemukan
+ */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const res = await fetch(`/api/products/${slug}`, {
     next: { tags: [`product-${slug}`] },
@@ -62,13 +70,17 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 
   if (!res.ok) {
-    throw new Error("Failed to fetch product");
+    throw new Error("Gagal mengambil produk");
   }
 
   return res.json();
 }
 
-// Create a new product
+/**
+ * Membuat produk baru
+ * @param data Data produk yang akan dibuat
+ * @returns Produk yang dibuat
+ */
 export async function createProduct(
   data: CreateProductInput
 ): Promise<Product> {
@@ -83,14 +95,19 @@ export async function createProduct(
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(
-      errorData?.details || errorData?.error || "Failed to create product"
+      errorData?.details || errorData?.error || "Gagal membuat produk"
     );
   }
 
   return res.json();
 }
 
-// Update a product
+/**
+ * Memperbarui produk yang sudah ada
+ * @param slug Slug produk yang akan diperbarui
+ * @param data Data produk yang diperbarui
+ * @returns Produk yang diperbarui
+ */
 export async function updateProduct(
   slug: string,
   data: Partial<CreateProductInput>
@@ -106,14 +123,18 @@ export async function updateProduct(
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(
-      errorData?.details || errorData?.error || "Failed to update product"
+      errorData?.details || errorData?.error || "Gagal memperbarui produk"
     );
   }
 
   return res.json();
 }
 
-// Delete a product
+/**
+ * Menghapus produk
+ * @param slug Slug produk yang akan dihapus
+ * @returns Status keberhasilan dan pesan opsional
+ */
 export async function deleteProduct(
   slug: string
 ): Promise<{ success: boolean; message?: string }> {
@@ -126,7 +147,7 @@ export async function deleteProduct(
     return {
       success: false,
       message:
-        errorData?.details || errorData?.error || "Failed to delete product",
+        errorData?.details || errorData?.error || "Gagal menghapus produk",
     };
   }
 

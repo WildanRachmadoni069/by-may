@@ -23,23 +23,23 @@ export async function createProductAction(
   data: CreateProductInput
 ): Promise<Product> {
   try {
-    // Authentication for server actions
-    // In production, uncomment this
+    // Untuk pengembangan, autentikasi dinonaktifkan
+    // Di produksi, aktifkan kode ini
     /*
     const cookieStore = cookies();
     const authToken = cookieStore.get("authToken")?.value;
     
     if (!authToken) {
-      throw new Error("Authentication required");
+      throw new Error("Autentikasi diperlukan");
     }
     
     const payload = verifyToken(authToken);
     if (!payload || payload.role !== "admin") {
-      throw new Error("Unauthorized: Admin access required");
+      throw new Error("Tidak diizinkan: Akses admin diperlukan");
     }
     */
 
-    // Clean up the data to ensure all nulls are properly handled
+    // Membersihkan data untuk memastikan semua nilai null ditangani dengan benar
     const cleanedData = {
       ...data,
       description: data.description || null,
@@ -56,13 +56,13 @@ export async function createProductAction(
     };
 
     console.log(
-      "Creating product with data:",
+      "Membuat produk dengan data:",
       JSON.stringify(
         {
           ...cleanedData,
-          description: cleanedData.description ? "...content..." : null,
+          description: cleanedData.description ? "...konten..." : null,
           priceVariants: cleanedData.priceVariants
-            ? `${cleanedData.priceVariants.length} variants`
+            ? `${cleanedData.priceVariants.length} varian`
             : null,
         },
         null,
@@ -72,13 +72,13 @@ export async function createProductAction(
 
     const product = await ProductService.createProduct(cleanedData);
 
-    // Revalidate related paths
+    // Memperbarui cache untuk path terkait
     revalidatePath("/products");
     revalidatePath("/dashboard/admin/product");
 
     return product;
   } catch (error) {
-    console.error("Error in createProductAction:", error);
+    console.error("Error dalam createProductAction:", error);
     throw error;
   }
 }
@@ -95,7 +95,7 @@ export async function updateProductAction(
 ): Promise<Product> {
   const updatedProduct = await ProductService.updateProduct(slug, data);
 
-  // Revalidate related paths
+  // Memperbarui cache untuk path terkait
   revalidatePath("/products");
   revalidatePath(`/products/${updatedProduct.slug}`);
   revalidatePath("/dashboard/admin/product");
@@ -106,6 +106,7 @@ export async function updateProductAction(
 /**
  * Menghapus produk dan gambar terkait
  * @param slug Slug produk yang akan dihapus
+ * @returns Status keberhasilan dan pesan opsional
  */
 export async function deleteProductAction(
   slug: string
@@ -113,7 +114,7 @@ export async function deleteProductAction(
   const result = await ProductService.deleteProduct(slug);
 
   if (result.success) {
-    // Revalidate related paths
+    // Memperbarui cache untuk path terkait
     revalidatePath("/products");
     revalidatePath("/dashboard/admin/product");
   }

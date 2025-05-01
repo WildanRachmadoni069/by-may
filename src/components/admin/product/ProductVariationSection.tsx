@@ -1,6 +1,16 @@
+/**
+ * Komponen Bagian Variasi Produk
+ *
+ * Menangani pembuatan dan pengelolaan variasi produk, opsi variasi, dan varian harga.
+ * Mendukung hingga dua variasi (misalnya Warna dan Ukuran) dan pengaturan harga
+ * dan stok untuk setiap kombinasi.
+ */
+
 import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -8,27 +18,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Plus,
-  X,
-  Save,
-  Edit2,
-  ChevronDown,
-  ChevronUp,
-  Image as ImageIcon,
-  Check,
-  Ban,
-} from "lucide-react";
-import ImageUploadPreview from "@/components/admin/product/ImageUploadPreview";
-import LabelWithTooltip from "@/components/general/LabelWithTooltip";
-import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { useDebug } from "@/hooks/use-debug";
-import DebugPanel from "@/components/admin/debug/DebugPanel";
+import LabelWithTooltip from "@/components/general/LabelWithTooltip";
+import { Plus, X, Ban, Check, Edit2, ImageIcon } from "lucide-react";
+import ImageUploadPreview from "@/components/admin/product/ImageUploadPreview";
 
-// Helper function to delete image from Cloudinary
+/**
+ * Menghapus gambar dari Cloudinary
+ * @param imageUrl URL gambar yang akan dihapus
+ */
 const deleteCloudinaryImage = async (imageUrl: string | undefined) => {
   if (!imageUrl) return;
 
@@ -43,16 +41,18 @@ const deleteCloudinaryImage = async (imageUrl: string | undefined) => {
 
     if (!response.ok) {
       console.error(
-        "Failed to delete image from Cloudinary:",
+        "Gagal menghapus gambar dari Cloudinary:",
         await response.text()
       );
     }
   } catch (error) {
-    console.error("Error deleting image:", error);
+    console.error("Error saat menghapus gambar:", error);
   }
 };
 
-// Preview component for a saved variation
+/**
+ * Komponen preview variasi yang tersimpan
+ */
 const VariationPreview = ({
   variation,
   index,
@@ -128,7 +128,9 @@ const VariationPreview = ({
   );
 };
 
-// Variation form component
+/**
+ * Komponen formulir untuk pengeditan variasi
+ */
 const VariationForm = ({
   variation,
   variationIndex,
@@ -156,6 +158,10 @@ const VariationForm = ({
 
   const { toast } = useToast();
 
+  /**
+   * Menangani penghapusan opsi variasi
+   * @param optionIndex Indeks opsi yang akan dihapus
+   */
   const handleRemoveOption = async (optionIndex: number) => {
     if (variation.options.length <= 1) {
       toast({
@@ -166,10 +172,9 @@ const VariationForm = ({
       return;
     }
 
-    // Check if the option has an image and delete it if necessary
+    // Periksa apakah opsi memiliki gambar dan hapus jika perlu
     const optionToDelete = variation.options[optionIndex];
     if (optionToDelete?.imageUrl) {
-      // Show loading toast
       toast({
         title: "Menghapus gambar...",
         description: "Sedang menghapus gambar dari Cloudinary",
@@ -178,12 +183,26 @@ const VariationForm = ({
       await deleteCloudinaryImage(optionToDelete.imageUrl);
     }
 
-    // Now remove the option from the store
+    // Hapus opsi dari store
     removeOptionFromVariation(variationIndex, optionIndex);
 
     toast({
       title: "Opsi dihapus",
       description: "Opsi variasi berhasil dihapus",
+    });
+  };
+
+  /**
+   * Menangani perubahan gambar opsi variasi
+   * @param optionIndex Indeks opsi yang gambarnya diubah
+   * @param imageUrl URL gambar baru atau null jika dihapus
+   */
+  const handleOptionImageChange = (
+    optionIndex: number,
+    imageUrl: string | null
+  ) => {
+    updateOptionInVariation(variationIndex, optionIndex, {
+      imageUrl: imageUrl || undefined,
     });
   };
 
@@ -228,7 +247,7 @@ const VariationForm = ({
       </div>
 
       <div className="p-3 sm:p-5 space-y-4 sm:space-y-6">
-        {/* Variation Name */}
+        {/* Nama Variasi */}
         <div className="space-y-2">
           <LabelWithTooltip
             htmlFor={`variation-${variationIndex}-name`}
@@ -246,7 +265,7 @@ const VariationForm = ({
           />
         </div>
 
-        {/* Variation Options */}
+        {/* Opsi Variasi */}
         <div className="space-y-3 sm:space-y-4">
           <LabelWithTooltip
             htmlFor={`variation-${variationIndex}-options`}
@@ -254,51 +273,51 @@ const VariationForm = ({
             tooltip="Contoh: S, M, L untuk ukuran"
           />
 
-          {/* Options list */}
+          {/* Daftar opsi */}
           <div className="grid gap-2 sm:gap-3">
             {variation.options.map((option, optionIndex) => (
               <div
                 key={optionIndex}
                 className="flex flex-col sm:flex-row gap-2 sm:gap-3 p-2 sm:p-3 bg-background rounded-md border"
               >
-                {/* Image uploader for first variation only */}
+                {/* Komponen uploader gambar untuk variasi pertama */}
                 {canHaveImages && (
-                  <div className="w-full sm:w-20 h-20 shrink-0">
+                  <div className="w-full sm:w-24">
                     <ImageUploadPreview
                       id={`variation-${variationIndex}-option-${optionIndex}-image`}
                       value={option.imageUrl || null}
                       onChange={(url) =>
-                        updateOptionInVariation(variationIndex, optionIndex, {
-                          imageUrl: url || undefined,
-                        })
+                        handleOptionImageChange(optionIndex, url)
                       }
-                      className="w-full h-full"
+                      className="aspect-square w-full"
                     />
                   </div>
                 )}
 
-                <div className="flex-grow flex items-center">
+                {/* Input nama opsi */}
+                <div className="flex-grow">
                   <Input
-                    id={`variation-${variationIndex}-option-${optionIndex}`}
+                    placeholder={`Nama opsi ${optionIndex + 1}`}
                     value={option.name}
                     onChange={(e) =>
                       updateOptionInVariation(variationIndex, optionIndex, {
                         name: e.target.value,
                       })
                     }
-                    placeholder={`Opsi ${optionIndex + 1}`}
-                    className="w-full max-w-full"
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveOption(optionIndex)}
-                    className="h-8 w-8 shrink-0 ml-1 sm:ml-2"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
+
+                {/* Tombol hapus opsi */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveOption(optionIndex)}
+                  className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Hapus opsi</span>
+                </Button>
               </div>
             ))}
           </div>
@@ -319,25 +338,44 @@ const VariationForm = ({
   );
 };
 
-// Price variant section component
+/**
+ * Komponen untuk manajemen varian harga berdasarkan kombinasi variasi
+ */
 const PriceVariantSection = () => {
   const { priceVariants, updatePriceVariant } = useProductVariationStore();
   const [bulkPrice, setBulkPrice] = useState<string>("");
   const [bulkStock, setBulkStock] = useState<string>("");
 
+  /**
+   * Memperbarui harga varian
+   * @param combinationKey Kunci kombinasi varian
+   * @param price Harga baru
+   */
   const handlePriceChange = (combinationKey: string, price: number | null) => {
     updatePriceVariant(combinationKey, { price });
   };
 
+  /**
+   * Memperbarui stok varian
+   * @param combinationKey Kunci kombinasi varian
+   * @param stock Stok baru
+   */
   const handleStockChange = (combinationKey: string, stock: number | null) => {
     updatePriceVariant(combinationKey, { stock });
   };
 
+  /**
+   * Memperbarui SKU varian
+   * @param combinationKey Kunci kombinasi varian
+   * @param sku SKU baru
+   */
   const handleSkuChange = (combinationKey: string, sku: string) => {
     updatePriceVariant(combinationKey, { sku });
   };
 
-  // Apply bulk price to all variants
+  /**
+   * Menerapkan harga massal ke semua varian
+   */
   const applyBulkPrice = () => {
     const price = bulkPrice ? Number(bulkPrice) : null;
     priceVariants.forEach((variant) => {
@@ -347,7 +385,9 @@ const PriceVariantSection = () => {
     setBulkPrice("");
   };
 
-  // Apply bulk stock to all variants
+  /**
+   * Menerapkan stok massal ke semua varian
+   */
   const applyBulkStock = () => {
     const stock = bulkStock ? Number(bulkStock) : null;
     priceVariants.forEach((variant) => {
@@ -375,7 +415,7 @@ const PriceVariantSection = () => {
         </p>
       ) : (
         <>
-          {/* Bulk Operations */}
+          {/* Operasi Massal */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 p-3 sm:p-4 border rounded-md bg-muted/20">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -438,9 +478,9 @@ const PriceVariantSection = () => {
             </div>
           </div>
 
-          {/* Price Variants Table - Mobile responsive version */}
+          {/* Tabel Varian Harga - versi responsif mobile */}
           <div className="border rounded-md overflow-hidden">
-            {/* Table Header - Hidden on mobile */}
+            {/* Header Tabel - Tersembunyi di mobile */}
             <div className="bg-muted px-3 py-2 border-b hidden sm:grid grid-cols-12 gap-2">
               <div className="col-span-5 font-medium text-sm">Variasi</div>
               <div className="col-span-3 font-medium text-sm">Harga (Rp)</div>
@@ -450,73 +490,88 @@ const PriceVariantSection = () => {
               </div>
             </div>
 
-            {/* Mobile & Desktop variants */}
+            {/* Varian untuk Mobile & Desktop */}
             <div className="divide-y">
               {priceVariants.map((variant, index) => {
                 const combinationKey = variant.optionCombination.join("|");
                 return (
                   <div
-                    key={index}
-                    className="px-3 py-3 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center space-y-2 sm:space-y-0"
+                    key={combinationKey}
+                    className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 p-3 sm:items-center"
                   >
-                    {/* Mobile labels visible, desktop labels in grid */}
-                    <div className="col-span-5 space-y-0.5">
-                      {variant.optionLabels.map((label, idx) => (
-                        <div key={idx} className="text-sm">
-                          {label}
+                    {/* Variasi (Kombinasi Opsi) */}
+                    <div className="col-span-1 sm:col-span-5 mb-2 sm:mb-0">
+                      <div className="flex flex-col space-y-1">
+                        <div className="sm:hidden text-xs font-medium text-muted-foreground">
+                          Variasi
                         </div>
-                      ))}
+                        <div className="flex flex-wrap gap-1.5">
+                          {variant.optionLabels.map((label, i) => (
+                            <span
+                              key={i}
+                              className="text-xs sm:text-sm bg-muted px-1.5 py-0.5 rounded-sm"
+                            >
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="col-span-3">
-                      <label className="block text-xs font-medium text-muted-foreground mb-1 sm:hidden">
-                        Harga (Rp)
-                      </label>
-                      <Input
-                        type="number"
-                        value={variant.price ?? ""}
-                        onChange={(e) =>
-                          handlePriceChange(
-                            combinationKey,
-                            e.target.value ? Number(e.target.value) : null
-                          )
-                        }
-                        placeholder="0"
-                        className="h-9"
-                      />
+                    {/* Harga */}
+                    <div className="col-span-1 sm:col-span-3">
+                      <div className="flex flex-col space-y-1">
+                        <div className="sm:hidden text-xs font-medium text-muted-foreground">
+                          Harga (Rp)
+                        </div>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={variant.price ?? ""}
+                          onChange={(e) =>
+                            handlePriceChange(
+                              combinationKey,
+                              e.target.value ? Number(e.target.value) : null
+                            )
+                          }
+                        />
+                      </div>
                     </div>
 
-                    <div className="col-span-2">
-                      <label className="block text-xs font-medium text-muted-foreground mb-1 sm:hidden">
-                        Stok
-                      </label>
-                      <Input
-                        type="number"
-                        value={variant.stock ?? ""}
-                        onChange={(e) =>
-                          handleStockChange(
-                            combinationKey,
-                            e.target.value ? Number(e.target.value) : null
-                          )
-                        }
-                        placeholder="0"
-                        className="h-9"
-                      />
+                    {/* Stok */}
+                    <div className="col-span-1 sm:col-span-2">
+                      <div className="flex flex-col space-y-1">
+                        <div className="sm:hidden text-xs font-medium text-muted-foreground">
+                          Stok
+                        </div>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={variant.stock ?? ""}
+                          onChange={(e) =>
+                            handleStockChange(
+                              combinationKey,
+                              e.target.value ? Number(e.target.value) : null
+                            )
+                          }
+                        />
+                      </div>
                     </div>
 
-                    <div className="col-span-2">
-                      <label className="block text-xs font-medium text-muted-foreground mb-1 sm:hidden">
-                        SKU (Opsional)
-                      </label>
-                      <Input
-                        type="text"
-                        value={variant.sku || ""}
-                        onChange={(e) =>
-                          handleSkuChange(combinationKey, e.target.value)
-                        }
-                        placeholder="SKU"
-                        className="h-9"
-                      />
+                    {/* SKU */}
+                    <div className="col-span-1 sm:col-span-2">
+                      <div className="flex flex-col space-y-1">
+                        <div className="sm:hidden text-xs font-medium text-muted-foreground">
+                          SKU (Opsional)
+                        </div>
+                        <Input
+                          placeholder="SKU"
+                          value={variant.sku || ""}
+                          onChange={(e) =>
+                            handleSkuChange(combinationKey, e.target.value)
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -529,13 +584,29 @@ const PriceVariantSection = () => {
   );
 };
 
+/**
+ * Props untuk komponen ProductVariationSection
+ */
 interface ProductVariationSectionProps {
+  /** Handler untuk perubahan harga dasar */
   onPriceChange: (price: number | null) => void;
+  /** Handler untuk perubahan stok dasar */
   onStockChange: (stock: number | null) => void;
+  /** Harga dasar produk */
   basePrice: number | null;
+  /** Stok dasar produk */
   baseStock: number | null;
 }
 
+/**
+ * Komponen untuk pengelolaan variasi produk dan harga
+ *
+ * Komponen ini menangani:
+ * - Penambahan dan pengeditan variasi (hingga 2 variasi)
+ * - Pengelolaan opsi untuk setiap variasi
+ * - Pengaturan harga dan stok untuk setiap kombinasi variasi
+ * - Mode harga tunggal (tanpa variasi) atau harga berbeda per variasi
+ */
 const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
   onPriceChange,
   onStockChange,
@@ -543,7 +614,6 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
   baseStock,
 }) => {
   const { toast } = useToast();
-  const isDebugEnabled = useDebug();
   const {
     hasVariations,
     variations,
@@ -556,28 +626,31 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
     generatePriceVariants,
   } = useProductVariationStore();
 
-  // Check if any variation form is currently open
+  // Periksa apakah ada form variasi yang sedang terbuka
   const isAnyFormOpen = openVariationForms.length > 0;
 
-  // Handle deleting a variation including any associated images
+  /**
+   * Menghapus variasi termasuk gambar terkait
+   * @param index Indeks variasi yang akan dihapus
+   */
   const handleDeleteVariation = async (index: number) => {
     const variationToDelete = variations[index];
 
-    // Check if this is the first variation (which can have images)
+    // Periksa apakah ini variasi pertama (yang bisa memiliki gambar)
     if (index === 0) {
-      // Find any options with images
+      // Cari opsi dengan gambar
       const optionsWithImages = variationToDelete.options.filter(
         (option) => option.imageUrl
       );
 
       if (optionsWithImages.length > 0) {
-        // Show loading toast
+        // Tampilkan toast loading
         toast({
           title: "Menghapus gambar...",
           description: "Sedang menghapus gambar variasi",
         });
 
-        // Delete all images in parallel
+        // Hapus semua gambar secara paralel
         await Promise.all(
           optionsWithImages.map((option) =>
             deleteCloudinaryImage(option.imageUrl)
@@ -586,7 +659,7 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
       }
     }
 
-    // Now remove the variation from the store
+    // Hapus variasi dari store
     removeVariation(index);
 
     toast({
@@ -595,24 +668,26 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
     });
   };
 
-  // Add a new variation and open its form
+  /**
+   * Menambahkan variasi baru dan membuka formulirnya
+   */
   const handleAddVariation = () => {
     if (hasVariations) {
-      // Add another variation
+      // Tambahkan variasi lain
       addVariation();
-      // Open the form for this new variation
+      // Buka form untuk variasi baru ini
       setVariationFormOpen(variations.length, true);
     } else {
-      // First variation - converting from simple to variation product
+      // Variasi pertama - mengubah dari produk sederhana ke produk dengan variasi
       setHasVariations(true);
-      // Open the form for the first variation
+      // Buka form untuk variasi pertama
       setVariationFormOpen(0, true);
     }
   };
 
-  // Regenerate price variants whenever variations change
+  // Regenerasi varian harga setiap kali variasi berubah
   useEffect(() => {
-    // Only generate if there are saved variations (not in edit mode)
+    // Hanya generate jika ada variasi tersimpan (tidak dalam mode edit)
     const savedVariations = variations.filter(
       (v) => v.name && !openVariationForms.includes(variations.indexOf(v))
     );
@@ -632,10 +707,10 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-4 sm:space-y-6 px-4 pb-4 sm:px-6 sm:pb-6">
-        {/* Initial state: Add Variation button above base price and stock */}
+        {/* Keadaan awal: Tombol tambah variasi di atas harga dasar dan stok */}
         {!hasVariations && (
           <>
-            {/* Button at top for initial state */}
+            {/* Tombol di bagian atas untuk keadaan awal */}
             <div className="flex items-center justify-center mb-4">
               <Button
                 type="button"
@@ -644,11 +719,11 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
                 className="flex items-center gap-2 w-full sm:w-auto justify-center"
               >
                 <Plus className="h-4 w-4" />
-                <span>Tambah Variasi Produk</span>
+                <span>Tambahkan Variasi Produk</span>
               </Button>
             </div>
 
-            {/* Base Price and Stock */}
+            {/* Harga Dasar dan Stok */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <LabelWithTooltip
@@ -693,13 +768,13 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
           </>
         )}
 
-        {/* Variations Section */}
+        {/* Bagian Variasi */}
         {hasVariations && (
           <div className="space-y-4">
-            {/* Map through variations */}
+            {/* Mapping variasi */}
             {variations.map((variation, index) => (
               <div key={index}>
-                {/* Show either form or preview */}
+                {/* Tampilkan form atau preview */}
                 {openVariationForms.includes(index) ? (
                   <VariationForm
                     variation={variation}
@@ -707,23 +782,17 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
                     canHaveImages={index === 0}
                     onSave={() => {
                       setVariationFormOpen(index, false);
-                      // When saving a variation, regenerate the price variants
-                      if (
-                        variation.name &&
-                        variation.options.some((o) => o.name)
-                      ) {
-                        generatePriceVariants();
-                      }
                     }}
                     onCancel={() => {
                       if (
-                        variation.name.trim() === "" &&
-                        variation.options.every((o) => o.name.trim() === "")
+                        variations.length === 1 &&
+                        index === 0 &&
+                        !variation.name
                       ) {
-                        handleDeleteVariation(index);
-                      } else {
-                        setVariationFormOpen(index, false);
+                        // Jika ini adalah variasi pertama yang baru ditambahkan dan belum ada nama
+                        setHasVariations(false);
                       }
+                      setVariationFormOpen(index, false);
                     }}
                     onRemove={() => handleDeleteVariation(index)}
                   />
@@ -738,51 +807,28 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
               </div>
             ))}
 
-            {/* Add variation button BELOW variations - limited to 2 variations */}
+            {/* Tombol tambah variasi DI BAWAH variasi - terbatas pada 2 variasi */}
             {variations.length < 2 && (
               <div className="flex justify-center mt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleAddVariation}
-                  disabled={isAnyFormOpen}
-                  className={cn(
-                    "flex items-center gap-2 w-full sm:w-auto justify-center",
-                    isAnyFormOpen && "opacity-50 pointer-events-none"
-                  )}
+                  className="w-full sm:w-auto flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
-                  {variations.length === 0
-                    ? "Tambah Variasi"
-                    : "Tambah Variasi Lain"}
+                  <span>Tambah Variasi Lainnya</span>
                 </Button>
               </div>
             )}
 
-            {/* Price Variants Section - only show when variations are saved */}
+            {/* Bagian Varian Harga - hanya tampilkan ketika variasi disimpan */}
             {variations.length > 0 && !isAnyFormOpen && (
               <div className="mt-6 sm:mt-8 pt-4 border-t">
                 <PriceVariantSection />
               </div>
             )}
           </div>
-        )}
-
-        {/* Debug information panel */}
-        {isDebugEnabled && (
-          <>
-            <DebugPanel
-              title="Variation Data"
-              data={{
-                hasVariations,
-                variations,
-                openVariationForms,
-                priceVariants,
-                basePrice,
-                baseStock,
-              }}
-            />
-          </>
         )}
       </CardContent>
     </Card>
