@@ -72,7 +72,7 @@ function AdminProductList() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load products. Please try again.",
+        description: "Gagal mengambil produk. Silakan coba lagi.",
       });
     } finally {
       setIsLoading(false);
@@ -128,7 +128,8 @@ function AdminProductList() {
       toast({
         variant: "destructive",
         title: "Gagal menghapus produk",
-        description: "Terjadi kesalahan saat menghapus produk.",
+        description:
+          "Terjadi kesalahan saat menghapus produk. Silakan coba lagi.",
       });
     } finally {
       setDeletingSlug(null);

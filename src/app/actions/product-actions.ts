@@ -55,21 +55,6 @@ export async function createProductAction(
       collectionId: data.collectionId || null,
     };
 
-    console.log(
-      "Membuat produk dengan data:",
-      JSON.stringify(
-        {
-          ...cleanedData,
-          description: cleanedData.description ? "...konten..." : null,
-          priceVariants: cleanedData.priceVariants
-            ? `${cleanedData.priceVariants.length} varian`
-            : null,
-        },
-        null,
-        2
-      )
-    );
-
     const product = await ProductService.createProduct(cleanedData);
 
     // Memperbarui cache untuk path terkait
@@ -111,15 +96,26 @@ export async function updateProductAction(
 export async function deleteProductAction(
   slug: string
 ): Promise<{ success: boolean; message?: string }> {
-  const result = await ProductService.deleteProduct(slug);
+  try {
+    const result = await ProductService.deleteProduct(slug);
 
-  if (result.success) {
-    // Memperbarui cache untuk path terkait
-    revalidatePath("/products");
-    revalidatePath("/dashboard/admin/product");
+    if (result.success) {
+      // Memperbarui cache untuk path terkait
+      revalidatePath("/products");
+      revalidatePath("/dashboard/admin/product");
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error dalam deleteProductAction:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Terjadi error tidak terduga saat menghapus produk",
+    };
   }
-
-  return result;
 }
 
 /**

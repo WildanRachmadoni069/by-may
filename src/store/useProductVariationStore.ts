@@ -295,10 +295,6 @@ export const useProductVariationStore = create<ProductVariationState>(
 
       // Dapatkan varian harga yang sudah ada untuk mempertahankan nilai
       const existingPriceVariants = get().priceVariants;
-      console.log(
-        `Menghasilkan varian harga dari ${variations.length} variasi`
-      );
-      console.log(`Variasi saat ini:`, JSON.stringify(variations, null, 2));
 
       // Fungsi pembantu untuk menghasilkan kombinasi opsi secara rekursif
       const generateCombinations = (
@@ -336,7 +332,6 @@ export const useProductVariationStore = create<ProductVariationState>(
 
       // Hasilkan semua kombinasi yang mungkin
       const allCombinations = generateCombinations(0);
-      console.log(`Menghasilkan ${allCombinations.length} kombinasi`);
 
       // Petakan ke objek varian harga, pertahankan nilai yang sudah ada
       const newPriceVariants = allCombinations.map(
@@ -347,13 +342,6 @@ export const useProductVariationStore = create<ProductVariationState>(
           // Temukan varian harga yang ada dengan kombinasi yang sama
           const existingVariant = existingPriceVariants.find(
             (pv) => pv.optionCombination.join("|") === combinationKey
-          );
-
-          // Log pemetaan untuk debugging
-          console.log(`Kombinasi: ${combinationKey}`);
-          console.log(`Label: ${labels.join(", ")}`);
-          console.log(
-            `Ditemukan varian yang ada: ${existingVariant ? "ya" : "tidak"}`
           );
 
           // Gunakan nilai yang ada atau default

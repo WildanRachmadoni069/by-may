@@ -93,28 +93,6 @@ export const ProductService = {
 
       if (!product) return null;
 
-      // Catat varian harga produk dan opsinya untuk debugging
-      if (product.priceVariants.length > 0) {
-        console.log(
-          `Produk ditemukan ${product.name} dengan ${product.priceVariants.length} varian harga`
-        );
-
-        for (const variant of product.priceVariants) {
-          console.log(
-            `Varian harga ${variant.id}: harga=${variant.price}, stok=${variant.stock}, dengan ${variant.options.length} opsi`
-          );
-
-          // Catat setiap opsi yang terhubung
-          variant.options.forEach((connection) => {
-            console.log(
-              `- Terhubung ke opsi: ${connection.option.name} (ID: ${connection.option.id})`
-            );
-          });
-        }
-      } else {
-        console.log(`Produk ${product.name} tidak memiliki varian harga`);
-      }
-
       return product as unknown as Product | null;
     } catch (error) {
       console.error(`Error mengambil produk dengan slug ${slug}:`, error);
@@ -298,28 +276,18 @@ export const ProductService = {
         },
       });
 
-      console.log(
-        `Produk berhasil dibuat dengan ID: ${product.id}, slug: ${product.slug}`
-      );
-
       // Buat variasi jika ada
       if (data.hasVariations && data.variations && data.variations.length > 0) {
         const variationOptionsMap = new Map<string, string>(); // Map untuk menyimpan ID temporer -> ID database sebenarnya
 
         // Proses setiap variasi
         for (const variation of data.variations) {
-          console.log(`Membuat variasi: ${variation.name}`);
-
           const createdVariation = await db.productVariation.create({
             data: {
               productId: product.id,
               name: variation.name,
             },
           });
-
-          console.log(
-            `Variasi berhasil dibuat dengan ID: ${createdVariation.id}`
-          );
 
           // Buat opsi untuk variasi ini
           if (variation.options && variation.options.length > 0) {
@@ -331,10 +299,6 @@ export const ProductService = {
                   imageUrl: option.imageUrl,
                 },
               });
-
-              console.log(
-                `Opsi dibuat: ${option.name} dengan ID: ${createdOption.id}`
-              );
 
               // Simpan pemetaan ID dari ID temporer ke ID database sebenarnya
               if (option.id) {
@@ -598,23 +562,51 @@ export const ProductService = {
         }
       }
 
-      // Hapus produk dari database terlebih dahulu
+      // Proses penghapusan dalam transaksi agar atomic
+      let imagesDeletionResult: { success: boolean; failed: string[] } = {
+        success: true,
+        failed: [],
+      };
+
+      // Coba hapus gambar-gambar terlebih dahulu
+      if (imagesToDelete.length > 0) {
+        const results = await Promise.allSettled(
+          imagesToDelete.map((url) => CloudinaryService.deleteImageByUrl(url))
+        );
+
+        // Periksa hasil penghapusan gambar
+        const failedImages = results
+          .map((result, index) => {
+            if (
+              result.status === "rejected" ||
+              (result.status === "fulfilled" && !result.value)
+            ) {
+              return imagesToDelete[index];
+            }
+            return null;
+          })
+          .filter(Boolean) as string[];
+
+        if (failedImages.length > 0) {
+          imagesDeletionResult = {
+            success: false,
+            failed: failedImages,
+          };
+        }
+      }
+
+      // Jika ada gambar yang gagal dihapus, batalkan seluruh operasi
+      if (!imagesDeletionResult.success) {
+        return {
+          success: false,
+          message: `Gagal menghapus ${imagesDeletionResult.failed.length} gambar produk. Penghapusan produk dibatalkan untuk menjaga konsistensi data.`,
+        };
+      }
+
+      // Jika penghapusan gambar sukses, lanjutkan dengan penghapusan produk dari database
       await db.product.delete({
         where: { id: product.id },
       });
-
-      // Bersihkan semua gambar yang terkait
-      try {
-        // Hapus gambar secara paralel untuk kinerja yang lebih baik
-        if (imagesToDelete.length > 0) {
-          await Promise.allSettled(
-            imagesToDelete.map((url) => CloudinaryService.deleteImageByUrl(url))
-          );
-        }
-      } catch (error) {
-        // Catat tapi lanjutkan (produk sudah dihapus dari DB)
-        console.error("Error membersihkan gambar produk:", error);
-      }
 
       return { success: true };
     } catch (error) {
