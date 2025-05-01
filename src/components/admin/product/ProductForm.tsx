@@ -19,6 +19,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import ImageUploadPreview from "@/components/admin/product/ImageUploadPreview";
 import QuillEditor from "@/components/editor/QuillEditor";
@@ -37,6 +45,7 @@ import {
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
 import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import { useRouter } from "next/navigation";
+import { CloudinaryService } from "@/lib/services/cloudinary-service";
 
 interface ProductFormProps {
   initialValues?: Partial<Product>;
@@ -52,10 +61,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const { toast } = useToast();
   const [excerpt, setExcerpt] = useState<string>("");
   const quillRef = React.useRef<any>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [isDeletingImages, setIsDeletingImages] = useState(false);
 
   // Get variation state from store
-  const { hasVariations, importVariations, variations } =
-    useProductVariationStore();
+  const {
+    hasVariations,
+    importVariations,
+    variations,
+    resetVariations, // Make sure to destructure the resetVariations function
+  } = useProductVariationStore();
 
   // Fetch categories and collections
   const { categories, fetchCategories } = useCategoryStore();
@@ -149,6 +164,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
         };
 
         await onSubmit(submissionValues);
+
+        // Reset variation store after successful submission
+        resetVariations();
 
         toast({
           title: initialValues
@@ -321,496 +339,676 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
   const router = useRouter();
 
-  // Add cancel handler with unsaved changes confirmation
+  /**
+   * Fungsi untuk menghapus gambar dari Cloudinary
+   * @param url URL gambar yang akan dihapus
+   */
+  const deleteCloudinaryImage = async (url: string): Promise<boolean> => {
+    try {
+      await fetch("/api/cloudinary/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      });
+      return true;
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      return false;
+    }
+  };
+
+  /**
+   * Mengidentifikasi apakah URL adalah gambar yang baru saja diupload
+   * @param url URL gambar
+   * @param initialUrl URL gambar awal (jika ada)
+   * @returns boolean - true jika gambar baru ditambahkan dan perlu dibersihkan
+   */
+  const isNewlyUploadedImage = (
+    url: string | undefined,
+    initialUrl: string | undefined
+  ): boolean => {
+    // Jika tidak ada URL, tidak perlu dibersihkan
+    if (!url) return false;
+
+    // Jika URL-nya sama dengan yang awal, tidak perlu dibersihkan
+    if (initialUrl === url) return false;
+
+    // Jika ada URL tapi tidak ada URL awal, ini adalah gambar baru
+    return true;
+  };
+
+  /**
+   * Membersihkan semua gambar yang diupload dalam formulir
+   */
+  const cleanupAllUploadedImages = async () => {
+    if (!formik.dirty) return;
+
+    setIsDeletingImages(true);
+    const imagesToDelete: string[] = [];
+
+    try {
+      // 1. Periksa gambar utama
+      if (
+        formik.values.featuredImage?.url &&
+        isNewlyUploadedImage(
+          formik.values.featuredImage.url,
+          initialValues?.featuredImage?.url
+        )
+      ) {
+        imagesToDelete.push(formik.values.featuredImage.url);
+      }
+
+      // 2. Periksa gambar tambahan
+      formik.values.additionalImages?.forEach((img, index) => {
+        const initialImageUrl = initialValues?.additionalImages?.[index]?.url;
+        if (img.url && isNewlyUploadedImage(img.url, initialImageUrl)) {
+          imagesToDelete.push(img.url);
+        }
+      });
+
+      // 3. Periksa gambar opsi variasi (hanya variasi pertama yang bisa memiliki gambar)
+      const variationsFromStore = variations;
+
+      if (variationsFromStore && variationsFromStore.length > 0) {
+        const firstVariation = variationsFromStore[0];
+
+        // Periksa apakah ada opsi dengan gambar
+        if (firstVariation?.options) {
+          firstVariation.options.forEach((option) => {
+            if (!option.imageUrl) return;
+
+            // Periksa apakah ini gambar baru yang perlu dihapus
+            const isNewImage = !initialValues?.variations?.[0]?.options.some(
+              (initialOption) => initialOption.imageUrl === option.imageUrl
+            );
+
+            if (isNewImage) {
+              imagesToDelete.push(option.imageUrl);
+            }
+          });
+        }
+      }
+
+      // Hapus semua gambar secara paralel
+      if (imagesToDelete.length > 0) {
+        toast({
+          title: "Menghapus gambar",
+          description: "Sedang membersihkan gambar yang telah diupload...",
+        });
+
+        await Promise.all(
+          imagesToDelete.map((url) => deleteCloudinaryImage(url))
+        );
+
+        toast({
+          title: "Pembersihan selesai",
+          description: `${imagesToDelete.length} gambar berhasil dihapus`,
+        });
+      }
+    } catch (error) {
+      console.error("Error cleaning up images:", error);
+      toast({
+        variant: "destructive",
+        title: "Gagal membersihkan gambar",
+        description: "Beberapa gambar mungkin tidak berhasil dihapus",
+      });
+    } finally {
+      setIsDeletingImages(false);
+
+      // Reset variation store before navigating away
+      resetVariations();
+
+      router.push("/dashboard/admin/product");
+    }
+  };
+
+  // Replace window.confirm with Dialog component
   const handleCancel = () => {
     // If we have unsaved changes, show a confirmation dialog
     if (formik.dirty) {
-      const confirm = window.confirm(
-        "Anda memiliki perubahan yang belum disimpan. Yakin ingin membatalkan?"
-      );
-      if (!confirm) return;
+      setConfirmDialogOpen(true);
+    } else {
+      // Reset variation store and navigate back if no changes
+      resetVariations();
+      router.push("/dashboard/admin/product");
     }
+  };
 
-    // Navigate back to products page
-    router.push("/dashboard/products");
+  // Function to confirm navigation after dialog confirmation
+  const handleConfirmNavigation = async () => {
+    setConfirmDialogOpen(false);
+    await cleanupAllUploadedImages();
   };
 
   return (
-    <form
-      onSubmit={formik.handleSubmit}
-      className="space-y-6 sm:space-y-8 pb-24"
-    >
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            {/* Product Image */}
-            <div>
+    <>
+      <form
+        onSubmit={formik.handleSubmit}
+        className="space-y-6 sm:space-y-8 pb-24"
+      >
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              {/* Product Image */}
+              <div>
+                <LabelWithTooltip
+                  htmlFor="featuredImage"
+                  label="Gambar Utama"
+                  tooltip="Gambar utama yang akan ditampilkan pada halaman produk dan daftar produk"
+                />
+                <div className="mt-2">
+                  <ImageUploadPreview
+                    id="featuredImage"
+                    value={formik.values.featuredImage?.url || null}
+                    onChange={handleFeaturedImageChange}
+                    className="w-full aspect-square"
+                  />
+                </div>
+                {formik.touched.featuredImage &&
+                  formik.errors.featuredImage && (
+                    <p className="text-sm text-destructive mt-2">
+                      {typeof formik.errors.featuredImage === "string"
+                        ? formik.errors.featuredImage
+                        : "Gambar utama diperlukan"}
+                    </p>
+                  )}
+              </div>
+
+              {/* Basic Info */}
+              <div className="md:col-span-2 space-y-3 sm:space-y-4 mt-4 md:mt-0">
+                {/* Product Name */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="name"
+                    label="Nama Produk"
+                    tooltip="Nama produk yang akan ditampilkan"
+                  />
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="Masukkan nama produk"
+                    value={formik.values.name}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                  {formik.touched.name && formik.errors.name && (
+                    <p className="text-sm text-destructive">
+                      {formik.errors.name}
+                    </p>
+                  )}
+                </div>
+
+                {/* Product Slug */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="slug"
+                    label="Slug"
+                    tooltip="URL-friendly identifier yang akan digunakan pada URL produk. Dihasilkan otomatis dari nama produk."
+                  />
+                  <Input
+                    id="slug"
+                    name="slug"
+                    placeholder="produk-nama"
+                    value={formik.values.slug}
+                    readOnly
+                    className="bg-muted"
+                  />
+                </div>
+
+                {/* Category */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="categoryId"
+                    label="Kategori"
+                    tooltip="Kategori produk untuk pengelompokan"
+                  />
+                  <Select
+                    name="categoryId"
+                    value={formik.values.categoryId || "none"}
+                    onValueChange={handleCategoryChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tanpa Kategori</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Collection */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="collectionId"
+                    label="Koleksi"
+                    tooltip="Koleksi produk untuk pengelompokan khusus"
+                  />
+                  <Select
+                    name="collectionId"
+                    value={formik.values.collectionId || "none"}
+                    onValueChange={handleCollectionChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih koleksi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tanpa Koleksi</SelectItem>
+                      {collections.map((collection) => (
+                        <SelectItem key={collection.id} value={collection.id}>
+                          {collection.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Special Label */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="specialLabel"
+                    label="Label Khusus"
+                    tooltip="Label khusus untuk produk, seperti Produk Baru, Best Seller, dll."
+                  />
+                  <Select
+                    name="specialLabel"
+                    value={formik.values.specialLabel || "none"}
+                    onValueChange={handleSpecialLabelChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih label" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SPECIAL_LABELS.map((label) => (
+                        <SelectItem key={label.value} value={label.value}>
+                          {label.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Description */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
               <LabelWithTooltip
-                htmlFor="featuredImage"
-                label="Gambar Utama"
-                tooltip="Gambar utama yang akan ditampilkan pada halaman produk dan daftar produk"
+                htmlFor="description"
+                label="Deskripsi Produk"
+                tooltip="Deskripsi detail tentang produk ini. Mendukung format HTML."
               />
-              <div className="mt-2">
-                <ImageUploadPreview
-                  id="featuredImage"
-                  value={formik.values.featuredImage?.url || null}
-                  onChange={handleFeaturedImageChange}
-                  className="w-full aspect-square"
+              {/* Adjust minimum height for better mobile editing */}
+              <div className="min-h-[250px] sm:min-h-[300px]">
+                <QuillEditor
+                  value={formik.values.description || ""}
+                  onChange={(value) =>
+                    formik.setFieldValue("description", value)
+                  }
+                  ref={quillRef}
                 />
               </div>
-              {formik.touched.featuredImage && formik.errors.featuredImage && (
-                <p className="text-sm text-destructive mt-2">
-                  {typeof formik.errors.featuredImage === "string"
-                    ? formik.errors.featuredImage
-                    : "Gambar utama diperlukan"}
-                </p>
-              )}
-            </div>
 
-            {/* Basic Info */}
-            <div className="md:col-span-2 space-y-3 sm:space-y-4 mt-4 md:mt-0">
-              {/* Product Name */}
+              {/* Auto-generated excerpt */}
               <div className="space-y-2">
                 <LabelWithTooltip
-                  htmlFor="name"
-                  label="Nama Produk"
-                  tooltip="Nama produk yang akan ditampilkan"
+                  htmlFor="excerpt"
+                  label="Ringkasan Otomatis"
+                  tooltip="Ringkasan singkat dari deskripsi produk yang dihasilkan secara otomatis."
+                />
+                <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+                  {excerpt ||
+                    "Ringkasan akan dihasilkan secara otomatis dari deskripsi."}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Additional Images */}
+        <Card>
+          <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
+            <CardTitle>Gambar Tambahan</CardTitle>
+            <CardDescription>
+              Upload gambar tambahan produk (maksimal 8 gambar)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              {/* Generate 8 image upload slots */}
+              {Array.from({ length: 8 }).map((_, index) => {
+                const existingImage = formik.values.additionalImages?.[index];
+                return (
+                  <div key={index} className="space-y-1 sm:space-y-2">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {`Gambar ${index + 1}`}
+                    </div>
+                    <ImageUploadPreview
+                      id={`additional-image-${index}`}
+                      value={existingImage?.url || null}
+                      onChange={(url) =>
+                        handleAdditionalImageChange(index, url)
+                      }
+                      className="aspect-square w-full h-auto"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Product Variations and Pricing */}
+        <ProductVariationSection
+          onPriceChange={(price) => formik.setFieldValue("basePrice", price)}
+          onStockChange={(stock) => formik.setFieldValue("baseStock", stock)}
+          basePrice={formik.values.basePrice ?? null}
+          baseStock={formik.values.baseStock ?? null}
+        />
+
+        {/* Product Dimensions */}
+        <Card>
+          <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
+            <CardTitle>Dimensi Produk</CardTitle>
+            <CardDescription>
+              Informasi dimensi produk untuk kalkulasi pengiriman
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="space-y-4 sm:space-y-6">
+              {/* Weight */}
+              <div className="space-y-2">
+                <LabelWithTooltip
+                  htmlFor="weight"
+                  label="Berat (gram)"
+                  tooltip="Berat produk dalam gram"
                 />
                 <Input
-                  id="name"
-                  name="name"
-                  placeholder="Masukkan nama produk"
-                  value={formik.values.name}
+                  id="weight"
+                  name="weight"
+                  type="number"
+                  placeholder="0"
+                  value={formik.values.weight || ""}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                 />
-                {formik.touched.name && formik.errors.name && (
+                {formik.touched.weight && formik.errors.weight && (
                   <p className="text-sm text-destructive">
-                    {formik.errors.name}
+                    {formik.errors.weight as string}
                   </p>
                 )}
               </div>
 
-              {/* Product Slug */}
+              {/* Dimensions */}
               <div className="space-y-2">
                 <LabelWithTooltip
-                  htmlFor="slug"
-                  label="Slug"
-                  tooltip="URL-friendly identifier yang akan digunakan pada URL produk. Dihasilkan otomatis dari nama produk."
+                  htmlFor="dimensions"
+                  label="Dimensi (cm)"
+                  tooltip="Panjang, lebar, dan tinggi produk dalam sentimeter"
                 />
-                <Input
-                  id="slug"
-                  name="slug"
-                  placeholder="produk-nama"
-                  value={formik.values.slug}
-                  readOnly
-                  className="bg-muted"
-                />
-              </div>
-
-              {/* Category */}
-              <div className="space-y-2">
-                <LabelWithTooltip
-                  htmlFor="categoryId"
-                  label="Kategori"
-                  tooltip="Kategori produk untuk pengelompokan"
-                />
-                <Select
-                  name="categoryId"
-                  value={formik.values.categoryId || "none"}
-                  onValueChange={handleCategoryChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Tanpa Kategori</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Collection */}
-              <div className="space-y-2">
-                <LabelWithTooltip
-                  htmlFor="collectionId"
-                  label="Koleksi"
-                  tooltip="Koleksi produk untuk pengelompokan khusus"
-                />
-                <Select
-                  name="collectionId"
-                  value={formik.values.collectionId || "none"}
-                  onValueChange={handleCollectionChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih koleksi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Tanpa Koleksi</SelectItem>
-                    {collections.map((collection) => (
-                      <SelectItem key={collection.id} value={collection.id}>
-                        {collection.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Special Label */}
-              <div className="space-y-2">
-                <LabelWithTooltip
-                  htmlFor="specialLabel"
-                  label="Label Khusus"
-                  tooltip="Label khusus untuk produk, seperti Produk Baru, Best Seller, dll."
-                />
-                <Select
-                  name="specialLabel"
-                  value={formik.values.specialLabel || "none"}
-                  onValueChange={handleSpecialLabelChange}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pilih label" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPECIAL_LABELS.map((label) => (
-                      <SelectItem key={label.value} value={label.value}>
-                        {label.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Description */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <LabelWithTooltip
-              htmlFor="description"
-              label="Deskripsi Produk"
-              tooltip="Deskripsi detail tentang produk ini. Mendukung format HTML."
-            />
-            {/* Adjust minimum height for better mobile editing */}
-            <div className="min-h-[250px] sm:min-h-[300px]">
-              <QuillEditor
-                value={formik.values.description || ""}
-                onChange={(value) => formik.setFieldValue("description", value)}
-                ref={quillRef}
-              />
-            </div>
-
-            {/* Auto-generated excerpt */}
-            <div className="space-y-2">
-              <LabelWithTooltip
-                htmlFor="excerpt"
-                label="Ringkasan Otomatis"
-                tooltip="Ringkasan singkat dari deskripsi produk yang dihasilkan secara otomatis."
-              />
-              <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
-                {excerpt ||
-                  "Ringkasan akan dihasilkan secara otomatis dari deskripsi."}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Additional Images */}
-      <Card>
-        <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-          <CardTitle>Gambar Tambahan</CardTitle>
-          <CardDescription>
-            Upload gambar tambahan produk (maksimal 8 gambar)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-            {/* Generate 8 image upload slots */}
-            {Array.from({ length: 8 }).map((_, index) => {
-              const existingImage = formik.values.additionalImages?.[index];
-              return (
-                <div key={index} className="space-y-1 sm:space-y-2">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    {`Gambar ${index + 1}`}
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="dimensions.length"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Panjang
+                    </label>
+                    <Input
+                      id="dimensions.length"
+                      name="dimensions.length"
+                      type="number"
+                      placeholder="0"
+                      value={formik.values.dimensions?.length || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
                   </div>
-                  <ImageUploadPreview
-                    id={`additional-image-${index}`}
-                    value={existingImage?.url || null}
-                    onChange={(url) => handleAdditionalImageChange(index, url)}
-                    className="aspect-square w-full h-auto"
-                  />
+
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="dimensions.width"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Lebar
+                    </label>
+                    <Input
+                      id="dimensions.width"
+                      name="dimensions.width"
+                      type="number"
+                      placeholder="0"
+                      value={formik.values.dimensions?.width || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="dimensions.height"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Tinggi
+                    </label>
+                    <Input
+                      id="dimensions.height"
+                      name="dimensions.height"
+                      type="number"
+                      placeholder="0"
+                      value={formik.values.dimensions?.height || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Product Variations and Pricing */}
-      <ProductVariationSection
-        onPriceChange={(price) => formik.setFieldValue("basePrice", price)}
-        onStockChange={(stock) => formik.setFieldValue("baseStock", stock)}
-        basePrice={formik.values.basePrice ?? null}
-        baseStock={formik.values.baseStock ?? null}
-      />
-
-      {/* Product Dimensions */}
-      <Card>
-        <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-          <CardTitle>Dimensi Produk</CardTitle>
-          <CardDescription>
-            Informasi dimensi produk untuk kalkulasi pengiriman
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
-          <div className="space-y-4 sm:space-y-6">
-            {/* Weight */}
-            <div className="space-y-2">
-              <LabelWithTooltip
-                htmlFor="weight"
-                label="Berat (gram)"
-                tooltip="Berat produk dalam gram"
-              />
-              <Input
-                id="weight"
-                name="weight"
-                type="number"
-                placeholder="0"
-                value={formik.values.weight || ""}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-              />
-              {formik.touched.weight && formik.errors.weight && (
-                <p className="text-sm text-destructive">
-                  {formik.errors.weight as string}
-                </p>
-              )}
-            </div>
-
-            {/* Dimensions */}
-            <div className="space-y-2">
-              <LabelWithTooltip
-                htmlFor="dimensions"
-                label="Dimensi (cm)"
-                tooltip="Panjang, lebar, dan tinggi produk dalam sentimeter"
-              />
-              <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                <div className="space-y-1">
-                  <label
-                    htmlFor="dimensions.length"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Panjang
-                  </label>
-                  <Input
-                    id="dimensions.length"
-                    name="dimensions.length"
-                    type="number"
-                    placeholder="0"
-                    value={formik.values.dimensions?.length || ""}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label
-                    htmlFor="dimensions.width"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Lebar
-                  </label>
-                  <Input
-                    id="dimensions.width"
-                    name="dimensions.width"
-                    type="number"
-                    placeholder="0"
-                    value={formik.values.dimensions?.width || ""}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label
-                    htmlFor="dimensions.height"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Tinggi
-                  </label>
-                  <Input
-                    id="dimensions.height"
-                    name="dimensions.height"
-                    type="number"
-                    placeholder="0"
-                    value={formik.values.dimensions?.height || ""}
-                    onChange={formik.handleChange}
-                    onBlur={formik.handleBlur}
-                  />
-                </div>
+                {formik.touched.dimensions && formik.errors.dimensions && (
+                  <p className="text-sm text-destructive">
+                    {typeof formik.errors.dimensions === "string"
+                      ? formik.errors.dimensions
+                      : "Dimensi harus berupa angka positif"}
+                  </p>
+                )}
               </div>
-              {formik.touched.dimensions && formik.errors.dimensions && (
-                <p className="text-sm text-destructive">
-                  {typeof formik.errors.dimensions === "string"
-                    ? formik.errors.dimensions
-                    : "Dimensi harus berupa angka positif"}
-                </p>
-              )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Meta & SEO */}
-      <Card>
-        <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
-          <CardTitle>SEO & Meta</CardTitle>
-          <CardDescription>
-            Informasi untuk pengoptimalan mesin pencari (SEO)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
-          <div className="space-y-4">
-            {/* Google Search Preview */}
-            <div className="p-3 sm:p-4 border rounded-md bg-white mb-4 overflow-hidden">
-              <div className="text-xs text-muted-foreground mb-2 font-medium">
-                Preview di Google
+        {/* Meta & SEO */}
+        <Card>
+          <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
+            <CardTitle>SEO & Meta</CardTitle>
+            <CardDescription>
+              Informasi untuk pengoptimalan mesin pencari (SEO)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="space-y-4">
+              {/* Google Search Preview */}
+              <div className="p-3 sm:p-4 border rounded-md bg-white mb-4 overflow-hidden">
+                <div className="text-xs text-muted-foreground mb-2 font-medium">
+                  Preview di Google
+                </div>
+                <GoogleSearchPreview
+                  title={metaTitle || formik.values.name}
+                  description={
+                    metaDescription ||
+                    excerpt ||
+                    formik.values.description ||
+                    ""
+                  }
+                  slug={`products/${formik.values.slug}`}
+                />
               </div>
-              <GoogleSearchPreview
-                title={metaTitle || formik.values.name}
-                description={
-                  metaDescription || excerpt || formik.values.description || ""
+
+              {/* Meta Title */}
+              <div className="space-y-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <LabelWithTooltip
+                    htmlFor="meta.title"
+                    label="Meta Title"
+                    tooltip="Judul yang muncul di hasil pencarian. Idealnya 50-60 karakter."
+                  />
+                  {metaTitleManuallyEdited && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMetaTitleManuallyEdited(false);
+                        setMetaTitle(formik.values.name);
+                        formik.setFieldValue("meta", {
+                          ...formik.values.meta,
+                          title: formik.values.name,
+                        });
+                      }}
+                      className="h-6 text-xs justify-start sm:justify-center w-auto"
+                    >
+                      Selaraskan dengan nama produk
+                    </Button>
+                  )}
+                </div>
+                <Input
+                  id="meta.title"
+                  name="meta.title"
+                  placeholder="Gunakan nama produk yang menarik"
+                  value={metaTitle}
+                  onChange={handleMetaTitleChange}
+                  onBlur={formik.handleBlur}
+                />
+                <CharacterCountSEO current={metaTitle.length} type="title" />
+              </div>
+
+              {/* Meta Description */}
+              <div className="space-y-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <LabelWithTooltip
+                    htmlFor="meta.description"
+                    label="Meta Description"
+                    tooltip="Deskripsi yang muncul di hasil pencarian. Idealnya 150-160 karakter."
+                  />
+                  {metaDescriptionManuallyEdited && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMetaDescriptionManuallyEdited(false);
+                        setMetaDescription(excerpt);
+                        formik.setFieldValue("meta", {
+                          ...formik.values.meta,
+                          description: excerpt,
+                        });
+                      }}
+                      className="h-6 text-xs justify-start sm:justify-center w-auto"
+                    >
+                      Selaraskan dengan deskripsi
+                    </Button>
+                  )}
+                </div>
+                <textarea
+                  id="meta.description"
+                  name="meta.description"
+                  rows={3}
+                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Deskripsi singkat dan menarik tentang produk"
+                  value={metaDescription}
+                  onChange={handleMetaDescriptionChange}
+                  onBlur={formik.handleBlur}
+                ></textarea>
+                <CharacterCountSEO
+                  current={metaDescription.length}
+                  type="description"
+                />
+              </div>
+
+              {/* Hidden OG Image field - uses featuredImage by default */}
+              <input
+                type="hidden"
+                name="meta.ogImage"
+                value={
+                  formik.values.meta?.ogImage ||
+                  formik.values.featuredImage?.url ||
+                  ""
                 }
-                slug={`products/${formik.values.slug}`}
               />
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Meta Title */}
-            <div className="space-y-1">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                <LabelWithTooltip
-                  htmlFor="meta.title"
-                  label="Meta Title"
-                  tooltip="Judul yang muncul di hasil pencarian. Idealnya 50-60 karakter."
-                />
-                {metaTitleManuallyEdited && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setMetaTitleManuallyEdited(false);
-                      setMetaTitle(formik.values.name);
-                      formik.setFieldValue("meta", {
-                        ...formik.values.meta,
-                        title: formik.values.name,
-                      });
-                    }}
-                    className="h-6 text-xs justify-start sm:justify-center w-auto"
-                  >
-                    Selaraskan dengan nama produk
-                  </Button>
-                )}
-              </div>
-              <Input
-                id="meta.title"
-                name="meta.title"
-                placeholder="Gunakan nama produk yang menarik"
-                value={metaTitle}
-                onChange={handleMetaTitleChange}
-                onBlur={formik.handleBlur}
-              />
-              <CharacterCountSEO current={metaTitle.length} type="title" />
-            </div>
-
-            {/* Meta Description */}
-            <div className="space-y-1">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                <LabelWithTooltip
-                  htmlFor="meta.description"
-                  label="Meta Description"
-                  tooltip="Deskripsi yang muncul di hasil pencarian. Idealnya 150-160 karakter."
-                />
-                {metaDescriptionManuallyEdited && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setMetaDescriptionManuallyEdited(false);
-                      setMetaDescription(excerpt);
-                      formik.setFieldValue("meta", {
-                        ...formik.values.meta,
-                        description: excerpt,
-                      });
-                    }}
-                    className="h-6 text-xs justify-start sm:justify-center w-auto"
-                  >
-                    Selaraskan dengan deskripsi
-                  </Button>
-                )}
-              </div>
-              <textarea
-                id="meta.description"
-                name="meta.description"
-                rows={3}
-                className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Deskripsi singkat dan menarik tentang produk"
-                value={metaDescription}
-                onChange={handleMetaDescriptionChange}
-                onBlur={formik.handleBlur}
-              ></textarea>
-              <CharacterCountSEO
-                current={metaDescription.length}
-                type="description"
-              />
-            </div>
-
-            {/* Hidden OG Image field - uses featuredImage by default */}
-            <input
-              type="hidden"
-              name="meta.ogImage"
-              value={
-                formik.values.meta?.ogImage ||
-                formik.values.featuredImage?.url ||
-                ""
-              }
-            />
+        {/* Sticky Form Actions */}
+        <div className="fixed bottom-0 left-0 right-0 py-3 px-4 sm:py-4 sm:px-6 bg-background border-t z-[5] shadow-[0_-1px_2px_rgba(0,0,0,0.1)]">
+          <div className="container flex items-center justify-end gap-2 sm:gap-4 max-w-7xl mx-auto">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSubmitting}
+              className="flex-1 sm:flex-none"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !formik.isValid}
+              className="flex-1 sm:flex-none"
+            >
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {initialValues ? "Perbarui Produk" : "Tambah Produk"}
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Sticky Form Actions */}
-      <div className="fixed bottom-0 left-0 right-0 py-3 px-4 sm:py-4 sm:px-6 bg-background border-t z-[5] shadow-[0_-1px_2px_rgba(0,0,0,0.1)]">
-        <div className="container flex items-center justify-end gap-2 sm:gap-4 max-w-7xl mx-auto">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-            className="flex-1 sm:flex-none"
-          >
-            Batal
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting || !formik.isValid}
-            className="flex-1 sm:flex-none"
-          >
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {initialValues ? "Perbarui Produk" : "Tambah Produk"}
-          </Button>
         </div>
-      </div>
-    </form>
+      </form>
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialogOpen}
+        onOpenChange={(open) => !isDeletingImages && setConfirmDialogOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Pembatalan</DialogTitle>
+            <DialogDescription>
+              Anda memiliki perubahan yang belum disimpan. Yakin ingin
+              membatalkan?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialogOpen(false)}
+              disabled={isDeletingImages}
+            >
+              Lanjutkan Mengedit
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmNavigation}
+              disabled={isDeletingImages}
+            >
+              {isDeletingImages ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Membersihkan...
+                </>
+              ) : (
+                "Ya, Batalkan"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

@@ -47,11 +47,8 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    // Verifikasi autentikasi (dinonaktifkan untuk pengembangan)
     const token = req.cookies.get("authToken")?.value;
 
-    // Untuk lingkungan produksi, aktifkan kode ini
-    /*
     if (!token) {
       return NextResponse.json(
         { error: "Autentikasi diperlukan" },
@@ -66,7 +63,6 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
-    */
 
     const data = await req.json();
 

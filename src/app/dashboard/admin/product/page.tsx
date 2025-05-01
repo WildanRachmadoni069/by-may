@@ -14,6 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatRupiah } from "@/lib/utils";
 import Image from "next/image";
 import {
@@ -36,6 +44,13 @@ function AdminProductList() {
     totalPages: 0,
   });
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    slug: string | null;
+  }>({
+    open: false,
+    slug: null,
+  });
 
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const { toast } = useToast();
@@ -76,13 +91,23 @@ function AdminProductList() {
 
   // Handle product deletion
   const handleDelete = async (slug: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus produk ini?")) {
-      return;
-    }
+    // Open confirmation dialog with the slug to delete
+    setDeleteConfirmDialog({
+      open: true,
+      slug,
+    });
+  };
 
-    setDeletingSlug(slug);
+  // Execute actual deletion after confirmation
+  const confirmDelete = async () => {
+    const slugToDelete = deleteConfirmDialog.slug;
+    if (!slugToDelete) return;
+
+    setDeleteConfirmDialog({ open: false, slug: null });
+    setDeletingSlug(slugToDelete);
+
     try {
-      const result = await deleteProductAction(slug);
+      const result = await deleteProductAction(slugToDelete);
 
       if (result.success) {
         toast({
@@ -248,6 +273,37 @@ function AdminProductList() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmDialog.open}
+        onOpenChange={(open) =>
+          setDeleteConfirmDialog({ ...deleteConfirmDialog, open })
+        }
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Penghapusan</DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus produk ini? Tindakan ini tidak
+              dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setDeleteConfirmDialog({ open: false, slug: null })
+              }
+            >
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Ya, Hapus Produk
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

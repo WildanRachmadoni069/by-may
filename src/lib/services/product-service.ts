@@ -568,28 +568,48 @@ export const ProductService = {
     }
 
     try {
+      // Kumpulkan semua URL gambar yang perlu dihapus
+      const imagesToDelete: string[] = [];
+
+      // 1. Tambahkan gambar utama jika ada
+      if (product.featuredImage?.url) {
+        imagesToDelete.push(product.featuredImage.url);
+      }
+
+      // 2. Tambahkan semua gambar tambahan
+      if (product.additionalImages && Array.isArray(product.additionalImages)) {
+        for (const image of product.additionalImages) {
+          if (image?.url) {
+            imagesToDelete.push(image.url);
+          }
+        }
+      }
+
+      // 3. Tambahkan gambar opsi variasi jika ada
+      if (product.variations && Array.isArray(product.variations)) {
+        for (const variation of product.variations) {
+          if (variation.options && Array.isArray(variation.options)) {
+            for (const option of variation.options) {
+              if (option.imageUrl) {
+                imagesToDelete.push(option.imageUrl);
+              }
+            }
+          }
+        }
+      }
+
       // Hapus produk dari database terlebih dahulu
       await db.product.delete({
         where: { id: product.id },
       });
 
-      // Bersihkan gambar
+      // Bersihkan semua gambar yang terkait
       try {
-        // Hapus gambar utama
-        if (product.featuredImage?.url) {
-          await CloudinaryService.deleteImageByUrl(product.featuredImage.url);
-        }
-
-        // Hapus gambar tambahan
-        if (
-          product.additionalImages &&
-          Array.isArray(product.additionalImages)
-        ) {
-          for (const image of product.additionalImages) {
-            if (image?.url) {
-              await CloudinaryService.deleteImageByUrl(image.url);
-            }
-          }
+        // Hapus gambar secara paralel untuk kinerja yang lebih baik
+        if (imagesToDelete.length > 0) {
+          await Promise.allSettled(
+            imagesToDelete.map((url) => CloudinaryService.deleteImageByUrl(url))
+          );
         }
       } catch (error) {
         // Catat tapi lanjutkan (produk sudah dihapus dari DB)

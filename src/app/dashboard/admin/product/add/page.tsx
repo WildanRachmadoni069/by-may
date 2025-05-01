@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ProductForm from "@/components/admin/product/ProductForm";
 import {
@@ -18,6 +18,12 @@ export default function AddProductPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { toast } = useToast();
+  const { resetVariations } = useProductVariationStore();
+
+  // Reset variation store when entering the page
+  useEffect(() => {
+    resetVariations();
+  }, [resetVariations]);
 
   // Get variation data from store
   const { variations, priceVariants, hasVariations, setHasVariations } =
