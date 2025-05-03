@@ -131,11 +131,14 @@ export const ProductService = {
     // Bangun filter query
     const where: any = {};
 
-    // Tambahkan pencarian
-    if (search) {
+    // Perbaikan implementasi pencarian
+    if (search && search.trim() !== "") {
+      const searchTerm = search.trim();
+      console.log(`Processing search term: "${searchTerm}"`);
+
       where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { description: { contains: searchTerm, mode: "insensitive" } },
       ];
     }
 
@@ -153,6 +156,9 @@ export const ProductService = {
     if (specialLabel && specialLabel !== "all") {
       where.specialLabel = specialLabel;
     }
+
+    // Log filter lengkap untuk debugging
+    console.log("Database filter query:", JSON.stringify(where, null, 2));
 
     // Tentukan pengurutan
     const orderBy: any = {};
@@ -179,30 +185,48 @@ export const ProductService = {
         orderBy.createdAt = "desc";
     }
 
-    // Ambil produk dengan paginasi dan filter
-    const products = await db.product.findMany({
-      where,
-      include: {
-        category: true,
-        collection: true,
-      },
-      take: limit,
-      skip,
-      orderBy,
-    });
+    try {
+      // Ambil produk dengan paginasi dan filter
+      const products = await db.product.findMany({
+        where,
+        include: {
+          category: true,
+          collection: true,
+        },
+        take: limit,
+        skip,
+        orderBy,
+      });
 
-    // Dapatkan jumlah total untuk paginasi
-    const total = await db.product.count({ where });
+      // Log hasil pencarian
+      if (search) {
+        console.log(
+          `Database query found ${products.length} products matching "${search}"`
+        );
+        if (products.length > 0) {
+          console.log(
+            "Product names found:",
+            products.map((p) => p.name)
+          );
+        }
+      }
 
-    return {
-      data: products as unknown as Product[],
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+      // Dapatkan jumlah total untuk paginasi
+      const total = await db.product.count({ where });
+
+      return {
+        data: products as unknown as Product[],
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      console.error("Database error during product search:", error);
+      throw error;
+    }
   },
 
   /**

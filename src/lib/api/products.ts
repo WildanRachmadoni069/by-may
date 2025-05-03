@@ -41,19 +41,40 @@ export async function getProducts(
   const params = new URLSearchParams();
   params.append("page", page.toString());
   params.append("limit", limit.toString());
-  if (search) params.append("search", search);
-  if (categoryId) params.append("categoryId", categoryId);
-  if (collectionId) params.append("collectionId", collectionId);
-  if (specialLabel) params.append("specialLabel", specialLabel);
-  if (sortBy) params.append("sortBy", sortBy);
 
-  const response = await fetch(`/api/products?${params.toString()}`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch products: ${response.statusText}`);
+  // Memastikan parameter search diteruskan dengan benar
+  if (search && search.trim() !== "") {
+    params.append("search", search.trim());
   }
 
-  return await response.json();
+  if (categoryId) params.append("categoryId", categoryId);
+  if (collectionId) params.append("collectionId", collectionId);
+  if (specialLabel && specialLabel !== "none")
+    params.append("specialLabel", specialLabel);
+  if (sortBy) params.append("sortBy", sortBy);
+
+  console.log(`Client API - Request URL: /api/products?${params.toString()}`);
+
+  try {
+    const response = await fetch(`/api/products?${params.toString()}`);
+
+    if (!response.ok) {
+      console.error(`API Error: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch products: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log(
+      `Client API - Received ${
+        result.data?.length || 0
+      } products from API, total: ${result.pagination?.total || 0}`
+    );
+
+    return result;
+  } catch (error) {
+    console.error("Error in getProducts client API call:", error);
+    throw error;
+  }
 }
 
 /**

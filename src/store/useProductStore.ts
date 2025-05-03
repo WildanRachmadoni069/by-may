@@ -103,11 +103,39 @@ export const useProductStore = create<ProductState>((set, get) => ({
    */
   fetchProducts: async (options = {}) => {
     const { filters } = get();
-    const mergedOptions = { ...filters, ...options };
+
+    // Log untuk debugging
+    console.log("fetchProducts called with options:", options);
+
+    // Pastikan mencampurkan opsi dengan benar
+    const mergedOptions = {
+      ...filters,
+      ...options,
+    };
+
+    console.log(
+      "Store - Fetching products with merged options:",
+      mergedOptions
+    );
 
     set({ loading: true, error: null });
     try {
-      const response = await getProducts(mergedOptions);
+      // Gunakan searchQuery sebagai search saat memanggil API
+      const apiParams = {
+        ...mergedOptions,
+        search: mergedOptions.searchQuery,
+      };
+      delete apiParams.searchQuery; // Hapus parameter duplikat
+
+      console.log("API request params:", apiParams);
+
+      const response = await getProducts(apiParams);
+
+      console.log(
+        `Received ${response.data.length} products from API, total: ${response.pagination.total}`
+      );
+
+      // Update state dengan hasil dan filter yang digunakan
       set({
         products: response.data,
         pagination: response.pagination,
@@ -148,11 +176,15 @@ export const useProductStore = create<ProductState>((set, get) => ({
    */
   setFilters: (newFilters) => {
     set((state) => {
+      // Combine existing filters with new filters
       const updatedFilters = { ...state.filters, ...newFilters };
 
-      // Fetch products with the new filters immediately
-      state.fetchProducts(updatedFilters);
+      console.log("Setting filters:", updatedFilters);
 
+      // Fetch products immediately with new filters
+      get().fetchProducts(updatedFilters);
+
+      // Update the filters state
       return { filters: updatedFilters };
     });
   },

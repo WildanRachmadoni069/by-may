@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatRupiah } from "@/lib/utils";
 import Image from "next/image";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useToast } from "@/hooks/use-toast";
 import {
   Pagination,
@@ -91,19 +90,17 @@ function AdminProductList() {
     slug: null,
   });
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  // Hapus kode debounce yang tidak lagi dibutuhkan
   const { toast } = useToast();
 
-  // Initial data fetch
+  // Initial data fetch - Hanya memuat produk saat halaman pertama dibuka
   useEffect(() => {
     fetchCategories();
     fetchCollections();
-  }, [fetchCategories, fetchCollections]);
 
-  // Update search filter when debounced query changes
-  useEffect(() => {
-    setFilters({ searchQuery: debouncedSearchQuery, page: 1 });
-  }, [debouncedSearchQuery, setFilters]);
+    // Fetch produk saat component mount (data awal)
+    fetchProducts();
+  }, [fetchCategories, fetchCollections, fetchProducts]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -112,15 +109,48 @@ function AdminProductList() {
     setFilters({ page });
   };
 
-  // Handle search
-  const handleSearch = () => {
-    setFilters({ searchQuery: searchQuery, page: 1 });
+  // Update search input handler to automatically refresh data when cleared
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setSearchQuery(newValue);
+
+    // If search is cleared (becomes empty), automatically refresh data
+    if (newValue === "" && filters.searchQuery) {
+      handleResetSearch();
+    }
   };
 
-  // Reset search
+  // Handle search button click - Perbarui untuk menggunakan nilai searchQuery
+  const handleSearch = () => {
+    console.log(`Executing search for: "${searchQuery}"`);
+
+    // Jika pencarian kosong tapi ada filter pencarian sebelumnya, reset pencarian
+    if (searchQuery === "" && filters.searchQuery) {
+      handleResetSearch();
+      return;
+    }
+
+    // Jika pencarian kosong dan tidak ada filter pencarian sebelumnya, tidak perlu melakukan apapun
+    if (searchQuery === "" && !filters.searchQuery) {
+      return;
+    }
+
+    // Saat pencarian, kembalikan ke halaman 1
+    setFilters({ searchQuery, page: 1 });
+  };
+
+  // Reset search - improved to preserve other filters
   const handleResetSearch = () => {
+    console.log("Clearing search filter");
     setSearchQuery("");
-    setFilters({ searchQuery: "", page: 1 });
+
+    // Hanya reset filter searchQuery, pertahankan filter lainnya
+    const { searchQuery: _, ...otherFilters } = filters;
+    setFilters({
+      ...otherFilters,
+      searchQuery: "",
+      page: 1,
+    });
   };
 
   // Handle category filter change
@@ -356,10 +386,11 @@ function AdminProductList() {
                 placeholder="Cari produk..."
                 className="pl-9 h-9"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchInputChange}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
-                    handleSearch();
+                    e.preventDefault();
+                    handleSearch(); // Tetap gunakan tombol Enter untuk pencarian
                   }
                 }}
               />
@@ -373,7 +404,8 @@ function AdminProductList() {
             >
               <Search className="h-4 w-4" />
             </Button>
-            {filters.searchQuery && (
+            {/* Hanya tampilkan tombol reset jika ada pencarian aktif di searchQuery ATAU di filters */}
+            {(searchQuery || filters.searchQuery) && (
               <Button
                 size="sm"
                 variant="outline"

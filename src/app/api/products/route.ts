@@ -3,10 +3,9 @@ import { ProductService } from "@/lib/services/product-service";
 import { verifyToken } from "@/lib/auth/auth";
 
 /**
- * Mengambil daftar produk dengan filter dan paginasi
- *
- * @param req - Request dari Next.js
- * @returns Response JSON dengan daftar produk terpaginasi atau pesan kesalahan
+ * GET handler for product API endpoint
+ * @param req - The incoming request
+ * @returns A paginated list of products with optional filters
  */
 export async function GET(req: NextRequest) {
   try {
@@ -17,9 +16,20 @@ export async function GET(req: NextRequest) {
     const categoryId = searchParams.get("categoryId") || undefined;
     const collectionId = searchParams.get("collectionId") || undefined;
     const specialLabel = searchParams.get("specialLabel") || undefined;
-    const sortBy = searchParams.get("sortBy") || undefined;
+    const sortBy = searchParams.get("sortBy") || "newest";
 
-    const result = await ProductService.getProducts({
+    // Log untuk debugging
+    console.log("API - Search Parameters:", {
+      search,
+      categoryId,
+      collectionId,
+      specialLabel,
+      page,
+      limit,
+      sortBy,
+    });
+
+    const options = {
       page,
       limit,
       search,
@@ -27,13 +37,25 @@ export async function GET(req: NextRequest) {
       collectionId,
       specialLabel,
       sortBy,
-    });
+    };
 
-    return NextResponse.json(result);
+    const products = await ProductService.getProducts(options);
+
+    // Log hasil pencarian untuk debugging
+    console.log(
+      `API - Found ${products.data.length || 0} products out of ${
+        products.pagination.total || 0
+      } total with search: "${search || ""}"`
+    );
+
+    return NextResponse.json(products);
   } catch (error) {
-    console.error("Gagal mengambil produk:", error);
+    console.error("API - Error fetching products:", error);
     return NextResponse.json(
-      { error: "Gagal mengambil produk" },
+      {
+        error: "Failed to fetch products",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
