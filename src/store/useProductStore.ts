@@ -25,15 +25,17 @@ import {
  */
 interface ProductsFilter {
   /** Kategori produk */
-  category: string;
+  categoryId?: string;
   /** Koleksi produk */
-  collection: string;
+  collectionId?: string;
   /** Metode pengurutan */
-  sortBy: string;
+  sortBy?: string;
   /** Kata kunci pencarian */
-  searchQuery: string;
+  searchQuery?: string;
   /** Nomor halaman saat ini */
   page?: number;
+  /** Label khusus */
+  specialLabel?: string;
 }
 
 /**
@@ -66,7 +68,9 @@ interface ProductState {
   /** Memperbarui produk yang ada */
   updateProduct: (slug: string, data: UpdateProductInput) => Promise<Product>;
   /** Menghapus produk */
-  removeProduct: (slug: string) => Promise<boolean>;
+  removeProduct: (
+    slug: string
+  ) => Promise<{ success: boolean; message?: string }>;
   /** Mengatur produk yang dipilih */
   setSelectedProduct: (product: Product | null) => void;
 }
@@ -86,10 +90,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
     totalPages: 0,
   },
   filters: {
-    category: "all",
-    collection: "all",
+    categoryId: undefined,
+    collectionId: undefined,
     sortBy: "newest",
     searchQuery: "",
+    page: 1,
+    specialLabel: undefined,
   },
 
   /**
@@ -106,6 +112,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         products: response.data,
         pagination: response.pagination,
         loading: false,
+        filters: { ...get().filters, ...options },
       });
     } catch (error) {
       const errorMessage =
@@ -140,24 +147,31 @@ export const useProductStore = create<ProductState>((set, get) => ({
    * Mengatur filter pencarian
    */
   setFilters: (newFilters) => {
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters },
-    }));
+    set((state) => {
+      const updatedFilters = { ...state.filters, ...newFilters };
+
+      // Fetch products with the new filters immediately
+      state.fetchProducts(updatedFilters);
+
+      return { filters: updatedFilters };
+    });
   },
 
   /**
    * Mengatur ulang filter ke nilai default
    */
   resetFilters: () => {
-    set({
-      filters: {
-        category: "all",
-        collection: "all",
-        sortBy: "newest",
-        searchQuery: "",
-        page: 1,
-      },
-    });
+    const defaultFilters = {
+      categoryId: undefined,
+      collectionId: undefined,
+      sortBy: "newest",
+      searchQuery: "",
+      page: 1,
+      specialLabel: undefined,
+    };
+
+    set({ filters: defaultFilters });
+    get().fetchProducts(defaultFilters);
   },
 
   /**
@@ -167,10 +181,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const newProduct = await createProduct(productData);
-      set((state) => ({
-        products: [newProduct, ...state.products],
-        loading: false,
-      }));
+
+      // Refresh the product list after creating a new product
+      get().fetchProducts();
+
+      set({ loading: false });
       return newProduct;
     } catch (error) {
       const errorMessage =
@@ -187,6 +202,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const updatedProduct = await updateProductApi(slug, data);
+
+      // Update the product in the list if it exists
       set((state) => ({
         products: state.products.map((p) =>
           p.slug === slug ? updatedProduct : p
@@ -197,6 +214,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
             : state.selectedProduct,
         loading: false,
       }));
+
       return updatedProduct;
     } catch (error) {
       const errorMessage =
@@ -210,25 +228,31 @@ export const useProductStore = create<ProductState>((set, get) => ({
    * Menghapus produk
    */
   removeProduct: async (slug: string) => {
+    set({ loading: true, error: null });
     try {
       const result = await deleteProduct(slug);
 
       if (result.success) {
-        set((state) => ({
-          products: state.products.filter((p) => p.slug !== slug),
-          selectedProduct:
-            state.selectedProduct?.slug === slug ? null : state.selectedProduct,
-        }));
-        return true;
+        // Refresh the product list with current filters
+        await get().fetchProducts(get().filters);
+
+        // If deleted product was selected, clear selection
+        if (get().selectedProduct?.slug === slug) {
+          set({ selectedProduct: null });
+        }
       }
 
-      throw new Error(result.message || "Gagal menghapus produk");
+      set({ loading: false });
+      return result;
     } catch (error) {
       console.error("Error saat menghapus produk:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Gagal menghapus produk";
-      set({ error: errorMessage });
-      throw error;
+      set({ error: errorMessage, loading: false });
+      return {
+        success: false,
+        message: errorMessage,
+      };
     }
   },
 

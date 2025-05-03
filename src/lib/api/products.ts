@@ -1,17 +1,20 @@
 /**
- * API Produk untuk Komponen Klien
+ * API Products
  *
- * File ini berisi fungsi untuk berinteraksi dengan API produk
- * dari komponen klien. Untuk operasi server, gunakan product-actions.ts.
+ * File ini berisi fungsi-fungsi untuk berinteraksi dengan API produk
  */
 
+import {
+  Product,
+  CreateProductInput,
+  UpdateProductInput,
+} from "@/types/product";
 import { PaginatedResult } from "@/types/common";
-import { Product, CreateProductInput } from "@/types/product";
 
 /**
- * Mengambil produk dengan filter dan paginasi
+ * Mengambil daftar produk dengan filter
  * @param options Opsi filter dan paginasi
- * @returns Hasil produk terpaginasi
+ * @returns Daftar produk terpaginasi
  */
 export async function getProducts(
   options: {
@@ -31,49 +34,50 @@ export async function getProducts(
     categoryId,
     collectionId,
     specialLabel,
-    sortBy,
+    sortBy = "newest",
   } = options;
 
+  // Build query string
   const params = new URLSearchParams();
   params.append("page", page.toString());
   params.append("limit", limit.toString());
-
   if (search) params.append("search", search);
   if (categoryId) params.append("categoryId", categoryId);
   if (collectionId) params.append("collectionId", collectionId);
   if (specialLabel) params.append("specialLabel", specialLabel);
   if (sortBy) params.append("sortBy", sortBy);
 
-  const res = await fetch(`/api/products?${params.toString()}`, {
-    next: { tags: ["products"] },
-  });
+  const response = await fetch(`/api/products?${params.toString()}`);
 
-  if (!res.ok) {
-    throw new Error("Gagal mengambil produk");
+  if (!response.ok) {
+    throw new Error(`Failed to fetch products: ${response.statusText}`);
   }
 
-  return res.json();
+  return await response.json();
 }
 
 /**
  * Mengambil produk berdasarkan slug
- * @param slug Slug produk yang dicari
- * @returns Produk atau null jika tidak ditemukan
+ * @param slug Slug produk yang akan diambil
+ * @returns Data produk atau null jika tidak ditemukan
  */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const res = await fetch(`/api/products/${slug}`, {
-    next: { tags: [`product-${slug}`] },
-  });
+  try {
+    const response = await fetch(`/api/products/${slug}`);
 
-  if (res.status === 404) {
-    return null;
+    if (response.status === 404) {
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch product: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`Error fetching product with slug ${slug}:`, error);
+    throw error;
   }
-
-  if (!res.ok) {
-    throw new Error("Gagal mengambil produk");
-  }
-
-  return res.json();
 }
 
 /**
@@ -84,7 +88,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 export async function createProduct(
   data: CreateProductInput
 ): Promise<Product> {
-  const res = await fetch("/api/products", {
+  const response = await fetch("/api/products", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -92,27 +96,27 @@ export async function createProduct(
     body: JSON.stringify(data),
   });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
     throw new Error(
-      errorData?.details || errorData?.error || "Gagal membuat produk"
+      errorData.error || `Failed to create product: ${response.status}`
     );
   }
 
-  return res.json();
+  return await response.json();
 }
 
 /**
- * Memperbarui produk yang sudah ada
+ * Memperbarui produk
  * @param slug Slug produk yang akan diperbarui
  * @param data Data produk yang diperbarui
  * @returns Produk yang diperbarui
  */
 export async function updateProduct(
   slug: string,
-  data: Partial<CreateProductInput>
+  data: UpdateProductInput
 ): Promise<Product> {
-  const res = await fetch(`/api/products/${slug}`, {
+  const response = await fetch(`/api/products/${slug}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -120,36 +124,39 @@ export async function updateProduct(
     body: JSON.stringify(data),
   });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
     throw new Error(
-      errorData?.details || errorData?.error || "Gagal memperbarui produk"
+      errorData.error || `Failed to update product: ${response.status}`
     );
   }
 
-  return res.json();
+  return await response.json();
 }
 
 /**
  * Menghapus produk
  * @param slug Slug produk yang akan dihapus
- * @returns Status keberhasilan dan pesan opsional
+ * @returns Status keberhasilan dan pesan
  */
 export async function deleteProduct(
   slug: string
 ): Promise<{ success: boolean; message?: string }> {
-  const res = await fetch(`/api/products/${slug}`, {
+  const response = await fetch(`/api/products/${slug}`, {
     method: "DELETE",
   });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
     return {
       success: false,
-      message:
-        errorData?.details || errorData?.error || "Gagal menghapus produk",
+      message: data.error || `Failed to delete product: ${response.status}`,
     };
   }
 
-  return { success: true };
+  return {
+    success: true,
+    ...data,
+  };
 }
