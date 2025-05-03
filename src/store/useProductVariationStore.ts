@@ -114,6 +114,9 @@ interface ProductVariationState {
     combinationKey: string,
     data: Partial<PriceVariantItem>
   ) => void;
+
+  // Menambahkan fungsi untuk impor varian harga
+  importPriceVariants: (priceVariants: PriceVariantItem[]) => void;
 }
 
 /**
@@ -371,6 +374,11 @@ export const useProductVariationStore = create<ProductVariationState>(
 
         return { priceVariants: updatedVariants };
       });
+    },
+
+    // Import price variants for edit mode
+    importPriceVariants: (priceVariants) => {
+      set({ priceVariants });
     },
   })
 );

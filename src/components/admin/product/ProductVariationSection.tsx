@@ -346,29 +346,15 @@ const PriceVariantSection = () => {
   const [bulkPrice, setBulkPrice] = useState<string>("");
   const [bulkStock, setBulkStock] = useState<string>("");
 
-  /**
-   * Memperbarui harga varian
-   * @param combinationKey Kunci kombinasi varian
-   * @param price Harga baru
-   */
+  // Memastikan perubahan pada input menyebabkan perubahan pada store
   const handlePriceChange = (combinationKey: string, price: number | null) => {
     updatePriceVariant(combinationKey, { price });
   };
 
-  /**
-   * Memperbarui stok varian
-   * @param combinationKey Kunci kombinasi varian
-   * @param stock Stok baru
-   */
   const handleStockChange = (combinationKey: string, stock: number | null) => {
     updatePriceVariant(combinationKey, { stock });
   };
 
-  /**
-   * Memperbarui SKU varian
-   * @param combinationKey Kunci kombinasi varian
-   * @param sku SKU baru
-   */
   const handleSkuChange = (combinationKey: string, sku: string) => {
     updatePriceVariant(combinationKey, { sku });
   };

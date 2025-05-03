@@ -39,6 +39,7 @@ import { useCategoryStore } from "@/store/useCategoryStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import ProductVariationSection from "@/components/admin/product/ProductVariationSection";
 import {
+  PriceVariantItem,
   useProductVariationStore,
   Variation,
 } from "@/store/useProductVariationStore";
@@ -69,7 +70,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
     hasVariations,
     importVariations,
     variations,
-    resetVariations, // Make sure to destructure the resetVariations function
+    resetVariations,
+    priceVariants, // Make sure to get priceVariants from the store
   } = useProductVariationStore();
 
   // Fetch categories and collections
@@ -98,8 +100,50 @@ const ProductForm: React.FC<ProductFormProps> = ({
         })
       );
       importVariations(mappedVariations);
+
+      // Initialize price variants if they exist
+      if (
+        initialValues.priceVariants &&
+        initialValues.priceVariants.length > 0
+      ) {
+        // Map the price variants to the format needed by the store
+        const priceVariantsForStore: PriceVariantItem[] =
+          initialValues.priceVariants.map((priceVariant) => {
+            // Extract option combinations for this price variant
+            const optionCombination = priceVariant.options.map(
+              (opt) => opt.option.id
+            );
+            const optionLabels = priceVariant.options.map((opt) => {
+              // Find the corresponding variation for this option
+              const variation = initialValues.variations?.find((v) =>
+                v.options.some((o) => o.id === opt.option.id)
+              );
+              const variationName = variation?.name || "";
+              const optionName = opt.option.name;
+              return `${variationName}: ${optionName}`;
+            });
+
+            return {
+              id: priceVariant.id,
+              optionCombination,
+              optionLabels,
+              price: priceVariant.price,
+              stock: priceVariant.stock,
+              sku: priceVariant.sku,
+            };
+          });
+
+        // Import price variants into the store
+        useProductVariationStore
+          .getState()
+          .importPriceVariants(priceVariantsForStore);
+      }
     }
-  }, [initialValues?.variations, importVariations]);
+  }, [
+    initialValues?.variations,
+    initialValues?.priceVariants,
+    importVariations,
+  ]);
 
   const formSchema = Yup.object({
     name: Yup.string().required("Nama produk harus diisi"),
@@ -157,10 +201,39 @@ const ProductForm: React.FC<ProductFormProps> = ({
     validationSchema: formSchema,
     onSubmit: async (values) => {
       try {
+        // Pastikan semua data variasi valid dan memiliki format yang benar
+        const processedVariations = variations.map((variation) => ({
+          id: variation.id || undefined, // Gunakan undefined daripada null
+          name: variation.name,
+          options: variation.options.map((option) => ({
+            id: option.id || undefined, // Gunakan undefined daripada null
+            name: option.name,
+            imageUrl: option.imageUrl,
+          })),
+        }));
+
+        // Proses price variants agar tidak ada nilai yang null
+        const processedPriceVariants = hasVariations
+          ? priceVariants
+              .filter((pv) => pv.price !== null && pv.stock !== null) // Jangan sertakan varian dengan nilai null
+              .map((pv) => ({
+                id: pv.id,
+                optionCombination: pv.optionCombination,
+                optionLabels: pv.optionLabels,
+                price: pv.price || 0, // Gunakan 0 daripada null
+                stock: pv.stock || 0, // Gunakan 0 daripada null
+                sku: pv.sku || undefined, // Gunakan undefined daripada null
+              }))
+          : [];
+
         // Set the hasVariations value from the store before submitting
         const submissionValues = {
           ...values,
           hasVariations: hasVariations,
+          // Include the variations from store with proper formatting
+          variations: processedVariations,
+          // Include the price variants from store if product has variations, with proper formatting
+          priceVariants: processedPriceVariants,
         };
 
         await onSubmit(submissionValues);
@@ -177,6 +250,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
           }`,
         });
       } catch (error) {
+        console.error("Error submitting product form:", error);
         toast({
           variant: "destructive",
           title: "Gagal menyimpan produk",

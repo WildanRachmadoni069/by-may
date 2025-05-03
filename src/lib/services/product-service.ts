@@ -502,19 +502,156 @@ export const ProductService = {
       }
     }
 
-    // Perbarui produk dasar
-    const updatedProduct = await db.product.update({
-      where: { id: product.id },
-      data: updateData,
-    });
+    try {
+      // Log data untuk debugging
+      console.log(
+        "Updating product with data:",
+        JSON.stringify(updateData, null, 2)
+      );
 
-    // Tangani pembaruan variasi
-    if (data.hasVariations && data.variations) {
-      // Pembaruan variasi yang kompleks akan di sini
-      // Ini akan melibatkan perbandingan variasi lama vs baru dan memperbarui sesuai
+      // Perbarui produk dasar dalam transaksi
+      // Gunakan transaksi untuk memastikan semua perubahan berhasil atau gagal bersama-sama
+      const updatedProduct = await db.$transaction(async (tx) => {
+        // Salin data variasi dan varian harga sebelum menghapus dari updateData
+        const variations = updateData.variations;
+        const priceVariants = updateData.priceVariants;
+
+        // Hapus data variasi dan varian harga dari updateData karena akan diproses secara terpisah
+        delete updateData.variations;
+        delete updateData.priceVariants;
+
+        // 1. Perbarui produk
+        const updatedProduct = await tx.product.update({
+          where: { id: product.id },
+          data: updateData,
+          include: {
+            variations: {
+              include: {
+                options: true,
+              },
+            },
+            priceVariants: {
+              include: {
+                options: {
+                  include: {
+                    option: true,
+                  },
+                },
+              },
+            },
+            category: true,
+            collection: true,
+          },
+        });
+
+        // 2. Perbarui varian harga jika produk memiliki variasi
+        if (data.hasVariations && priceVariants && priceVariants.length > 0) {
+          // Ambil daftar varian harga yang ada
+          const existingPriceVariants = await tx.priceVariant.findMany({
+            where: { productId: product.id },
+            include: {
+              options: {
+                include: {
+                  option: true,
+                },
+              },
+            },
+          });
+
+          // Bangun peta opsi variasi untuk membantu pencarian
+          const optionIdMap = new Map<string, string>();
+
+          // Jika ada variasi yang diberikan, gunakan itu untuk membangun peta
+          if (variations && variations.length > 0) {
+            for (const variation of variations) {
+              if (variation.options) {
+                for (const option of variation.options) {
+                  if (option.id) {
+                    // Gunakan ID yang sudah ada
+                    optionIdMap.set(option.id, option.id);
+                  }
+                }
+              }
+            }
+          }
+
+          // Jika tidak ada variasi yang diberikan, gunakan variasi yang ada pada produk
+          else if (updatedProduct.variations.length > 0) {
+            for (const variation of updatedProduct.variations) {
+              for (const option of variation.options) {
+                optionIdMap.set(option.id, option.id);
+              }
+            }
+          }
+
+          // Update atau buat varian harga baru
+          for (const priceVariant of priceVariants) {
+            // Jika tidak ada kombinasi opsi atau harga/stok null, lewati
+            if (
+              !priceVariant.optionCombination ||
+              priceVariant.optionCombination.length === 0 ||
+              priceVariant.price === null ||
+              priceVariant.stock === null
+            ) {
+              continue;
+            }
+
+            // Pastikan harga dan stok adalah angka valid
+            const price =
+              typeof priceVariant.price === "number" ? priceVariant.price : 0;
+            const stock =
+              typeof priceVariant.stock === "number" ? priceVariant.stock : 0;
+
+            // Cari apakah varian harga ini sudah ada berdasarkan ID atau kombinasi opsi
+            let existingPriceVariant = priceVariant.id
+              ? existingPriceVariants.find((pv) => pv.id === priceVariant.id)
+              : null;
+
+            // Persiapkan data untuk perbarui atau buat baru
+            const priceVariantData = {
+              productId: updatedProduct.id,
+              price, // Gunakan nilai yang sudah divalidasi
+              stock, // Gunakan nilai yang sudah divalidasi
+              sku: priceVariant.sku || undefined,
+            };
+
+            if (existingPriceVariant) {
+              // Perbarui varian harga yang ada
+              await tx.priceVariant.update({
+                where: { id: existingPriceVariant.id },
+                data: priceVariantData,
+              });
+            } else {
+              // Buat varian harga baru
+              const newPriceVariant = await tx.priceVariant.create({
+                data: priceVariantData,
+              });
+
+              // Hubungkan opsi ke varian harga yang baru
+              for (const optionId of priceVariant.optionCombination) {
+                // Periksa apakah ID opsi ini valid (ada dalam peta)
+                const validOptionId = optionIdMap.get(optionId);
+                if (validOptionId) {
+                  await tx.priceVariantToOption.create({
+                    data: {
+                      priceVariantId: newPriceVariant.id,
+                      optionId: validOptionId,
+                    },
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        return updatedProduct;
+      });
+
+      return updatedProduct as unknown as Product;
+    } catch (error) {
+      console.error("Error dalam updateProduct:", error);
+      throw error;
     }
-
-    return this.getProductBySlug(updatedProduct.slug) as Promise<Product>;
   },
 
   /**
