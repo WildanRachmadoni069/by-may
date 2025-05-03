@@ -11,10 +11,12 @@ import {
   Package2,
   X,
   CircleSlashed,
+  Library,
+  LayoutList,
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -375,66 +377,65 @@ function AdminProductList() {
         </Link>
       </div>
 
-      {/* Search and filters section */}
-      <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search with compact styling */}
-          <div className="relative flex-1 flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari produk..."
-                className="pl-9 h-9"
-                value={searchQuery}
-                onChange={handleSearchInputChange}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSearch(); // Tetap gunakan tombol Enter untuk pencarian
-                  }
-                }}
-              />
-            </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleSearch}
-              disabled={isLoading}
-              className="px-3 h-9"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-            {/* Hanya tampilkan tombol reset jika ada pencarian aktif di searchQuery ATAU di filters */}
+      {/* Search and filters section - More minimalist UI */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3">
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
+          {/* Search with minimalist styling - Simplified buttons */}
+          <div className="relative w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Cari produk..."
+              className="pl-9 pr-10 h-9"
+              value={searchQuery}
+              onChange={handleSearchInputChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
+            />
+
+            {/* Single clear button when there's input */}
             {(searchQuery || filters.searchQuery) && (
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 onClick={handleResetSearch}
                 disabled={isLoading}
-                className="px-3 h-9"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0 rounded-full"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-2 sm:w-auto w-full">
+          {/* Filter dropdown */}
+          <div className="flex items-center gap-2">
             <Select
               value={filters.categoryId || "all"}
               onValueChange={handleCategoryChange}
               disabled={isLoading}
             >
-              <SelectTrigger className="h-9 w-[120px]">
-                <SelectValue placeholder="Kategori" />
+              <SelectTrigger id="category-filter" className="h-9 w-[180px]">
+                <div className="flex items-center">
+                  <LayoutList className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Kategori" />
+                </div>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Kategori</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                {categories.length === 0 ? (
+                  <SelectItem value="empty" disabled>
+                    Tidak ada kategori
                   </SelectItem>
-                ))}
+                ) : (
+                  categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
 
@@ -443,30 +444,73 @@ function AdminProductList() {
               onValueChange={handleCollectionChange}
               disabled={isLoading}
             >
-              <SelectTrigger className="h-9 w-[120px]">
-                <SelectValue placeholder="Koleksi" />
+              <SelectTrigger id="collection-filter" className="h-9 w-[180px]">
+                <div className="flex items-center">
+                  <Library className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Koleksi" />
+                </div>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Koleksi</SelectItem>
-                {collections.map((collection) => (
-                  <SelectItem key={collection.id} value={collection.id}>
-                    {collection.name}
+                {collections.length === 0 ? (
+                  <SelectItem value="empty" disabled>
+                    Tidak ada koleksi
                   </SelectItem>
-                ))}
+                ) : (
+                  collections.map((collection) => (
+                    <SelectItem key={collection.id} value={collection.id}>
+                      {collection.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Search results feedback */}
-        {filters.searchQuery && (
-          <div className="mt-2 text-xs flex items-center gap-2 text-muted-foreground">
-            <Search className="h-3 w-3" />
-            Hasil untuk:{" "}
-            <span className="font-medium">"{filters.searchQuery}"</span>
-            {products.length === 0
-              ? " (tidak ditemukan)"
-              : `(${pagination.total} produk)`}
+        {/* Active filters as badges */}
+        {(filters.categoryId ||
+          filters.collectionId ||
+          filters.searchQuery) && (
+          <div className="flex flex-wrap gap-2 mt-3 text-xs">
+            {filters.categoryId && (
+              <Badge variant="outline" className="flex gap-1 items-center py-1">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3 w-3 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M7 7h10m0 0v10m-10 0h10"
+                  />
+                </svg>
+                {categories.find((c) => c.id === filters.categoryId)?.name ||
+                  "Loading..."}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 ml-1 -mr-1 rounded-full"
+                  onClick={() => handleCategoryChange("all")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )}
+
+            {/* ...existing filter badges... */}
+
+            {/* Loading indicator */}
+            {isLoading && (
+              <span className="flex items-center ml-auto text-muted-foreground">
+                <Loader2 className="animate-spin h-3 w-3 mr-1" />
+                Memuat...
+              </span>
+            )}
           </div>
         )}
       </div>
