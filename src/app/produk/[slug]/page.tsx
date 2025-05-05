@@ -34,7 +34,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { getProductBySlug } from "@/lib/api/products";
-import { Image as ProductImage, Product } from "@/types/product";
+import { Image as ProductImage, Product, PriceVariant } from "@/types/product";
+import useAuthStore from "@/store/useAuthStore"; // Replace useUserStore import
+import { getProductPriceDisplay } from "@/utils/product";
 
 export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -55,6 +57,13 @@ export default function ProductDetail() {
     Record<string, number>
   >({});
   const [allImages, setAllImages] = useState<ProductImage[]>([]);
+
+  const { currentUser } = useAuthStore(); // Replace useUserStore with useAuthStore
+  const [selectedPriceVariant, setSelectedPriceVariant] =
+    useState<PriceVariant | null>(null);
+
+  // Get addItem function from cart store
+  const { addItem } = useCartStore();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -205,10 +214,12 @@ export default function ProductDetail() {
       if (priceVariant) {
         setCurrentPrice(priceVariant.price);
         setCurrentStock(priceVariant.stock);
+        setSelectedPriceVariant(priceVariant);
         console.log("Found price variant:", priceVariant);
       } else {
         setCurrentPrice(null);
         setCurrentStock(null);
+        setSelectedPriceVariant(null);
         console.log(
           "No matching price variant found for options:",
           selectedOpts
@@ -218,6 +229,7 @@ export default function ProductDetail() {
       // If not all variations are selected, show price range
       setCurrentPrice(null);
       setCurrentStock(null);
+      setSelectedPriceVariant(null);
       console.log("Not all variations selected:", selectedOpts);
     }
   };
@@ -260,11 +272,71 @@ export default function ProductDetail() {
   };
 
   const handleAddToCart = async () => {
-    // This will be implemented in a future update
-    toast({
-      title: "Coming Soon",
-      description: "Cart functionality will be available soon.",
-    });
+    try {
+      // Check if user is logged in
+      if (!currentUser) {
+        // Use currentUser instead of user
+        toast({
+          title: "Login Diperlukan",
+          description: "Silakan login untuk menambahkan produk ke keranjang.",
+        });
+        return;
+      }
+
+      // Check if product is loaded
+      if (!product) {
+        toast({
+          variant: "destructive",
+          title: "Produk tidak tersedia",
+          description: "Produk tidak dapat ditambahkan ke keranjang.",
+        });
+        return;
+      }
+
+      // Check if all required variations are selected
+      if (
+        product.hasVariations &&
+        Object.keys(selectedOptions).length !== product.variations.length
+      ) {
+        toast({
+          variant: "destructive",
+          title: "Pilih variasi",
+          description: "Silakan pilih semua variasi produk terlebih dahulu.",
+        });
+        return;
+      }
+
+      // Check if there's enough stock
+      if (currentStock !== null && quantity > currentStock) {
+        toast({
+          variant: "destructive",
+          title: "Stok tidak cukup",
+          description: `Hanya tersedia ${currentStock} item.`,
+        });
+        return;
+      }
+
+      await addItem({
+        productId: product.id,
+        priceVariantId: selectedPriceVariant?.id,
+        quantity,
+      });
+
+      toast({
+        title: "Produk ditambahkan",
+        description: "Produk telah ditambahkan ke keranjang.",
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast({
+        variant: "destructive",
+        title: "Gagal menambahkan ke keranjang",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Terjadi kesalahan saat menambahkan produk ke keranjang.",
+      });
+    }
   };
 
   const renderPrice = () => {
@@ -286,6 +358,9 @@ export default function ProductDetail() {
 
     return `${formatRupiah(minPrice)} - ${formatRupiah(maxPrice)}`;
   };
+
+  // Display product price using our new utility function
+  const displayPrice = product ? getProductPriceDisplay(product) : "";
 
   if (loading) {
     return (
@@ -444,7 +519,7 @@ export default function ProductDetail() {
               )}
             </div>
             <div className="text-2xl font-semibold text-primary">
-              {renderPrice()}
+              {displayPrice}
             </div>
           </div>
 

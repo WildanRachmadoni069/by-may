@@ -120,7 +120,7 @@ function MainNav() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-4">
-              {/* <CartButton /> */}
+              <CartButton />
 
               {currentUser ? (
                 <DropdownMenu>

@@ -61,6 +61,7 @@ import { useProductStore } from "@/store/useProductStore";
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { usePathname } from "next/navigation";
+import { getProductPriceDisplay } from "@/utils/product";
 
 function AdminProductList() {
   const pathname = usePathname();
@@ -209,54 +210,6 @@ function AdminProductList() {
     } finally {
       setDeletingSlug(null);
     }
-  };
-
-  // Helper function untuk mendapatkan format tampilan harga produk
-  const getPriceDisplay = (product: any) => {
-    if (!product.hasVariations) {
-      // Untuk produk tanpa variasi, tampilkan basePrice
-      return product.basePrice ? formatRupiah(product.basePrice) : "-";
-    }
-
-    // Untuk produk dengan variasi, periksa apakah priceVariants tersedia dan tidak kosong
-    if (
-      product.priceVariants &&
-      Array.isArray(product.priceVariants) &&
-      product.priceVariants.length > 0
-    ) {
-      // Debugging untuk melihat data yang kita terima
-      console.log(`Price variants for ${product.name}:`, product.priceVariants);
-
-      // Ambil nilai harga dari setiap varian
-      const prices = product.priceVariants
-        .map((variant: any) => variant.price)
-        .filter(Boolean);
-
-      if (prices.length === 0) {
-        return "-"; // Tidak ada harga yang valid
-      }
-
-      const minPrice = Math.min(...prices);
-      const maxPrice = Math.max(...prices);
-
-      if (minPrice === maxPrice) {
-        // Jika semua harga sama, tampilkan satu harga
-        return formatRupiah(minPrice);
-      } else {
-        // Tampilkan rentang harga
-        return `${formatRupiah(minPrice)} - ${formatRupiah(maxPrice)}`;
-      }
-    }
-
-    // Debug untuk membantu troubleshooting
-    console.log(
-      "Product without proper price variants:",
-      product.name,
-      product.priceVariants
-    );
-
-    // Fallback jika tidak ada informasi harga yang valid
-    return "-";
   };
 
   // Generate pagination items
@@ -630,7 +583,7 @@ function AdminProductList() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{getPriceDisplay(product)}</TableCell>
+                  <TableCell>{getProductPriceDisplay(product)}</TableCell>
                   <TableCell>
                     {product.hasVariations ? (
                       <Badge variant="secondary">Multiple</Badge>

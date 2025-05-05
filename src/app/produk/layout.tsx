@@ -1,11 +1,11 @@
 // import MainNav from "@/components/landingpage/MainNav";
-import { Navbar } from "@/components/landingpage/Navbar";
+import MainNav from "@/components/landingpage/MainNav";
 import React from "react";
 
 function ProductPageLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Navbar />
+      <MainNav />
       <main>{children}</main>
     </>
   );
