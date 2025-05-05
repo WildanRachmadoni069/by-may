@@ -15,7 +15,7 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await Promise.resolve(params);
 
     if (!slug) {
       return NextResponse.json({ error: "Slug is required" }, { status: 400 });
@@ -67,7 +67,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const slug = params.slug;
+    const { slug } = await Promise.resolve(params);
 
     const product = await ProductService.updateProduct(slug, body);
 
@@ -119,7 +119,7 @@ export async function DELETE(
       );
     }
 
-    const slug = params.slug;
+    const { slug } = await Promise.resolve(params);
     const result = await ProductService.deleteProduct(slug);
 
     if (!result.success) {

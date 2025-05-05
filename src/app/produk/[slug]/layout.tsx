@@ -17,7 +17,7 @@ interface ProductMeta {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
-    const { slug } = params;
+    const { slug } = await Promise.resolve(params);
     const product = await ProductService.getProductBySlug(slug);
 
     if (!product) {
