@@ -12,9 +12,9 @@ import {
 import { PaginatedResult } from "@/types/common";
 
 /**
- * Mengambil daftar produk dengan filter
+ * Mengambil daftar produk dengan filter opsional
  * @param options Opsi filter dan paginasi
- * @returns Daftar produk terpaginasi
+ * @returns Hasil produk terpaginasi
  */
 export async function getProducts(
   options: {
@@ -37,44 +37,27 @@ export async function getProducts(
     sortBy = "newest",
   } = options;
 
-  // Build query string
   const params = new URLSearchParams();
   params.append("page", page.toString());
   params.append("limit", limit.toString());
-
-  // Memastikan parameter search diteruskan dengan benar
-  if (search && search.trim() !== "") {
-    params.append("search", search.trim());
-  }
-
+  if (search) params.append("search", search);
   if (categoryId) params.append("categoryId", categoryId);
   if (collectionId) params.append("collectionId", collectionId);
-  if (specialLabel && specialLabel !== "none")
-    params.append("specialLabel", specialLabel);
+  if (specialLabel) params.append("specialLabel", specialLabel);
   if (sortBy) params.append("sortBy", sortBy);
 
-  console.log(`Client API - Request URL: /api/products?${params.toString()}`);
+  // Tambahkan parameter untuk mengambil priceVariants
+  params.append("includePriceVariants", "true");
 
-  try {
-    const response = await fetch(`/api/products?${params.toString()}`);
+  const res = await fetch(`/api/products?${params.toString()}`, {
+    next: { revalidate: 60 }, // Revalidate every 60 seconds
+  });
 
-    if (!response.ok) {
-      console.error(`API Error: ${response.status} ${response.statusText}`);
-      throw new Error(`Failed to fetch products: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.log(
-      `Client API - Received ${
-        result.data?.length || 0
-      } products from API, total: ${result.pagination?.total || 0}`
-    );
-
-    return result;
-  } catch (error) {
-    console.error("Error in getProducts client API call:", error);
-    throw error;
+  if (!res.ok) {
+    throw new Error("Gagal mengambil produk");
   }
+
+  return await res.json();
 }
 
 /**

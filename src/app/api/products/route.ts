@@ -17,6 +17,9 @@ export async function GET(req: NextRequest) {
     const collectionId = searchParams.get("collectionId") || undefined;
     const specialLabel = searchParams.get("specialLabel") || undefined;
     const sortBy = searchParams.get("sortBy") || "newest";
+    // Tambahkan parameter untuk mengambil priceVariants
+    const includePriceVariants =
+      searchParams.get("includePriceVariants") === "true";
 
     // Log untuk debugging
     console.log("API - Search Parameters:", {
@@ -37,6 +40,7 @@ export async function GET(req: NextRequest) {
       collectionId,
       specialLabel,
       sortBy,
+      includePriceVariants, // Tambahkan parameter ini
     };
 
     const products = await ProductService.getProducts(options);

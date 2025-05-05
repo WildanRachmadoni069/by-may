@@ -36,6 +36,8 @@ interface ProductsFilter {
   page?: number;
   /** Label khusus */
   specialLabel?: string;
+  /** Sertakan varian harga */
+  includePriceVariants?: boolean;
 }
 
 /**
@@ -96,6 +98,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     searchQuery: "",
     page: 1,
     specialLabel: undefined,
+    includePriceVariants: true, // Default true untuk memastikan kita selalu mendapat data harga
   },
 
   /**
@@ -111,6 +114,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const mergedOptions = {
       ...filters,
       ...options,
+      includePriceVariants: true, // Selalu sertakan priceVariants
     };
 
     console.log(
@@ -134,6 +138,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
       console.log(
         `Received ${response.data.length} products from API, total: ${response.pagination.total}`
       );
+
+      // Lakukan log data produk pertama untuk debugging
+      if (response.data.length > 0) {
+        console.log("First product data:", response.data[0]);
+      }
 
       // Update state dengan hasil dan filter yang digunakan
       set({
@@ -177,7 +186,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
   setFilters: (newFilters) => {
     set((state) => {
       // Combine existing filters with new filters
-      const updatedFilters = { ...state.filters, ...newFilters };
+      const updatedFilters = {
+        ...state.filters,
+        ...newFilters,
+        includePriceVariants: true, // Selalu sertakan priceVariants
+      };
 
       console.log("Setting filters:", updatedFilters);
 

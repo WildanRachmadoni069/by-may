@@ -114,6 +114,7 @@ export const ProductService = {
       collectionId?: string;
       specialLabel?: string;
       sortBy?: string;
+      includePriceVariants?: boolean; // Tambahkan parameter ini
     } = {}
   ): Promise<PaginatedResult<Product>> {
     const {
@@ -124,6 +125,7 @@ export const ProductService = {
       collectionId,
       specialLabel,
       sortBy = "newest",
+      includePriceVariants = false, // Default false untuk performa
     } = options;
 
     const skip = (page - 1) * limit;
@@ -186,13 +188,29 @@ export const ProductService = {
     }
 
     try {
+      // Tentukan apa yang akan disertakan dalam query
+      const include: any = {
+        category: true,
+        collection: true,
+      };
+
+      // Sertakan priceVariants jika diminta
+      if (includePriceVariants) {
+        include.priceVariants = {
+          include: {
+            options: {
+              include: {
+                option: true,
+              },
+            },
+          },
+        };
+      }
+
       // Ambil produk dengan paginasi dan filter
       const products = await db.product.findMany({
         where,
-        include: {
-          category: true,
-          collection: true,
-        },
+        include,
         take: limit,
         skip,
         orderBy,

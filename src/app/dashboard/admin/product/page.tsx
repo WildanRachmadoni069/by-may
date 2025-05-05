@@ -100,15 +100,15 @@ function AdminProductList() {
     fetchCategories();
     fetchCollections();
 
-    // Fetch produk saat component mount (data awal)
-    fetchProducts();
+    // Fetch produk saat component mount (data awal) dengan includePriceVariants=true
+    fetchProducts({ includePriceVariants: true });
   }, [fetchCategories, fetchCollections, fetchProducts]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages || page === pagination.page)
       return;
-    setFilters({ page });
+    setFilters({ page, includePriceVariants: true });
   };
 
   // Update search input handler to automatically refresh data when cleared
@@ -138,7 +138,7 @@ function AdminProductList() {
     }
 
     // Saat pencarian, kembalikan ke halaman 1
-    setFilters({ searchQuery, page: 1 });
+    setFilters({ searchQuery, page: 1, includePriceVariants: true });
   };
 
   // Reset search - improved to preserve other filters
@@ -208,6 +208,54 @@ function AdminProductList() {
     } finally {
       setDeletingSlug(null);
     }
+  };
+
+  // Helper function untuk mendapatkan format tampilan harga produk
+  const getPriceDisplay = (product: any) => {
+    if (!product.hasVariations) {
+      // Untuk produk tanpa variasi, tampilkan basePrice
+      return product.basePrice ? formatRupiah(product.basePrice) : "-";
+    }
+
+    // Untuk produk dengan variasi, periksa apakah priceVariants tersedia dan tidak kosong
+    if (
+      product.priceVariants &&
+      Array.isArray(product.priceVariants) &&
+      product.priceVariants.length > 0
+    ) {
+      // Debugging untuk melihat data yang kita terima
+      console.log(`Price variants for ${product.name}:`, product.priceVariants);
+
+      // Ambil nilai harga dari setiap varian
+      const prices = product.priceVariants
+        .map((variant: any) => variant.price)
+        .filter(Boolean);
+
+      if (prices.length === 0) {
+        return "-"; // Tidak ada harga yang valid
+      }
+
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+
+      if (minPrice === maxPrice) {
+        // Jika semua harga sama, tampilkan satu harga
+        return formatRupiah(minPrice);
+      } else {
+        // Tampilkan rentang harga
+        return `${formatRupiah(minPrice)} - ${formatRupiah(maxPrice)}`;
+      }
+    }
+
+    // Debug untuk membantu troubleshooting
+    console.log(
+      "Product without proper price variants:",
+      product.name,
+      product.priceVariants
+    );
+
+    // Fallback jika tidak ada informasi harga yang valid
+    return "-";
   };
 
   // Generate pagination items
@@ -515,8 +563,20 @@ function AdminProductList() {
         )}
       </div>
 
-      {/* Products Table */}
+      {/* Products Table with Improved Loading States */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 relative">
+        {/* Loading overlay for data refresh */}
+        {isLoading && products.length > 0 && (
+          <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-2">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="text-sm text-muted-foreground">
+                Memperbarui data...
+              </span>
+            </div>
+          </div>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -569,15 +629,7 @@ function AdminProductList() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    {product.hasVariations ? (
-                      <Badge variant="secondary">Multiple</Badge>
-                    ) : product.basePrice ? (
-                      formatRupiah(product.basePrice)
-                    ) : (
-                      "-"
-                    )}
-                  </TableCell>
+                  <TableCell>{getPriceDisplay(product)}</TableCell>
                   <TableCell>
                     {product.hasVariations ? (
                       <Badge variant="secondary">Multiple</Badge>
@@ -664,16 +716,10 @@ function AdminProductList() {
                   </PaginationPrevious>
                 </PaginationItem>
 
-                {/* If loading, show spinner in pagination */}
-                {isLoading ? (
-                  <PaginationItem>
-                    <div className="flex items-center justify-center px-4">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    </div>
-                  </PaginationItem>
-                ) : (
-                  renderPaginationItems()
-                )}
+                {/* If loading, slightly dim the pagination items but don't show spinner */}
+                <div className={isLoading ? "opacity-70" : ""}>
+                  {renderPaginationItems()}
+                </div>
 
                 <PaginationItem>
                   <PaginationNext
