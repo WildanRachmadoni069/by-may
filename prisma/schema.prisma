@@ -151,24 +151,21 @@ model SEOSetting {
 
 // Cart Items
 model CartItem {
-    id              String   @id @default(uuid())
-    userId          String
-    productId       String
-    name            String
-    price           Float
-    quantity        Int
-    image           String?
-    variationImage  String?
-    selectedOptions Json? // {variationName: optionName}
-    variationKey    String?
-    user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
+    id             String        @id @default(uuid())
+    userId         String
+    productId      String
+    priceVariantId String? // Referensi ke varian harga untuk produk dengan variasi
+    quantity       Int
+    user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    product        Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+    priceVariant   PriceVariant? @relation(fields: [priceVariantId], references: [id])
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
 
-    @@unique([userId, productId, variationKey])
+    @@unique([userId, productId, priceVariantId])
     @@index([userId])
     @@index([productId])
+    @@index([priceVariantId])
 }
 
 // Orders
@@ -245,6 +242,7 @@ model PriceVariant {
     options   PriceVariantToOption[]
     createdAt DateTime               @default(now())
     updatedAt DateTime               @updatedAt // Memperbaiki dari @default(now()) ke @updatedAt
+    CartItem  CartItem[]
 
     @@index([productId])
 }
