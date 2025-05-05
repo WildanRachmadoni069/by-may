@@ -13,6 +13,7 @@ import {
   CircleSlashed,
   Library,
   LayoutList,
+  ExternalLink, // Add this import for the new button
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -642,6 +643,22 @@ function AdminProductList() {
                   <TableCell>{product.category?.name || "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      {/* View product button */}
+                      <Link
+                        href={`/produk/${product.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Lihat di Situs"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </Link>
+
+                      {/* Existing edit button */}
                       <Link
                         href={`/dashboard/admin/product/edit/${product.slug}`}
                       >
@@ -649,6 +666,8 @@ function AdminProductList() {
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Link>
+
+                      {/* Existing delete button */}
                       <Button
                         variant="ghost"
                         size="sm"

@@ -15,21 +15,23 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const slug = params.slug;
+    const { slug } = params;
+
+    if (!slug) {
+      return NextResponse.json({ error: "Slug is required" }, { status: 400 });
+    }
+
     const product = await ProductService.getProductBySlug(slug);
 
     if (!product) {
-      return NextResponse.json(
-        { error: "Produk tidak ditemukan" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     return NextResponse.json(product);
   } catch (error) {
-    console.error("Gagal mengambil produk:", error);
+    console.error("Error fetching product:", error);
     return NextResponse.json(
-      { error: "Kesalahan server internal" },
+      { error: "Failed to fetch product" },
       { status: 500 }
     );
   }

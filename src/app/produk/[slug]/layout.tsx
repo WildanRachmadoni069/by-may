@@ -1,58 +1,64 @@
 import React from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
 import { Metadata } from "next";
+import { ProductService } from "@/lib/services/product-service";
+import { createExcerptFromHtml } from "@/lib/utils";
 
 interface Props {
   children: React.ReactNode;
   params: { slug: string };
 }
 
+// Define a proper type for the meta object to fix property access errors
+interface ProductMeta {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
-    const { slug } = await params;
-    const q = query(collection(db, "products"), where("slug", "==", slug));
-    const querySnapshot = await getDocs(q);
+    const { slug } = params;
+    const product = await ProductService.getProductBySlug(slug);
 
-    if (!querySnapshot.empty) {
-      const product = querySnapshot.docs[0].data();
-      const seo = product.seo || {};
-
+    if (!product) {
       return {
-        title: seo.title || product.name,
-        description:
-          seo.description ||
-          product.description?.replace(/<[^>]*>/g, "").slice(0, 160),
-        keywords: seo.keywords || [],
-        openGraph: {
-          title: seo.title || product.name,
-          description:
-            seo.description ||
-            product.description?.replace(/<[^>]*>/g, "").slice(0, 160),
-          type: "website",
-          images: product.mainImage
-            ? [
-                {
-                  url: product.mainImage,
-                  width: 1200,
-                  height: 630,
-                  alt: product.name,
-                },
-              ]
-            : [],
-        },
+        title: "Produk Tidak Ditemukan",
+        description: "Produk yang Anda cari tidak dapat ditemukan.",
       };
     }
 
+    // Type assertion to ensure meta is of the correct type
+    const meta = (product.meta as ProductMeta) || {};
+    const description =
+      meta.description || createExcerptFromHtml(product.description || "");
+    const title = meta.title || product.name;
+    const ogImage = meta.ogImage || product.featuredImage?.url;
+
     return {
-      title: "Product Not Found",
-      description: "The requested product could not be found.",
+      title: title,
+      description: description,
+      openGraph: {
+        title: title,
+        description: description,
+        // Fix the OpenGraph type to match allowed values in Next.js Metadata
+        type: "website", // Changed from "product" to "website" which is supported by Next.js
+        images: ogImage
+          ? [
+              {
+                url: ogImage,
+                width: 1200,
+                height: 630,
+                alt: product.name,
+              },
+            ]
+          : [],
+      },
     };
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
       title: "Error",
-      description: "There was an error loading the product.",
+      description: "Terjadi kesalahan saat memuat produk.",
     };
   }
 }

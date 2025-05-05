@@ -1,9 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { db } from "@/lib/firebase/firebaseConfig";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { ProductFormValues } from "@/types/product";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Carousel,
@@ -36,9 +33,11 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { getProductBySlug } from "@/lib/api/products";
+import { Image as ProductImage, Product } from "@/types/product";
 
 export default function ProductDetail() {
-  const [product, setProduct] = useState<ProductFormValues | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const { slug } = useParams();
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -51,33 +50,24 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [currentStock, setCurrentStock] = useState<number | null>(null);
-  const addToCart = useCartStore((state) => state.addItem);
+
   const [variationImageMap, setVariationImageMap] = useState<
     Record<string, number>
   >({});
-  const [allImages, setAllImages] = useState<string[]>([]);
+  const [allImages, setAllImages] = useState<ProductImage[]>([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const q = query(collection(db, "products"), where("slug", "==", slug));
-        const querySnapshot = await getDocs(q);
+        if (typeof slug !== "string") return;
 
-        if (!querySnapshot.empty) {
-          const doc = querySnapshot.docs[0];
-          // Include document ID in the product data
-          const productData = {
-            ...doc.data(),
-            id: doc.id,
-          } as ProductFormValues & { id: string };
+        const productData = await getProductBySlug(slug);
+        setProduct(productData);
 
-          setProduct(productData);
-
-          // Initialize with default price and stock if no variations
-          if (!productData.hasVariations) {
-            setCurrentPrice(productData.basePrice || 0);
-            setCurrentStock(productData.baseStock || 0);
-          }
+        // Initialize with default price and stock if no variations
+        if (productData && !productData.hasVariations) {
+          setCurrentPrice(productData.basePrice || 0);
+          setCurrentStock(productData.baseStock || 0);
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -93,15 +83,15 @@ export default function ProductDetail() {
     if (!product) return;
 
     // Start with product images
-    const productImages = [
-      product.mainImage,
-      ...(product.additionalImages?.filter(Boolean) || []),
-    ].filter((img): img is string => Boolean(img));
+    const productImages: ProductImage[] = [
+      product.featuredImage,
+      ...(product.additionalImages || []),
+    ].filter((img): img is ProductImage => Boolean(img));
 
     // Check if first variation has images
     let optionImageMap: Record<string, number> = {};
 
-    if (product.variations.length > 0 && product.variations[0].options) {
+    if (product.variations.length > 0) {
       let currentIndex = productImages.length;
       const firstVariation = product.variations[0];
 
@@ -114,10 +104,13 @@ export default function ProductDetail() {
         }
       });
 
-      // Get all variation images
+      // Get all variation images with proper format
       const variationImages = firstVariation.options
-        .map((option) => option.imageUrl)
-        .filter((img): img is string => Boolean(img));
+        .filter((option) => option.imageUrl)
+        .map((option) => ({
+          url: option.imageUrl as string,
+          alt: option.name,
+        }));
 
       // Combine all images
       const combined = [...productImages, ...variationImages];
@@ -158,7 +151,7 @@ export default function ProductDetail() {
 
       if (!firstOptionId || !secondOptionId) return "";
 
-      return `${firstVariation.id}-${firstOptionId}-${secondOptionId}`;
+      return `${firstVariation.id}-${firstOptionId}-${secondVariation.id}-${secondOptionId}`;
     }
 
     // Single variation case
@@ -167,6 +160,29 @@ export default function ProductDetail() {
 
     if (!selectedOptionId) return "";
     return `${selectedVariation.id}-${selectedOptionId}`;
+  };
+
+  // Find the correct price variant based on selected options
+  const findPriceVariant = (selectedOpts: Record<string, string>) => {
+    if (!product || !product.priceVariants.length) return null;
+
+    // Extract all selected option IDs
+    const selectedOptionIds = Object.values(selectedOpts);
+    if (selectedOptionIds.length === 0) return null;
+
+    // Find a price variant where all options match the selected options
+    // This is more robust than using the key generation approach
+    return product.priceVariants.find((priceVariant) => {
+      const variantOptionIds = priceVariant.options.map((o) => o.option.id);
+
+      // Check if this price variant contains all selected options
+      // and doesn't contain any non-selected options
+      return (
+        variantOptionIds.length === selectedOptionIds.length &&
+        variantOptionIds.every((id) => selectedOptionIds.includes(id)) &&
+        selectedOptionIds.every((id) => variantOptionIds.includes(id))
+      );
+    });
   };
 
   const updatePriceAndStock = (selectedOpts: Record<string, string>) => {
@@ -184,18 +200,19 @@ export default function ProductDetail() {
     );
 
     if (allVariationsSelected) {
-      const key = generateVariationKey(selectedOpts);
-      console.log("Generated variation key:", key);
+      const priceVariant = findPriceVariant(selectedOpts);
 
-      const variation = product.variationPrices[key];
-      if (variation) {
-        setCurrentPrice(variation.price);
-        setCurrentStock(variation.stock);
-        console.log("Found variation price:", variation);
+      if (priceVariant) {
+        setCurrentPrice(priceVariant.price);
+        setCurrentStock(priceVariant.stock);
+        console.log("Found price variant:", priceVariant);
       } else {
         setCurrentPrice(null);
         setCurrentStock(null);
-        console.log("No matching variation found for key:", key);
+        console.log(
+          "No matching price variant found for options:",
+          selectedOpts
+        );
       }
     } else {
       // If not all variations are selected, show price range
@@ -210,7 +227,6 @@ export default function ProductDetail() {
     // Debug logs
     console.log("Selected Options:", selectedOptions);
     console.log("Current Price:", currentPrice);
-    console.log("Available Variations:", product?.variationPrices);
   }, [selectedOptions]);
 
   const handleOptionSelect = (variationId: string, optionId: string) => {
@@ -238,101 +254,17 @@ export default function ProductDetail() {
   };
 
   const handleQuantityChange = (value: number) => {
-    if (value >= 1) setQuantity(value);
+    if (value >= 1 && (currentStock === null || value <= currentStock)) {
+      setQuantity(value);
+    }
   };
 
   const handleAddToCart = async () => {
-    if (!product) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Product tidak ditemukan",
-      });
-      return;
-    }
-
-    // Validate product has an ID
-    if (!product.id) {
-      console.error("Product ID missing:", product);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Product ID tidak ditemukan",
-      });
-      return;
-    }
-
-    // For products with variations, ensure a variation is selected
-    if (product.hasVariations) {
-      const allVariationsSelected = product.variations.every(
-        (variation) => selectedOptions[variation.id]
-      );
-
-      if (!allVariationsSelected || !currentPrice) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Silakan pilih variasi produk terlebih dahulu",
-        });
-        return;
-      }
-    }
-
-    const variationKey = product.hasVariations
-      ? generateVariationKey(selectedOptions)
-      : undefined;
-
-    // Get variation image if available
-    let variationImage: string | undefined;
-    if (product.hasVariations && product.variations.length > 0) {
-      const firstVariation = product.variations[0];
-      const selectedOptionId = selectedOptions[firstVariation.id];
-      if (selectedOptionId) {
-        const selectedOption = firstVariation.options.find(
-          (option) => option.id === selectedOptionId
-        );
-        variationImage = selectedOption?.imageUrl;
-      }
-    }
-
-    // Create a valid cart item
-    const cartItem = {
-      productId: product.id,
-      name: product.name,
-      price: currentPrice || product.basePrice || 0,
-      quantity: quantity,
-      image: product.mainImage || "",
-      variationImage, // Add variation image if available
-      selectedOptions: product.hasVariations
-        ? Object.entries(selectedOptions).reduce((acc, [varId, optId]) => {
-            // Map variation IDs to names for better display
-            const variation = product.variations.find((v) => v.id === varId);
-            if (!variation) return acc;
-
-            const option = variation.options.find((o) => o.id === optId);
-            if (!option) return acc;
-
-            return { ...acc, [variation.name]: option.name };
-          }, {})
-        : undefined,
-      variationKey,
-    };
-
-    try {
-      console.log("Adding to cart:", cartItem);
-      await addToCart(cartItem);
-      toast({
-        title: "Berhasil",
-        description: "Produk berhasil ditambahkan ke keranjang",
-      });
-    } catch (error) {
-      console.error("Add to cart error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Gagal menambahkan produk ke keranjang",
-      });
-    }
+    // This will be implemented in a future update
+    toast({
+      title: "Coming Soon",
+      description: "Cart functionality will be available soon.",
+    });
   };
 
   const renderPrice = () => {
@@ -345,9 +277,9 @@ export default function ProductDetail() {
     }
 
     // Get all possible prices based on current selection
-    const allPrices = Object.entries(product.variationPrices).map(
-      ([key, value]) => value.price
-    );
+    const allPrices = product.priceVariants.map((variant) => variant.price);
+
+    if (allPrices.length === 0) return formatRupiah(0);
 
     const minPrice = Math.min(...allPrices);
     const maxPrice = Math.max(...allPrices);
@@ -402,7 +334,7 @@ export default function ProductDetail() {
 
       {/* Main Product Section */}
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Image Carousel Section - Now using allImages instead of images */}
+        {/* Image Carousel Section - Using allImages */}
         <div className="w-full md:w-[400px] md:flex-shrink-0">
           <div className="sticky top-6">
             <Card className="p-3 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -412,8 +344,11 @@ export default function ProductDetail() {
                     <CarouselItem key={index}>
                       <div className="relative aspect-square">
                         <Image
-                          src={image}
-                          alt={`${product?.name || "Product"} - ${index + 1}`}
+                          src={image.url}
+                          alt={
+                            image.alt ||
+                            `${product.name || "Product"} - ${index + 1}`
+                          }
                           fill
                           className="object-cover rounded-lg"
                           sizes="450px"
@@ -482,7 +417,7 @@ export default function ProductDetail() {
                             title={thumbnailLabel}
                           >
                             <Image
-                              src={image}
+                              src={image.url}
                               alt={thumbnailLabel}
                               fill
                               className="object-cover"
@@ -612,7 +547,7 @@ export default function ProductDetail() {
                 Object.keys(selectedOptions).length !==
                   product.variations.length) ||
               !currentStock ||
-              quantity > currentStock
+              quantity > (currentStock || 0)
             }
           >
             <ShoppingCartIcon className="mr-2 h-5 w-5" />
@@ -638,7 +573,7 @@ export default function ProductDetail() {
           >
             <div
               className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: product.description }}
+              dangerouslySetInnerHTML={{ __html: product.description || "" }}
             />
             {!isDescriptionExpanded && (
               <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
@@ -657,9 +592,10 @@ export default function ProductDetail() {
       {/* Related Products Section */}
       <RelatedProducts
         currentProductId={product.id || ""}
-        categoryId={product.category}
-        collectionId={product.collection}
+        categoryId={product.categoryId}
+        collectionId={product.collectionId}
       />
+
       <Footer />
     </div>
   );

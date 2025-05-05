@@ -62,26 +62,23 @@ export async function getProducts(
 
 /**
  * Mengambil produk berdasarkan slug
- * @param slug Slug produk yang akan diambil
- * @returns Data produk atau null jika tidak ditemukan
+ * @param slug Slug produk yang dicari
+ * @returns Produk atau null jika tidak ditemukan
  */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  try {
-    const response = await fetch(`/api/products/${slug}`);
+  const res = await fetch(`/api/products/${slug}`, {
+    next: { tags: [`product-${slug}`] },
+  });
 
-    if (response.status === 404) {
-      return null;
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch product: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error(`Error fetching product with slug ${slug}:`, error);
-    throw error;
+  if (res.status === 404) {
+    return null;
   }
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch product: ${res.statusText}`);
+  }
+
+  return await res.json();
 }
 
 /**

@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
-import { ProductFormValues } from "@/types/product";
+import { Product } from "@/types/product";
 import ProductCard from "@/components/general/ProductCard";
 import { shuffleArray } from "@/lib/utils";
 import { Skeleton } from "../ui/skeleton";
 
 interface RelatedProductsProps {
   currentProductId: string;
-  categoryId?: string;
-  collectionId?: string;
+  categoryId?: string | null;
+  collectionId?: string | null;
   limit?: number;
 }
 
@@ -21,111 +19,115 @@ export default function RelatedProducts({
   collectionId,
   limit: numberOfItems = 4,
 }: RelatedProductsProps) {
-  const [products, setProducts] = useState<ProductFormValues[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchRelatedProducts = async () => {
       try {
         setLoading(true);
-        console.log("Fetching related products with:", { currentProductId, categoryId, collectionId });
-        
+        console.log("Fetching related products with:", {
+          currentProductId,
+          categoryId,
+          collectionId,
+        });
+
         // Validate inputs
         if (!currentProductId) {
           console.error("Missing currentProductId");
           setLoading(false);
           return;
         }
-        
-        // Start with collection reference
-        const productsRef = collection(db, "products");
-        let fetchedProducts: ProductFormValues[] = [];
-        
-        // UPDATED PRIORITY: Try collection first (if valid)
-        if (collectionId && collectionId !== 'all' && collectionId !== 'none') {
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.append("exclude", currentProductId);
+        params.append("limit", (numberOfItems * 2).toString()); // Get more than we need for better shuffling
+
+        let fetchedProducts: Product[] = [];
+
+        // PRIORITY 1: Try collection first (if valid)
+        if (collectionId && collectionId !== "all" && collectionId !== "none") {
           try {
-            const collectionQuery = query(
-              productsRef,
-              where("collection", "==", collectionId),
-              limit(numberOfItems * 2)
+            params.set("collectionId", collectionId);
+
+            const collectionResponse = await fetch(
+              `/api/products/related?${params.toString()}`
             );
-            
-            const collectionSnapshot = await getDocs(collectionQuery);
-            console.log(`Found ${collectionSnapshot.size} products in same collection`);
-            
-            // Filter out current product client-side
-            fetchedProducts = collectionSnapshot.docs
-              .map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-              }))
-              .filter(product => product.id !== currentProductId) as ProductFormValues[];
+
+            if (collectionResponse.ok) {
+              const data = await collectionResponse.json();
+              console.log(`Found ${data.length} products in same collection`);
+              fetchedProducts = data;
+            }
           } catch (err) {
             console.error("Error in collection query:", err);
           }
         }
-        
-        // If not enough products, try category
-        if (fetchedProducts.length < numberOfItems && categoryId && 
-            categoryId !== 'all' && categoryId !== 'none') {
+
+        // PRIORITY 2: If not enough products, try category
+        if (
+          fetchedProducts.length < numberOfItems &&
+          categoryId &&
+          categoryId !== "all" &&
+          categoryId !== "none"
+        ) {
           try {
-            const categoryQuery = query(
-              productsRef,
-              where("category", "==", categoryId),
-              limit(numberOfItems * 2)
+            params.set("categoryId", categoryId);
+            if (collectionId) params.delete("collectionId");
+
+            const categoryResponse = await fetch(
+              `/api/products/related?${params.toString()}`
             );
-            
-            const categorySnapshot = await getDocs(categoryQuery);
-            console.log(`Found ${categorySnapshot.size} products in same category`);
-            
-            // Filter client-side and combine with existing results
-            const categoryProducts = categorySnapshot.docs
-              .map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-              }))
-              .filter(product => product.id !== currentProductId) as ProductFormValues[];
-            
-            // Add unique products from category
-            const existingIds = new Set(fetchedProducts.map(p => p.id));
-            const uniqueCategoryProducts = categoryProducts.filter(p => !existingIds.has(p.id));
-            
-            fetchedProducts = [...fetchedProducts, ...uniqueCategoryProducts];
+
+            if (categoryResponse.ok) {
+              const data = await categoryResponse.json();
+              console.log(`Found ${data.length} products in same category`);
+
+              // Add unique products from category
+              const existingIds = new Set(fetchedProducts.map((p) => p.id));
+              const uniqueCategoryProducts = data.filter(
+                (p: Product) => !existingIds.has(p.id)
+              );
+
+              fetchedProducts = [...fetchedProducts, ...uniqueCategoryProducts];
+            }
           } catch (err) {
             console.error("Error in category query:", err);
           }
         }
-        
-        // If still not enough, get recent products
+
+        // PRIORITY 3: If still not enough, get recent products
         if (fetchedProducts.length < numberOfItems) {
           try {
-            const recentQuery = query(
-              productsRef,
-              orderBy("createdAt", "desc"),
-              limit(numberOfItems * 2)
+            // Clear previous filter params and just get latest products
+            params.delete("categoryId");
+            params.delete("collectionId");
+
+            const recentResponse = await fetch(
+              `/api/products/related?${params.toString()}`
             );
-            
-            const recentSnapshot = await getDocs(recentQuery);
-            console.log(`Found ${recentSnapshot.size} recent products`);
-            
-            const recentProducts = recentSnapshot.docs
-              .map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-              }))
-              .filter(product => product.id !== currentProductId) as ProductFormValues[];
-            
-            // Add unique products from recent
-            const existingIds = new Set(fetchedProducts.map(p => p.id));
-            const uniqueRecentProducts = recentProducts.filter(p => !existingIds.has(p.id));
-            
-            fetchedProducts = [...fetchedProducts, ...uniqueRecentProducts];
+
+            if (recentResponse.ok) {
+              const data = await recentResponse.json();
+              console.log(`Found ${data.length} recent products`);
+
+              // Add unique products from recent
+              const existingIds = new Set(fetchedProducts.map((p) => p.id));
+              const uniqueRecentProducts = data.filter(
+                (p: Product) => !existingIds.has(p.id)
+              );
+
+              fetchedProducts = [...fetchedProducts, ...uniqueRecentProducts];
+            }
           } catch (err) {
             console.error("Error in recent products query:", err);
           }
         }
-        
-        console.log(`Total fetched products before shuffle: ${fetchedProducts.length}`);
+
+        console.log(
+          `Total fetched products before shuffle: ${fetchedProducts.length}`
+        );
         if (fetchedProducts.length > 0) {
           const shuffled = shuffleArray(fetchedProducts);
           const limitedProducts = shuffled.slice(0, numberOfItems);
@@ -152,9 +154,11 @@ export default function RelatedProducts({
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Produk Terkait</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array(4).fill(0).map((_, idx) => (
-            <Skeleton key={idx} className="h-[220px] w-full rounded-xl" />
-          ))}
+          {Array(4)
+            .fill(0)
+            .map((_, idx) => (
+              <Skeleton key={idx} className="h-[220px] w-full rounded-xl" />
+            ))}
         </div>
       </div>
     );

@@ -1,54 +1,78 @@
-import React from "react";
-import { Card, CardContent, CardHeader } from "../ui/card";
-import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { ProductFormValues } from "@/types/product";
-import { formatRupiah } from "@/lib/utils";
+import Image from "next/image";
+import { cn, formatRupiah } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Product } from "@/types/product";
 
-function ProductCard({ product }: { product: ProductFormValues }) {
-  const getProductPrice = () => {
+interface ProductCardProps {
+  product: Product;
+  className?: string;
+}
+
+export default function ProductCard({ product, className }: ProductCardProps) {
+  const renderPrice = () => {
     if (!product.hasVariations) {
-      return formatRupiah(product.basePrice || 0);
+      return product.basePrice ? formatRupiah(product.basePrice) : "-";
     }
 
-    // Get only the minimum price for variation products
-    const minPrice = Math.min(
-      ...Object.values(product.variationPrices).map((v) => v.price)
-    );
-    return `${formatRupiah(minPrice)}`;
+    // For products with variations, we're now sending the lowest price as basePrice
+    // from the API for display purposes
+    if (product.basePrice) {
+      return formatRupiah(product.basePrice);
+    }
+
+    return "-";
   };
 
-  return (
-    <Link
-      href={`/produk/${product.slug}`}
-      className="group relative block overflow-hidden w-full"
-    >
-      <Card className="shadow-sm border-0">
-        <CardHeader className="p-0 overflow-hidden">
-          <div className="relative aspect-square transition duration-500 group-hover:scale-105 ">
-            <Image
-              src={product.mainImage || "https://placehold.co/300"}
-              alt={product.name}
-              fill
-              className="object-cover"
-            />
-          </div>
-        </CardHeader>
+  const specialLabelText = {
+    new: "Baru",
+    best: "Best Seller",
+    sale: "Diskon",
+  } as const;
 
-        <CardContent
-          className={cn("flex flex-col gap-1 py-2 px-2 sm:pt-3 sm:px-3")}
-        >
-          <h3 className="text-sm sm:text-base font-medium text-wrap min-h-[40px] sm:min-h-[48px] line-clamp-2">
+  return (
+    <Link href={`/produk/${product.slug}`} className="group">
+      <Card
+        className={cn(
+          "overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow duration-200",
+          className
+        )}
+      >
+        <div className="relative aspect-square overflow-hidden bg-muted">
+          {product.featuredImage?.url ? (
+            <Image
+              src={product.featuredImage.url}
+              alt={product.featuredImage.alt || product.name}
+              fill
+              sizes="(max-width: 768px) 50vw, 33vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              priority={false}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground text-xs">
+              No Image
+            </div>
+          )}
+
+          {product.specialLabel && (
+            <div className="absolute top-2 right-2">
+              <Badge className="font-medium bg-primary">
+                {specialLabelText[
+                  product.specialLabel as keyof typeof specialLabelText
+                ] || product.specialLabel}
+              </Badge>
+            </div>
+          )}
+        </div>
+
+        <div className="p-3">
+          <h3 className="font-medium text-sm line-clamp-1 mb-1">
             {product.name}
           </h3>
-          <p className="text-sm sm:text-base font-semibold text-gray-800">
-            {getProductPrice()}
-          </p>
-        </CardContent>
+          <p className="text-primary font-semibold">{renderPrice()}</p>
+        </div>
       </Card>
     </Link>
   );
 }
-
-export default ProductCard;
