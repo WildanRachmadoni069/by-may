@@ -1,84 +1,97 @@
 /**
- * API Products
+ * Products API client
  *
- * File ini berisi fungsi-fungsi untuk berinteraksi dengan API produk
+ * This file provides API client functions for product operations.
+ * Used internally by SWR hooks for data fetching.
  */
 
+import { PaginatedResult } from "@/types/common";
 import {
   Product,
   CreateProductInput,
   UpdateProductInput,
 } from "@/types/product";
-import { PaginatedResult } from "@/types/common";
 
 /**
- * Mengambil daftar produk dengan filter opsional
- * @param options Opsi filter dan paginasi
- * @returns Hasil produk terpaginasi
+ * Fetch a single product by slug
+ */
+export async function getProduct(slug: string): Promise<Product> {
+  const response = await fetch(`/api/products/${slug}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error("Product not found");
+    }
+    throw new Error(`Failed to fetch product: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetch products with filters and pagination
  */
 export async function getProducts(
   options: {
     page?: number;
     limit?: number;
-    search?: string;
+    searchQuery?: string;
     categoryId?: string;
     collectionId?: string;
     specialLabel?: string;
     sortBy?: string;
+    includePriceVariants?: boolean;
   } = {}
 ): Promise<PaginatedResult<Product>> {
-  const {
-    page = 1,
-    limit = 10,
-    search,
-    categoryId,
-    collectionId,
-    specialLabel,
-    sortBy = "newest",
-  } = options;
+  // Prepare query parameters
+  const queryParams = new URLSearchParams();
 
-  const params = new URLSearchParams();
-  params.append("page", page.toString());
-  params.append("limit", limit.toString());
-  if (search) params.append("search", search);
-  if (categoryId) params.append("categoryId", categoryId);
-  if (collectionId) params.append("collectionId", collectionId);
-  if (specialLabel) params.append("specialLabel", specialLabel);
-  if (sortBy) params.append("sortBy", sortBy);
+  if (options.page) queryParams.append("page", options.page.toString());
+  if (options.limit) queryParams.append("limit", options.limit.toString());
+  if (options.searchQuery) queryParams.append("search", options.searchQuery);
+  if (options.categoryId) queryParams.append("categoryId", options.categoryId);
+  if (options.collectionId)
+    queryParams.append("collectionId", options.collectionId);
+  if (options.specialLabel)
+    queryParams.append("specialLabel", options.specialLabel);
+  if (options.sortBy) queryParams.append("sortBy", options.sortBy);
+  if (options.includePriceVariants)
+    queryParams.append("includePriceVariants", "true");
 
-  // Tambahkan parameter untuk mengambil priceVariants
-  params.append("includePriceVariants", "true");
+  const response = await fetch(`/api/products?${queryParams.toString()}`);
 
-  const res = await fetch(`/api/products?${params.toString()}`, {
-    next: { revalidate: 60 }, // Revalidate every 60 seconds
-  });
-
-  if (!res.ok) {
-    throw new Error("Gagal mengambil produk");
+  if (!response.ok) {
+    throw new Error(`Failed to fetch products: ${response.statusText}`);
   }
 
-  return await res.json();
+  return response.json();
 }
 
 /**
- * Mengambil produk berdasarkan slug
- * @param slug Slug produk yang dicari
- * @returns Produk atau null jika tidak ditemukan
+ * Fetch related products
  */
-export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const res = await fetch(`/api/products/${slug}`, {
-    next: { tags: [`product-${slug}`] },
-  });
+export async function getRelatedProducts(
+  productId: string,
+  categoryId?: string | null,
+  collectionId?: string | null,
+  limit: number = 4
+): Promise<Product[]> {
+  const queryParams = new URLSearchParams();
+  queryParams.append("productId", productId);
+  if (categoryId) queryParams.append("categoryId", categoryId);
+  if (collectionId) queryParams.append("collectionId", collectionId);
+  queryParams.append("limit", limit.toString());
 
-  if (res.status === 404) {
-    return null;
+  const response = await fetch(
+    `/api/products/related?${queryParams.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch related products: ${response.statusText}`);
   }
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch product: ${res.statusText}`);
-  }
-
-  return await res.json();
+  const data = await response.json();
+  return data.data || [];
 }
 
 /**

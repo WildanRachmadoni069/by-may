@@ -1,6 +1,7 @@
 import useSWR from "swr";
 import { PaginatedResult } from "@/types/common";
 import { Product } from "@/types/product";
+import { getProducts } from "@/lib/api/products";
 
 export type ProductsFilters = {
   page?: number;
@@ -14,29 +15,13 @@ export type ProductsFilters = {
 };
 
 /**
- * Fetch function for products
- * Converts searchQuery to search parameter for API
- */
-const productsFetcher = async (
-  url: string
-): Promise<PaginatedResult<Product>> => {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch products: ${response.statusText}`);
-  }
-
-  return response.json();
-};
-
-/**
  * SWR hook for fetching products with filters and pagination
  * @param filters - Filters and pagination options
  * @param swrOptions - Additional SWR options
  * @returns SWR response with products data, loading state, and error
  */
 export function useProducts(filters: ProductsFilters = {}, swrOptions = {}) {
-  // Prepare query parameters
+  // Generate cache key based on filters
   const queryParams = new URLSearchParams();
 
   if (filters.page) queryParams.append("page", filters.page.toString());
@@ -48,21 +33,18 @@ export function useProducts(filters: ProductsFilters = {}, swrOptions = {}) {
     queryParams.append("specialLabel", filters.specialLabel);
   if (filters.sortBy) queryParams.append("sortBy", filters.sortBy);
   if (filters.searchQuery) queryParams.append("search", filters.searchQuery);
-
-  // Always include price variants for consistent data
   queryParams.append(
     "includePriceVariants",
     filters.includePriceVariants !== false ? "true" : "false"
   );
 
-  // Generate cache key based on filters
   const queryString = queryParams.toString();
   const apiUrl = `/api/products${queryString ? `?${queryString}` : ""}`;
 
   // Use SWR to fetch data
   const { data, error, isLoading, isValidating, mutate } = useSWR(
     apiUrl,
-    productsFetcher,
+    () => getProducts(filters),
     {
       dedupingInterval: 5000, // 5 seconds
       revalidateOnFocus: false,

@@ -1,66 +1,39 @@
 import useSWR from "swr";
 import { Product } from "@/types/product";
+import { getRelatedProducts } from "@/lib/api/products";
 
 /**
- * Fetch function for related products
- */
-const relatedProductsFetcher = async (url: string): Promise<Product[]> => {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch related products: ${response.statusText}`);
-  }
-
-  return response.json();
-};
-
-/**
- * SWR hook for fetching related products
- * @param productId - ID of the current product to exclude
+ * Hook for fetching related products with smart prioritization
+ * @param currentProductId - ID of the current product to exclude
  * @param categoryId - Optional category ID for related products
- * @param collectionId - Optional collection ID for related products (higher priority than category)
- * @param limit - Number of related products to fetch
+ * @param collectionId - Optional collection ID for related products
+ * @param limit - Number of related products to fetch (default: 4)
  * @param swrOptions - Additional SWR options
- * @returns SWR response with related products data, loading state, and error
  */
 export function useRelatedProducts(
-  productId: string | null | undefined,
+  currentProductId: string,
   categoryId?: string | null,
   collectionId?: string | null,
   limit: number = 4,
   swrOptions = {}
 ) {
-  // Only fetch if product ID is provided
-  if (!productId) {
-    return { relatedProducts: [], isLoading: false, error: null };
-  }
+  // Build the API URL with all parameters for backend prioritization
+  const apiUrl = `/api/products/related?productId=${currentProductId}${
+    categoryId ? `&categoryId=${categoryId}` : ""
+  }${collectionId ? `&collectionId=${collectionId}` : ""}&limit=${limit}`;
 
-  // Build query parameters
-  const params = new URLSearchParams();
-  params.append("exclude", productId);
-  params.append("limit", (limit * 2).toString()); // Get more than needed for better selection
-
-  // Add collection ID if available (higher priority)
-  if (collectionId && collectionId !== "all" && collectionId !== "none") {
-    params.append("collectionId", collectionId);
-  }
-
-  // Add category ID if available (used if collection doesn't return enough products)
-  if (categoryId && categoryId !== "all" && categoryId !== "none") {
-    params.append("categoryId", categoryId);
-  }
-
-  // The API endpoint will handle the prioritization logic
-  const apiUrl = `/api/products/related?${params.toString()}`;
-
-  const { data, error, isLoading } = useSWR(apiUrl, relatedProductsFetcher, {
-    dedupingInterval: 10000, // 10 seconds
-    revalidateOnFocus: false,
-    ...swrOptions,
-  });
+  const { data, error, isLoading } = useSWR(
+    currentProductId ? apiUrl : null,
+    () => getRelatedProducts(currentProductId, categoryId, collectionId, limit),
+    {
+      dedupingInterval: 60000, // 1 minute
+      revalidateOnFocus: false,
+      ...swrOptions,
+    }
+  );
 
   return {
-    relatedProducts: data && data.length > 0 ? data.slice(0, limit) : [],
+    relatedProducts: data || [],
     isLoading,
     error,
   };

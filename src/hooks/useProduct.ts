@@ -1,21 +1,6 @@
 import useSWR from "swr";
 import { Product } from "@/types/product";
-
-/**
- * Fetch function for a single product
- */
-const productFetcher = async (url: string): Promise<Product> => {
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("Product not found");
-    }
-    throw new Error(`Failed to fetch product: ${response.statusText}`);
-  }
-
-  return response.json();
-};
+import { getProduct } from "@/lib/api/products";
 
 /**
  * SWR hook for fetching a single product by slug
@@ -27,7 +12,7 @@ export function useProduct(slug: string | null | undefined, swrOptions = {}) {
   // Only fetch if slug is provided
   const { data, error, isLoading, isValidating, mutate } = useSWR(
     slug ? `/api/products/${slug}` : null,
-    productFetcher,
+    () => (slug ? getProduct(slug) : null),
     {
       dedupingInterval: 5000, // 5 seconds
       revalidateOnFocus: false,

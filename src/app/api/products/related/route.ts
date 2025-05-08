@@ -1,116 +1,115 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { shuffleArray } from "@/lib/utils";
 
 /**
- * API route for fetching related products
- * Supports prioritized fetching:
- * 1. Same collection (if collectionId provided)
- * 2. Same category (if categoryId provided)
- * 3. Recent products (fallback)
+ * API endpoint for fetching related products with smart prioritization
+ *
+ * Priority order:
+ * 1. Products from the same category and collection
+ * 2. Products from the same category
+ * 3. Products from the same collection
+ * 4. Random products as fallback
  */
 export async function GET(req: NextRequest) {
   try {
-    // Get URL parameters
     const { searchParams } = new URL(req.url);
-    const exclude = searchParams.get("exclude");
-    const collectionId = searchParams.get("collectionId");
+    const productId = searchParams.get("productId");
     const categoryId = searchParams.get("categoryId");
-    const limit = parseInt(searchParams.get("limit") || "8", 10);
+    const collectionId = searchParams.get("collectionId");
+    const limit = parseInt(searchParams.get("limit") || "4", 10);
 
-    // Validate required parameters
-    if (!exclude) {
+    if (!productId) {
       return NextResponse.json(
-        { error: "Missing required parameter: exclude" },
+        { error: "Product ID is required" },
         { status: 400 }
       );
     }
 
+    // Attempt different strategies in priority order
     let relatedProducts: any[] = [];
 
-    // PRIORITY 1: Try collection first (if valid)
-    if (collectionId && collectionId !== "all" && collectionId !== "none") {
-      const collectionProducts = await db.product.findMany({
+    // 1. Try to find products with same category AND collection
+    if (categoryId && collectionId) {
+      relatedProducts = await db.product.findMany({
         where: {
-          id: { not: exclude },
-          collectionId: collectionId,
+          id: { not: productId },
+          categoryId,
+          collectionId,
         },
         include: {
           category: true,
           collection: true,
-          priceVariants: true,
         },
         take: limit,
       });
-
-      if (collectionProducts.length > 0) {
-        console.log(
-          `Found ${collectionProducts.length} products in same collection`
-        );
-        relatedProducts = [...collectionProducts];
-      }
     }
 
-    // PRIORITY 2: If not enough products, try category
-    if (
-      relatedProducts.length < limit &&
-      categoryId &&
-      categoryId !== "all" &&
-      categoryId !== "none"
-    ) {
+    // 2. If not enough products, try same category only
+    if (relatedProducts.length < limit && categoryId) {
+      const remainingNeeded = limit - relatedProducts.length;
       const categoryProducts = await db.product.findMany({
         where: {
-          AND: [
-            { id: { not: exclude } },
-            { categoryId: categoryId },
-            { id: { notIn: relatedProducts.map((p) => p.id) } },
-          ],
+          id: {
+            not: productId,
+            notIn: relatedProducts.map((p) => p.id),
+          },
+          categoryId,
         },
         include: {
           category: true,
           collection: true,
-          priceVariants: true,
         },
-        take: limit - relatedProducts.length,
+        take: remainingNeeded,
       });
 
-      if (categoryProducts.length > 0) {
-        console.log(
-          `Found ${categoryProducts.length} products in same category`
-        );
-        relatedProducts = [...relatedProducts, ...categoryProducts];
-      }
+      relatedProducts = [...relatedProducts, ...categoryProducts];
     }
 
-    // PRIORITY 3: If still not enough, get recent products
-    if (relatedProducts.length < limit) {
-      const remainingLimit = limit - relatedProducts.length;
-      const existingIds = new Set(relatedProducts.map((p) => p.id));
-      existingIds.add(exclude); // Also exclude the current product
-
-      const recentProducts = await db.product.findMany({
+    // 3. If still not enough products, try same collection only
+    if (relatedProducts.length < limit && collectionId) {
+      const remainingNeeded = limit - relatedProducts.length;
+      const collectionProducts = await db.product.findMany({
         where: {
-          id: { notIn: Array.from(existingIds) },
+          id: {
+            not: productId,
+            notIn: relatedProducts.map((p) => p.id),
+          },
+          collectionId,
         },
         include: {
           category: true,
           collection: true,
-          priceVariants: true,
         },
-        orderBy: { createdAt: "desc" },
-        take: remainingLimit,
+        take: remainingNeeded,
       });
 
-      if (recentProducts.length > 0) {
-        console.log(`Found ${recentProducts.length} recent products`);
-        relatedProducts = [...relatedProducts, ...recentProducts];
-      }
+      relatedProducts = [...relatedProducts, ...collectionProducts];
     }
 
-    // Shuffle the products for better presentation
-    const shuffled = shuffleArray(relatedProducts);
+    // 4. If still not enough products, get random products
+    if (relatedProducts.length < limit) {
+      const remainingNeeded = limit - relatedProducts.length;
+      const randomProducts = await db.product.findMany({
+        where: {
+          id: {
+            not: productId,
+            notIn: relatedProducts.map((p) => p.id),
+          },
+        },
+        include: {
+          category: true,
+          collection: true,
+        },
+        orderBy: {
+          createdAt: "desc", // Get newest products
+        },
+        take: remainingNeeded,
+      });
 
-    return NextResponse.json(shuffled);
+      relatedProducts = [...relatedProducts, ...randomProducts];
+    }
+
+    return NextResponse.json({ data: relatedProducts });
   } catch (error) {
     console.error("Error fetching related products:", error);
     return NextResponse.json(
