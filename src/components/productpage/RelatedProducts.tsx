@@ -47,6 +47,18 @@ export default function RelatedProducts({
     return null; // Hide section if error or no related products
   }
 
+  // Debug log to verify price data is present
+  console.log(
+    "Related products with price data:",
+    relatedProducts.map((p) => ({
+      id: p.id,
+      name: p.name,
+      hasVariations: p.hasVariations,
+      basePrice: p.basePrice,
+      priceVariantsCount: p.priceVariants?.length || 0,
+    }))
+  );
+
   return (
     <div className="mt-8">
       <h2 className="text-xl font-semibold mb-4">Produk Terkait</h2>

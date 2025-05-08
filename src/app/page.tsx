@@ -9,12 +9,20 @@ export default function Home() {
     <MainLayout>
       <HeroLandingpage />
       <BannerLandingpage />
-      {/* <section aria-labelledby="featured-products" className="py-12">
-        <ProductCollections title="Produk Unggulan" specialLabel="best" />
+      <section aria-labelledby="featured-products" className="py-12">
+        <ProductCollections
+          title="Produk Unggulan"
+          specialLabel="best"
+          viewAllLink="/produk?specialLabel=best"
+        />
       </section>
       <section aria-labelledby="new-products" className="py-12">
-        <ProductCollections title="Produk Terbaru" specialLabel="new" />
-      </section> */}
+        <ProductCollections
+          title="Produk Terbaru"
+          specialLabel="new"
+          viewAllLink="/produk?specialLabel=new"
+        />
+      </section>
       <section aria-labelledby="latest-articles" className="py-12">
         <ArticleCollection />
       </section>

@@ -25,6 +25,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Include configuration to get price variant data
+    const include = {
+      category: true,
+      collection: true,
+      // Include price variants and their options for proper price display
+      priceVariants: {
+        include: {
+          options: {
+            include: {
+              option: true,
+            },
+          },
+        },
+      },
+    };
+
     // Attempt different strategies in priority order
     let relatedProducts: any[] = [];
 
@@ -36,10 +52,7 @@ export async function GET(req: NextRequest) {
           categoryId,
           collectionId,
         },
-        include: {
-          category: true,
-          collection: true,
-        },
+        include,
         take: limit,
       });
     }
@@ -55,10 +68,7 @@ export async function GET(req: NextRequest) {
           },
           categoryId,
         },
-        include: {
-          category: true,
-          collection: true,
-        },
+        include,
         take: remainingNeeded,
       });
 
@@ -76,10 +86,7 @@ export async function GET(req: NextRequest) {
           },
           collectionId,
         },
-        include: {
-          category: true,
-          collection: true,
-        },
+        include,
         take: remainingNeeded,
       });
 
@@ -96,10 +103,7 @@ export async function GET(req: NextRequest) {
             notIn: relatedProducts.map((p) => p.id),
           },
         },
-        include: {
-          category: true,
-          collection: true,
-        },
+        include,
         orderBy: {
           createdAt: "desc", // Get newest products
         },
