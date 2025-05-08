@@ -1,9 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { cn, formatRupiah } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/product";
+import { getProductPriceDisplay, isProductInStock } from "@/utils/product";
 
 interface ProductCardProps {
   product: Product;
@@ -11,19 +12,11 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, className }: ProductCardProps) {
-  const renderPrice = () => {
-    if (!product.hasVariations) {
-      return product.basePrice ? formatRupiah(product.basePrice) : "-";
-    }
+  // Get formatted price using utility function - pass false to show only the minimum price
+  const displayPrice = getProductPriceDisplay(product, false);
 
-    // For products with variations, we're now sending the lowest price as basePrice
-    // from the API for display purposes
-    if (product.basePrice) {
-      return formatRupiah(product.basePrice);
-    }
-
-    return "-";
-  };
+  // Check if product has stock using our updated utility function
+  const hasStock = isProductInStock(product);
 
   const specialLabelText = {
     new: "Baru",
@@ -64,13 +57,31 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               </Badge>
             </div>
           )}
+
+          {/* Out of Stock Overlay - Only show when hasStock is explicitly false */}
+          {!hasStock && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+              <Badge variant="destructive" className="text-sm px-3 py-1">
+                Stok Habis
+              </Badge>
+            </div>
+          )}
         </div>
 
         <div className="p-3">
           <h3 className="font-medium text-sm line-clamp-1 mb-1">
             {product.name}
           </h3>
-          <p className="text-primary font-semibold">{renderPrice()}</p>
+          <p className="text-primary font-semibold">{displayPrice}</p>
+
+          {/* Category Badge */}
+          {product.category && (
+            <div className="mt-2">
+              <span className="inline-block text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                {product.category.name}
+              </span>
+            </div>
+          )}
         </div>
       </Card>
     </Link>

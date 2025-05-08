@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProductForm from "@/components/admin/product/ProductForm";
 import {
@@ -13,12 +13,14 @@ import { createProductAction } from "@/app/actions/product-actions";
 import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { CreateProductInput } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
+import { useSWRConfig } from "swr"; // Import SWR config
 
 export default function AddProductPage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { resetVariations } = useProductVariationStore();
+  const { mutate } = useSWRConfig(); // Get global mutate function
 
   // Reset variation store when entering the page
   useEffect(() => {
@@ -46,13 +48,6 @@ export default function AddProductPage() {
         priceVariants: hasVariations ? priceVariants : [],
       };
 
-      console.log(
-        "Submitting product with variations:",
-        hasVariations ? variations.length : "none",
-        "and price variants:",
-        hasVariations ? priceVariants.length : "none"
-      );
-
       // Create the product using server action
       const product = await createProductAction(productData);
 
@@ -61,6 +56,14 @@ export default function AddProductPage() {
         title: "Produk berhasil ditambahkan",
         description: `Produk "${product.name}" telah berhasil ditambahkan.`,
       });
+
+      // Invalidate products cache to ensure fresh data
+      mutate(
+        (key: string) =>
+          typeof key === "string" && key.startsWith("/api/products"),
+        undefined,
+        { revalidate: true }
+      );
 
       // Navigate to the product list
       router.push("/dashboard/admin/product");

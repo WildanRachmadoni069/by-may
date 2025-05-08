@@ -13,11 +13,11 @@ import {
   CircleSlashed,
   Library,
   LayoutList,
-  ExternalLink, // Add this import for the new button
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -62,28 +62,39 @@ import { useCategoryStore } from "@/store/useCategoryStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { usePathname } from "next/navigation";
 import { getProductPriceDisplay } from "@/utils/product";
+import { useProducts } from "@/hooks/useProducts"; // Import the SWR hook
+import { deleteProductAction } from "@/app/actions/product-actions"; // Import server action
 
 function AdminProductList() {
   const pathname = usePathname();
+  const { toast } = useToast();
 
-  // Menggunakan store products
+  // Use ProductStore only for UI filters state management
+  const { filters, setFilters } = useProductStore();
+
+  // Use SWR hook for data fetching instead of the store
   const {
-    products,
+    data: products,
     pagination,
-    filters,
-    loading: isLoading,
-    fetchProducts,
-    setFilters,
-    removeProduct,
-  } = useProductStore();
+    isLoading,
+    isValidating,
+    error,
+    mutate, // We'll use this to refresh data after operations
+  } = useProducts({
+    page: filters.page || 1,
+    limit: filters.limit || 10,
+    categoryId: filters.categoryId,
+    collectionId: filters.collectionId,
+    sortBy: filters.sortBy,
+    searchQuery: filters.searchQuery,
+    includePriceVariants: true,
+  });
 
-  // Menggunakan store categories
+  // Fetch categories and collections using their respective stores
   const { categories, fetchCategories } = useCategoryStore();
-
-  // Menggunakan store collections
   const { collections, fetchCollections } = useCollectionStore();
 
-  // Local state untuk pencarian dan dialog
+  // Local UI state
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
@@ -94,17 +105,11 @@ function AdminProductList() {
     slug: null,
   });
 
-  // Hapus kode debounce yang tidak lagi dibutuhkan
-  const { toast } = useToast();
-
-  // Initial data fetch - Hanya memuat produk saat halaman pertama dibuka
+  // Initial data fetch for categories and collections
   useEffect(() => {
     fetchCategories();
     fetchCollections();
-
-    // Fetch produk saat component mount (data awal) dengan includePriceVariants=true
-    fetchProducts({ includePriceVariants: true });
-  }, [fetchCategories, fetchCollections, fetchProducts]);
+  }, [fetchCategories, fetchCollections]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -113,42 +118,42 @@ function AdminProductList() {
     setFilters({ page, includePriceVariants: true });
   };
 
-  // Update search input handler to automatically refresh data when cleared
+  // Handle search input change
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setSearchQuery(newValue);
 
-    // If search is cleared (becomes empty), automatically refresh data
+    // If search is cleared, reset search filter
     if (newValue === "" && filters.searchQuery) {
       handleResetSearch();
     }
   };
 
-  // Handle search button click - Perbarui untuk menggunakan nilai searchQuery
+  // Handle search button click
   const handleSearch = () => {
     console.log(`Executing search for: "${searchQuery}"`);
 
-    // Jika pencarian kosong tapi ada filter pencarian sebelumnya, reset pencarian
+    // If search is empty but there's a previous search filter, reset
     if (searchQuery === "" && filters.searchQuery) {
       handleResetSearch();
       return;
     }
 
-    // Jika pencarian kosong dan tidak ada filter pencarian sebelumnya, tidak perlu melakukan apapun
+    // If search is empty and there's no previous search filter, do nothing
     if (searchQuery === "" && !filters.searchQuery) {
       return;
     }
 
-    // Saat pencarian, kembalikan ke halaman 1
+    // Reset to page 1 when searching
     setFilters({ searchQuery, page: 1, includePriceVariants: true });
   };
 
-  // Reset search - improved to preserve other filters
+  // Reset search filter
   const handleResetSearch = () => {
     console.log("Clearing search filter");
     setSearchQuery("");
 
-    // Hanya reset filter searchQuery, pertahankan filter lainnya
+    // Keep other filters, just remove the search query
     const { searchQuery: _, ...otherFilters } = filters;
     setFilters({
       ...otherFilters,
@@ -167,7 +172,7 @@ function AdminProductList() {
     setFilters({ collectionId: value === "all" ? undefined : value, page: 1 });
   };
 
-  // Handle product deletion
+  // Handle product deletion (open confirmation dialog)
   const handleDelete = (slug: string) => {
     setDeleteConfirmDialog({
       open: true,
@@ -175,7 +180,7 @@ function AdminProductList() {
     });
   };
 
-  // Execute actual deletion after confirmation
+  // Execute actual deletion after confirmation using server action
   const confirmDelete = async () => {
     const slugToDelete = deleteConfirmDialog.slug;
     if (!slugToDelete) return;
@@ -184,9 +189,13 @@ function AdminProductList() {
     setDeletingSlug(slugToDelete);
 
     try {
-      const result = await removeProduct(slugToDelete);
+      // Use the server action to delete the product
+      const result = await deleteProductAction(slugToDelete);
 
       if (result.success) {
+        // Refresh the data after successful deletion
+        mutate();
+
         toast({
           title: "Produk berhasil dihapus",
           description: "Produk telah dihapus dari sistem.",
@@ -320,7 +329,7 @@ function AdminProductList() {
 
   // Render empty state
   const renderEmptyState = () => {
-    if (isLoading && products.length === 0) {
+    if (isLoading && products?.length === 0) {
       return (
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -362,6 +371,36 @@ function AdminProductList() {
       </div>
     );
   };
+
+  // Handle error from SWR
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold mb-2">Daftar Produk</h1>
+          <Link href="/dashboard/admin/product/add">
+            <Button>
+              <PlusCircle className="mr-2 h-4 w-4" /> Tambah Produk
+            </Button>
+          </Link>
+        </div>
+
+        <Card className="p-8 flex flex-col items-center">
+          <CircleSlashed className="h-16 w-16 text-destructive mb-4" />
+          <h3 className="text-lg font-medium">Terjadi Kesalahan</h3>
+          <p className="text-muted-foreground mt-2 mb-4">
+            {error.message || "Gagal memuat data produk"}
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => mutate()} // Retry by re-validating SWR
+          >
+            Coba Lagi
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -520,7 +559,7 @@ function AdminProductList() {
       {/* Products Table with Improved Loading States */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 relative">
         {/* Loading overlay for data refresh */}
-        {isLoading && products.length > 0 && (
+        {(isValidating || isLoading) && products?.length > 0 && (
           <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-2">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -543,16 +582,16 @@ function AdminProductList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && products.length === 0 ? (
+            {isLoading && !products?.length ? (
               renderProductSkeletons()
-            ) : products.length === 0 ? (
+            ) : products?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center">
                   {renderEmptyState()}
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((product) => (
+              products?.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
                     {product.featuredImage?.url ? (
@@ -640,56 +679,36 @@ function AdminProductList() {
                 </TableRow>
               ))
             )}
-
-            {/* Inline loading indicator */}
-            {isLoading && products.length > 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
-                  <div className="flex justify-center items-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    <span className="ml-2 text-sm text-muted-foreground">
-                      Memuat data...
-                    </span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
 
         {/* Pagination */}
-        {pagination.total > 0 && (
+        {pagination && pagination.total > 0 && (
           <div className="py-4 border-t">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious
                     onClick={() => {
-                      const isDisabled = pagination.page === 1 || isLoading;
+                      const isDisabled =
+                        pagination.page === 1 || isLoading || isValidating;
                       if (!isDisabled) {
                         handlePageChange(pagination.page - 1);
                       }
                     }}
                     className={`cursor-pointer ${
-                      isLoading || pagination.page === 1
+                      isLoading || isValidating || pagination.page === 1
                         ? "opacity-50 cursor-not-allowed"
                         : ""
                     }`}
-                    aria-disabled={pagination.page === 1 || isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
-                        Prev
-                      </>
-                    ) : (
-                      "Prev"
-                    )}
-                  </PaginationPrevious>
+                    aria-disabled={
+                      pagination.page === 1 || isLoading || isValidating
+                    }
+                  />
                 </PaginationItem>
 
-                {/* If loading, slightly dim the pagination items but don't show spinner */}
-                <div className={isLoading ? "opacity-70" : ""}>
+                {/* If loading, slightly dim the pagination items */}
+                <div className={isLoading || isValidating ? "opacity-70" : ""}>
                   {renderPaginationItems()}
                 </div>
 
@@ -697,29 +716,26 @@ function AdminProductList() {
                   <PaginationNext
                     onClick={() => {
                       const isDisabled =
-                        pagination.page === pagination.totalPages || isLoading;
+                        pagination.page === pagination.totalPages ||
+                        isLoading ||
+                        isValidating;
                       if (!isDisabled) {
                         handlePageChange(pagination.page + 1);
                       }
                     }}
                     className={`cursor-pointer ${
-                      isLoading || pagination.page === pagination.totalPages
+                      isLoading ||
+                      isValidating ||
+                      pagination.page === pagination.totalPages
                         ? "opacity-50 cursor-not-allowed"
                         : ""
                     }`}
                     aria-disabled={
-                      pagination.page === pagination.totalPages || isLoading
+                      pagination.page === pagination.totalPages ||
+                      isLoading ||
+                      isValidating
                     }
-                  >
-                    {isLoading ? (
-                      <>
-                        Next
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current ml-1"></div>
-                      </>
-                    ) : (
-                      "Next"
-                    )}
-                  </PaginationNext>
+                  />
                 </PaginationItem>
               </PaginationContent>
             </Pagination>

@@ -1,78 +1,116 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { shuffleArray } from "@/lib/utils";
 
-export async function GET(request: NextRequest) {
+/**
+ * API route for fetching related products
+ * Supports prioritized fetching:
+ * 1. Same collection (if collectionId provided)
+ * 2. Same category (if categoryId provided)
+ * 3. Recent products (fallback)
+ */
+export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-
-    // Extract parameters
-    const excludeId = searchParams.get("exclude"); // product ID to exclude
-    const categoryId = searchParams.get("categoryId");
+    // Get URL parameters
+    const { searchParams } = new URL(req.url);
+    const exclude = searchParams.get("exclude");
     const collectionId = searchParams.get("collectionId");
-    const limitParam = parseInt(searchParams.get("limit") || "4");
+    const categoryId = searchParams.get("categoryId");
+    const limit = parseInt(searchParams.get("limit") || "8", 10);
 
-    // Base where condition always excludes the current product
-    const where: Prisma.ProductWhereInput = {};
-
-    if (excludeId) {
-      where.NOT = { id: excludeId };
+    // Validate required parameters
+    if (!exclude) {
+      return NextResponse.json(
+        { error: "Missing required parameter: exclude" },
+        { status: 400 }
+      );
     }
 
-    // Apply filters based on parameters
-    if (categoryId) {
-      where.categoryId = categoryId;
-    }
+    let relatedProducts: any[] = [];
 
-    if (collectionId) {
-      where.collectionId = collectionId;
-    }
-
-    // Find related products
-    const products = await db.product.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        basePrice: true,
-        hasVariations: true,
-        featuredImage: true,
-        specialLabel: true,
-        priceVariants: {
-          select: {
-            price: true,
-          },
+    // PRIORITY 1: Try collection first (if valid)
+    if (collectionId && collectionId !== "all" && collectionId !== "none") {
+      const collectionProducts = await db.product.findMany({
+        where: {
+          id: { not: exclude },
+          collectionId: collectionId,
         },
-        category: {
-          select: {
-            id: true,
-            name: true,
-          },
+        include: {
+          category: true,
+          collection: true,
+          priceVariants: true,
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: limitParam,
-    });
+        take: limit,
+      });
 
-    // Process the products to include minimum price when they have variations
-    const processedProducts = products.map((product) => {
-      if (product.hasVariations && product.priceVariants.length > 0) {
-        // Calculate minimum price from all price variants
-        const prices = product.priceVariants.map((variant) => variant.price);
-        const minPrice = Math.min(...prices);
-
-        return {
-          ...product,
-          basePrice: minPrice, // Use the minimum price for display
-        };
+      if (collectionProducts.length > 0) {
+        console.log(
+          `Found ${collectionProducts.length} products in same collection`
+        );
+        relatedProducts = [...collectionProducts];
       }
-      return product;
-    });
+    }
 
-    return NextResponse.json(processedProducts);
+    // PRIORITY 2: If not enough products, try category
+    if (
+      relatedProducts.length < limit &&
+      categoryId &&
+      categoryId !== "all" &&
+      categoryId !== "none"
+    ) {
+      const categoryProducts = await db.product.findMany({
+        where: {
+          AND: [
+            { id: { not: exclude } },
+            { categoryId: categoryId },
+            { id: { notIn: relatedProducts.map((p) => p.id) } },
+          ],
+        },
+        include: {
+          category: true,
+          collection: true,
+          priceVariants: true,
+        },
+        take: limit - relatedProducts.length,
+      });
+
+      if (categoryProducts.length > 0) {
+        console.log(
+          `Found ${categoryProducts.length} products in same category`
+        );
+        relatedProducts = [...relatedProducts, ...categoryProducts];
+      }
+    }
+
+    // PRIORITY 3: If still not enough, get recent products
+    if (relatedProducts.length < limit) {
+      const remainingLimit = limit - relatedProducts.length;
+      const existingIds = new Set(relatedProducts.map((p) => p.id));
+      existingIds.add(exclude); // Also exclude the current product
+
+      const recentProducts = await db.product.findMany({
+        where: {
+          id: { notIn: Array.from(existingIds) },
+        },
+        include: {
+          category: true,
+          collection: true,
+          priceVariants: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: remainingLimit,
+      });
+
+      if (recentProducts.length > 0) {
+        console.log(`Found ${recentProducts.length} recent products`);
+        relatedProducts = [...relatedProducts, ...recentProducts];
+      }
+    }
+
+    // Shuffle the products for better presentation
+    const shuffled = shuffleArray(relatedProducts);
+
+    return NextResponse.json(shuffled);
   } catch (error) {
     console.error("Error fetching related products:", error);
     return NextResponse.json(

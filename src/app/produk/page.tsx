@@ -2,11 +2,12 @@
 import React, { useEffect, useState } from "react";
 import ProductCard from "@/components/general/ProductCard";
 import {
-  ChevronRight,
   ShoppingBag,
   X,
   SlidersHorizontal,
   AlertCircle,
+  Search,
+  Loader2,
 } from "lucide-react";
 import ProductSidebar from "@/components/productpage/ProductSidebar";
 import {
@@ -16,16 +17,18 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useProductStore } from "@/store/useProductStore";
-import { useProductFilterStore } from "@/store/useProductFilterStore";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
   PaginationContent,
+  PaginationEllipsis,
   PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 } from "@/components/ui/pagination";
-import { useSearchParams } from "next/navigation";
-import { SearchBar } from "@/components/productpage/SearchBar";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import {
   Breadcrumb,
@@ -36,110 +39,243 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
+import { useDebounce } from "@/hooks/use-debounce";
+import { cn } from "@/lib/utils";
+import { useCategoryStore } from "@/store/useCategoryStore";
+import { useCollectionStore } from "@/store/useCollectionStore";
+import { useProducts } from "@/hooks/useProducts";
 
 function ProductPage() {
+  // Get search params for initial filters
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get("q") || "";
+  const initialCategory = searchParams.get("category") || "";
+  const initialCollection = searchParams.get("collection") || "";
+  const initialSort = searchParams.get("sortBy") || "newest";
+  const initialPage = parseInt(searchParams.get("page") || "1", 10);
 
-  const {
-    products,
-    loading,
-    error,
-    hasMore,
-    fetchFilteredProducts,
-    fetchMoreProducts,
-  } = useProductStore();
-
-  const filters = useProductFilterStore();
+  // Filter sheet for mobile
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
-  // Define a consistent itemsPerPage value
-  const itemsPerPage = 4; // For testing pagination
+  // Local UI state
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Effect for initial load
+  // Get filter state from Zustand
+  const { filters, setFilters } = useProductStore();
+
+  // Set initial filters
   useEffect(() => {
-    // Initialize search from URL if present
-    if (initialQuery) {
-      filters.setSearchQuery(initialQuery);
-    }
-
-    fetchFilteredProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: itemsPerPage, // Use the consistent itemsPerPage value
-      searchQuery: initialQuery,
+    setFilters({
+      categoryId: initialCategory || undefined,
+      collectionId: initialCollection || undefined,
+      sortBy: initialSort || "newest",
+      searchQuery: initialQuery || undefined,
+      page: initialPage,
     });
-  }, [fetchFilteredProducts, initialQuery]);
+  }, [
+    initialCategory,
+    initialCollection,
+    initialSort,
+    initialQuery,
+    initialPage,
+    setFilters,
+  ]);
+
+  // Fetch data using SWR
+  const {
+    data: products,
+    pagination,
+    isLoading,
+    isValidating,
+    error,
+  } = useProducts({
+    page: filters.page,
+    limit: 8,
+    categoryId: filters.categoryId,
+    collectionId: filters.collectionId,
+    sortBy: filters.sortBy,
+    searchQuery: filters.searchQuery,
+    includePriceVariants: true,
+  });
+
+  // Get categories and collections
+  const { categories, fetchCategories } = useCategoryStore();
+  const { collections, fetchCollections } = useCollectionStore();
+
+  // Initial data fetch for categories and collections
+  useEffect(() => {
+    fetchCategories();
+    fetchCollections();
+  }, [fetchCategories, fetchCollections]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    if (!isValidating) {
+      const params = new URLSearchParams();
+      if (filters.searchQuery) params.set("q", filters.searchQuery);
+      if (filters.categoryId) params.set("category", filters.categoryId);
+      if (filters.collectionId) params.set("collection", filters.collectionId);
+      if (filters.sortBy) params.set("sortBy", filters.sortBy);
+      if (filters.page && filters.page > 1)
+        params.set("page", filters.page.toString());
+
+      // Replace URL with new params without navigation
+      const newUrl = `/produk${
+        params.toString() ? `?${params.toString()}` : ""
+      }`;
+      if (window.location.pathname + window.location.search !== newUrl) {
+        window.history.replaceState({}, "", newUrl);
+      }
+    }
+  }, [filters, isValidating]);
+
+  // Update search query when debounced value changes
+  useEffect(() => {
+    if (debouncedSearchQuery !== filters.searchQuery) {
+      setIsSearching(true);
+      setFilters({
+        searchQuery: debouncedSearchQuery || undefined,
+        page: 1,
+      });
+    }
+  }, [debouncedSearchQuery, setFilters, filters.searchQuery]);
+
+  // Reset searching state after loading
+  useEffect(() => {
+    if (!isLoading && isSearching) {
+      setIsSearching(false);
+    }
+  }, [isLoading, isSearching]);
 
   // Handle search query changes
-  const handleSearchChange = (query: string) => {
-    filters.setSearchQuery(query);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
 
   // Handle search submission
-  const handleSearch = (query: string) => {
-    // Update URL with search query
-    const url = new URL(window.location.href);
-    if (query) {
-      url.searchParams.set("q", query);
-    } else {
-      url.searchParams.delete("q");
-    }
-
-    // Store the query in filter state
-    filters.setSearchQuery(query);
-
-    router.replace(url.pathname + url.search);
-
-    // Fetch products with current filters and the new search query
-    fetchFilteredProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: 4, // Changed from 12 to 4 for testing pagination
-      searchQuery: query,
+  const handleSearchSubmit = () => {
+    setIsSearching(true);
+    setFilters({
+      searchQuery: searchQuery || undefined,
+      page: 1,
     });
   };
 
   // Handle search reset
   const handleResetSearch = () => {
-    // Clear search in URL
-    const url = new URL(window.location.href);
-    url.searchParams.delete("q");
-    router.replace(url.pathname + url.search);
-
-    // Clear search in state
-    filters.setSearchQuery("");
-
-    // Fetch products with current filters but no search query
-    fetchFilteredProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: 4, // Changed from 12 to 4 for testing pagination
-      searchQuery: "",
+    setSearchQuery("");
+    setFilters({
+      searchQuery: undefined,
+      page: 1,
     });
   };
 
-  const loadMore = () => {
-    // Don't attempt to load more if already loading
-    if (loading) return;
-
-    // fetchMoreProducts already sets loading state internally in the store
-    fetchMoreProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: 4, // Changed from 12 to 4 for testing pagination
-      searchQuery: filters.searchQuery,
+  // Handle filter reset
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setFilters({
+      categoryId: undefined,
+      collectionId: undefined,
+      sortBy: "newest",
+      searchQuery: undefined,
+      page: 1,
     });
+  };
+
+  // Apply filter changes from sidebar
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > pagination.totalPages || page === pagination.page)
+      return;
+    setFilters({ page });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Generate pagination items
+  const renderPaginationItems = () => {
+    const { page, totalPages } = pagination;
+    const items = [];
+
+    // Always show first page
+    items.push(
+      <PaginationItem key="first">
+        <PaginationLink
+          isActive={page === 1}
+          onClick={() => handlePageChange(1)}
+          className="cursor-pointer"
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    );
+
+    // Add ellipsis if needed
+    if (page > 3) {
+      items.push(
+        <PaginationItem key="ellipsis-1">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+
+    // Show current page and neighbors
+    for (
+      let i = Math.max(2, page - 1);
+      i <= Math.min(totalPages - 1, page + 1);
+      i++
+    ) {
+      if (i <= 1 || i >= totalPages) continue; // Skip first and last page
+
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            isActive={page === i}
+            onClick={() => handlePageChange(i)}
+            className="cursor-pointer"
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    // Add ellipsis if needed
+    if (page < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis-2">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+
+    // Always show last page if more than 1 page
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key="last">
+          <PaginationLink
+            isActive={page === totalPages}
+            onClick={() => handlePageChange(totalPages)}
+            className="cursor-pointer"
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    return items;
   };
 
   // Product card skeleton loader for loading state
   const renderProductSkeletons = () => {
-    return Array(4) // Changed from 12 to 4 to match itemsPerPage
+    return Array(8)
       .fill(null)
       .map((_, index) => (
         <li key={`skeleton-${index}`} className="animate-pulse">
@@ -151,76 +287,6 @@ function ProductPage() {
       ));
   };
 
-  // Empty state component enhanced with search information
-  const renderEmptyState = () => {
-    if (!products || products.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium">
-            {filters.searchQuery
-              ? `Tidak ada produk yang sesuai dengan "${filters.searchQuery}"`
-              : "Belum Ada Produk"}
-          </h3>
-          <p className="text-muted-foreground mt-2">
-            {filters.searchQuery
-              ? "Coba kata kunci lain atau filter yang berbeda."
-              : "Mohon maaf, saat ini belum ada produk yang tersedia."}
-          </p>
-          {filters.searchQuery && (
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={handleResetSearch}
-            >
-              Hapus Pencarian
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <ul className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-        {products.map((item) => (
-          <ProductCard product={item} key={item.id} />
-        ))}
-      </ul>
-    );
-  };
-
-  // Improved pagination component with better loading state
-  const renderPagination = () => {
-    if (loading && !products.length) return null;
-    if (!hasMore) return null;
-
-    return (
-      <div className="mt-8 flex justify-center">
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <Button
-                variant="outline"
-                className="gap-1 px-2.5"
-                disabled={loading}
-                onClick={loadMore}
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent" />
-                    <span className="ml-2">Memuat...</span>
-                  </>
-                ) : (
-                  "Tampilkan Lebih Banyak"
-                )}
-              </Button>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
-    );
-  };
-
   // Better error handling
   if (error) {
     return (
@@ -229,17 +295,17 @@ function ProductPage() {
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <AlertCircle className="h-16 w-16 text-destructive mb-4" />
             <h3 className="text-lg font-medium">Terjadi Kesalahan</h3>
-            <p className="text-muted-foreground mt-2">{error}</p>
+            <p className="text-muted-foreground mt-2">{error.message}</p>
             <Button
               variant="outline"
               className="mt-4"
               onClick={() => {
-                fetchFilteredProducts({
-                  category: filters.category,
-                  collection: filters.collection,
-                  sortBy: filters.sortBy,
-                  itemsPerPage: 12,
-                  searchQuery: filters.searchQuery,
+                setFilters({
+                  categoryId: undefined,
+                  collectionId: undefined,
+                  sortBy: "newest",
+                  searchQuery: undefined,
+                  page: 1,
                 });
               }}
             >
@@ -293,6 +359,7 @@ function ProductPage() {
             </SheetHeader>
             <ProductSidebar
               onFilterApplied={() => setIsFilterSheetOpen(false)}
+              onFilterChange={handleFilterChange}
             />
           </SheetContent>
         </Sheet>
@@ -300,62 +367,200 @@ function ProductPage() {
         <div className="mt-8 lg:grid lg:grid-cols-4 lg:items-start lg:gap-8">
           {/* Desktop Sidebar */}
           <div className="hidden lg:block space-y-4 bg-white p-4 rounded-lg shadow sticky top-[64px]">
-            <ProductSidebar />
+            <ProductSidebar onFilterChange={handleFilterChange} />
           </div>
 
           <div className="lg:col-span-3">
-            {/* Search Bar - Now as the primary search for all devices */}
+            {/* Search Bar */}
             <div className="mb-6 flex items-center justify-between">
               <div className="relative flex-1 max-w-md">
-                <SearchBar
-                  value={filters.searchQuery}
+                <Input
+                  placeholder="Cari produk..."
+                  value={searchQuery}
                   onChange={handleSearchChange}
-                  onSearch={handleSearch}
-                  loading={loading}
-                  onReset={handleResetSearch}
+                  className="pr-16"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSearchSubmit();
+                    }
+                  }}
                 />
+
+                {/* Search button with icon */}
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full rounded-l-none"
+                  onClick={handleSearchSubmit}
+                  disabled={isSearching}
+                >
+                  {isSearching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">Cari</span>
+                </Button>
+
+                {/* Clear search button */}
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-12 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full"
+                    onClick={handleResetSearch}
+                    disabled={isLoading}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    <span className="sr-only">Hapus pencarian</span>
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Search results information */}
-            {filters.searchQuery && products.length > 0 && (
-              <div className="mb-4 flex justify-between items-center">
-                <p className="text-sm text-muted-foreground">
-                  Menampilkan hasil pencarian untuk "{filters.searchQuery}"
-                </p>
+            {/* Active filter badges */}
+            {(filters.categoryId ||
+              filters.collectionId ||
+              filters.searchQuery) && (
+              <div className="mb-6 p-3 bg-muted rounded-md flex flex-wrap gap-2 items-center">
+                <span className="text-sm text-muted-foreground">
+                  Filter aktif:
+                </span>
+
+                {filters.searchQuery && (
+                  <div className="text-sm bg-background px-3 py-1 rounded-full flex items-center gap-1">
+                    <span>"{filters.searchQuery}"</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 rounded-full"
+                      onClick={handleResetSearch}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+
+                {filters.categoryId && (
+                  <div className="text-sm bg-background px-3 py-1 rounded-full flex items-center gap-1">
+                    <span>
+                      {categories.find((c) => c.id === filters.categoryId)
+                        ?.name || "Kategori"}
+                    </span>
+                  </div>
+                )}
+
+                {filters.collectionId && (
+                  <div className="text-sm bg-background px-3 py-1 rounded-full flex items-center gap-1">
+                    <span>
+                      {collections.find((c) => c.id === filters.collectionId)
+                        ?.name || "Koleksi"}
+                    </span>
+                  </div>
+                )}
+
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleResetSearch}
-                  className="text-sm"
+                  className="ml-auto text-xs h-7"
+                  onClick={handleResetFilters}
                 >
-                  <X className="h-3.5 w-3.5 mr-1" />
-                  Hapus Filter
+                  Reset Filter
                 </Button>
               </div>
             )}
 
             <h2 className="sr-only">Koleksi Produk</h2>
 
-            {/* Show skeletons when loading and no products are available yet */}
-            {loading && products.length === 0 ? (
+            {/* Show skeletons when loading */}
+            {isLoading && !products.length ? (
               <ul className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
                 {renderProductSkeletons()}
               </ul>
+            ) : products.length === 0 ? (
+              // Empty state
+              <div className="flex flex-col items-center justify-center py-16">
+                <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4" />
+                <h2 className="text-xl font-medium mb-2">Tidak Ada Produk</h2>
+                <p className="text-muted-foreground mb-6">
+                  {filters.searchQuery
+                    ? `Tidak ada produk yang sesuai dengan pencarian "${filters.searchQuery}"`
+                    : "Belum ada produk dalam kategori ini."}
+                </p>
+                <Button variant="outline" onClick={handleResetFilters}>
+                  Reset Filter
+                </Button>
+              </div>
             ) : (
-              <>
-                {/* Show stable UI with data */}
-                {renderEmptyState()}
+              // Products grid with loading overlay for pagination
+              <div className="relative">
+                {/* Loading overlay for subsequent data fetches */}
+                {isValidating && !isLoading && (
+                  <div className="sticky top-0 z-10 w-full py-2 bg-background/80 backdrop-blur-sm flex justify-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Memperbarui hasil...
+                    </div>
+                  </div>
+                )}
 
-                {/* Fade-in effect for pagination when loading more */}
-                <div
-                  className={`transition-opacity duration-300 ${
-                    loading ? "opacity-70" : "opacity-100"
-                  }`}
-                >
-                  {renderPagination()}
-                </div>
-              </>
+                {/* Products grid */}
+                <ul className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                  {products.map((item) => (
+                    <ProductCard product={item} key={item.id} />
+                  ))}
+                </ul>
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                  <div className="mt-8 flex justify-center">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() =>
+                              handlePageChange(pagination.page - 1)
+                            }
+                            className={cn(
+                              "cursor-pointer",
+                              (pagination.page === 1 ||
+                                isLoading ||
+                                isValidating) &&
+                                "opacity-50 cursor-not-allowed"
+                            )}
+                            aria-disabled={
+                              pagination.page === 1 || isLoading || isValidating
+                            }
+                          />
+                        </PaginationItem>
+
+                        {renderPaginationItems()}
+
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() =>
+                              handlePageChange(pagination.page + 1)
+                            }
+                            className={cn(
+                              "cursor-pointer",
+                              (pagination.page === pagination.totalPages ||
+                                isLoading ||
+                                isValidating) &&
+                                "opacity-50 cursor-not-allowed"
+                            )}
+                            aria-disabled={
+                              pagination.page === pagination.totalPages ||
+                              isLoading ||
+                              isValidating
+                            }
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

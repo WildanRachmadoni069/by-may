@@ -47,6 +47,7 @@ import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
 import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import { useRouter } from "next/navigation";
 import { CloudinaryService } from "@/lib/services/cloudinary-service";
+import { useSWRConfig } from "swr"; // Add SWR config
 
 interface ProductFormProps {
   initialValues?: Partial<Product>;
@@ -64,6 +65,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const quillRef = React.useRef<any>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isDeletingImages, setIsDeletingImages] = useState(false);
+  const { mutate } = useSWRConfig(); // Get SWR's global mutate function
 
   // Get variation state from store
   const {
@@ -240,6 +242,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
         // Reset variation store after successful submission
         resetVariations();
+
+        // Invalidate the products cache to ensure fresh data display
+        mutate(
+          (key: string) =>
+            typeof key === "string" && key.startsWith("/api/products"),
+          undefined,
+          { revalidate: true }
+        );
 
         toast({
           title: initialValues
@@ -533,6 +543,14 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
       // Reset variation store before navigating away
       resetVariations();
+
+      // Invalidate cache before navigating away to ensure fresh data
+      mutate(
+        (key: string) =>
+          typeof key === "string" && key.startsWith("/api/products"),
+        undefined,
+        { revalidate: true }
+      );
 
       router.push("/dashboard/admin/product");
     }

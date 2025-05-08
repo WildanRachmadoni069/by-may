@@ -1,7 +1,7 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Filter } from "lucide-react";
+import { Filter, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,92 +11,123 @@ import {
 } from "@/components/ui/select";
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { useProductFilterStore } from "@/store/useProductFilterStore";
 import { useProductStore } from "@/store/useProductStore";
-import { SortBy } from "@/store/useProductFilterStore";
 
 interface ProductSidebarProps {
   onFilterApplied?: () => void;
+  onFilterChange?: (filters: any) => void;
 }
 
-function ProductSidebar({ onFilterApplied }: ProductSidebarProps) {
-  const { categories, fetchCategories } = useCategoryStore();
-  const { collections, fetchCollections } = useCollectionStore();
-  const filters = useProductFilterStore();
-  const { fetchFilteredProducts, loading } = useProductStore();
+function ProductSidebar({
+  onFilterApplied,
+  onFilterChange,
+}: ProductSidebarProps) {
+  const { categories } = useCategoryStore();
+  const { collections } = useCollectionStore();
+  const { filters, loading } = useProductStore();
 
-  // Track local filter state that will only be applied on submit
+  // Use a ref to track if we've initialized the sidebar
+  const initialized = useRef(false);
+
+  // Local state for filters that will be batched and applied together
   const [localFilters, setLocalFilters] = useState({
-    category: filters.category,
-    collection: filters.collection,
-    sortBy: filters.sortBy as SortBy,
+    categoryId: filters.categoryId,
+    collectionId: filters.collectionId,
+    sortBy: filters.sortBy || "newest",
   });
 
-  // Initialize local filters from store
+  // Update local filters when store filters change, but only after initialization
   useEffect(() => {
-    setLocalFilters({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-    });
-  }, [filters.category, filters.collection, filters.sortBy]);
+    // Short delay on first render to avoid initialization issues
+    if (!initialized.current) {
+      const timer = setTimeout(() => {
+        initialized.current = true;
+        setLocalFilters({
+          categoryId: filters.categoryId,
+          collectionId: filters.collectionId,
+          sortBy: filters.sortBy || "newest",
+        });
+      }, 100);
 
-  useEffect(() => {
-    fetchCategories();
-    fetchCollections();
-  }, [fetchCategories, fetchCollections]);
+      return () => clearTimeout(timer);
+    } else {
+      setLocalFilters({
+        categoryId: filters.categoryId,
+        collectionId: filters.collectionId,
+        sortBy: filters.sortBy || "newest",
+      });
+    }
+  }, [filters.categoryId, filters.collectionId, filters.sortBy]);
 
-  // Apply all filters at once with the Apply button
+  // Handle category selection
+  const handleCategoryChange = (value: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      categoryId: value === "all" ? undefined : value,
+    }));
+  };
+
+  // Handle collection selection
+  const handleCollectionChange = (value: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      collectionId: value === "all" ? undefined : value,
+    }));
+  };
+
+  // Handle sort selection
+  const handleSortChange = (value: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      sortBy: value,
+    }));
+  };
+
+  // Apply all filters at once
   const handleApplyFilters = () => {
-    // Update the filter store
-    filters.setCategory(localFilters.category);
-    filters.setCollection(localFilters.collection);
-    filters.setSortBy(localFilters.sortBy);
+    if (onFilterChange) {
+      // Apply all filters at once with page reset
+      onFilterChange({
+        ...localFilters,
+        page: 1,
+      });
+    }
 
-    // Then fetch with all the new filter values and current search
-    fetchFilteredProducts({
-      category: localFilters.category,
-      collection: localFilters.collection,
-      sortBy: localFilters.sortBy,
-      itemsPerPage: 12,
-      searchQuery: filters.searchQuery,
-    });
-
-    // Call the callback if provided
+    // Close the mobile filter sheet if needed
     if (onFilterApplied) {
       onFilterApplied();
     }
   };
 
-  // Reset filters to defaults
+  // Reset all filters
   const handleResetFilters = () => {
     const defaultFilters = {
-      category: "all",
-      collection: "all",
-      sortBy: "newest" as SortBy,
+      categoryId: undefined,
+      collectionId: undefined,
+      sortBy: "newest",
     };
 
+    // Update local state
     setLocalFilters(defaultFilters);
 
-    // Update the filter store
-    filters.setCategory(defaultFilters.category);
-    filters.setCollection(defaultFilters.collection);
-    filters.setSortBy(defaultFilters.sortBy);
+    // Apply changes immediately if set to do so
+    if (onFilterChange) {
+      onFilterChange({
+        ...defaultFilters,
+        page: 1,
+      });
+    }
 
-    // Fetch with reset filters but keep search query
-    fetchFilteredProducts({
-      category: defaultFilters.category,
-      collection: defaultFilters.collection,
-      sortBy: defaultFilters.sortBy,
-      itemsPerPage: 12,
-      searchQuery: filters.searchQuery,
-    });
-
-    // Call the callback if provided
     if (onFilterApplied) {
       onFilterApplied();
     }
   };
+
+  // Check if filters have changed from what's currently in the store
+  const hasFilterChanges =
+    localFilters.categoryId !== filters.categoryId ||
+    localFilters.collectionId !== filters.collectionId ||
+    localFilters.sortBy !== filters.sortBy;
 
   return (
     <div className="space-y-4">
@@ -104,18 +135,20 @@ function ProductSidebar({ onFilterApplied }: ProductSidebarProps) {
       <div>
         <label className="text-sm font-medium pb-4">Urutkan</label>
         <Select
-          value={localFilters.sortBy}
-          onValueChange={(value: SortBy) =>
-            setLocalFilters({ ...localFilters, sortBy: value })
-          }
+          value={localFilters.sortBy || "newest"}
+          onValueChange={handleSortChange}
+          disabled={loading}
         >
           <SelectTrigger>
             <SelectValue placeholder="Urutkan" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="newest">Terbaru</SelectItem>
-            <SelectItem value="price-asc">Harga Terendah</SelectItem>
-            <SelectItem value="price-desc">Harga Tertinggi</SelectItem>
+            <SelectItem value="oldest">Terlama</SelectItem>
+            <SelectItem value="price-low">Harga Terendah</SelectItem>
+            <SelectItem value="price-high">Harga Tertinggi</SelectItem>
+            <SelectItem value="name-asc">Nama A-Z</SelectItem>
+            <SelectItem value="name-desc">Nama Z-A</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -124,10 +157,9 @@ function ProductSidebar({ onFilterApplied }: ProductSidebarProps) {
       <div>
         <label className="text-sm font-medium pb-4">Kategori</label>
         <Select
-          value={localFilters.category}
-          onValueChange={(value) =>
-            setLocalFilters({ ...localFilters, category: value })
-          }
+          value={localFilters.categoryId || "all"}
+          onValueChange={handleCategoryChange}
+          disabled={loading}
         >
           <SelectTrigger>
             <SelectValue placeholder="Pilih Kategori" />
@@ -135,8 +167,8 @@ function ProductSidebar({ onFilterApplied }: ProductSidebarProps) {
           <SelectContent>
             <SelectItem value="all">Semua Kategori</SelectItem>
             {categories.map((category) => (
-              <SelectItem key={category.value} value={category.value}>
-                {category.label}
+              <SelectItem key={category.id} value={category.id}>
+                {category.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -147,38 +179,51 @@ function ProductSidebar({ onFilterApplied }: ProductSidebarProps) {
       <div>
         <label className="text-sm font-medium pb-4">Koleksi</label>
         <Select
-          value={localFilters.collection}
-          onValueChange={(value) =>
-            setLocalFilters({ ...localFilters, collection: value })
-          }
+          value={localFilters.collectionId || "all"}
+          onValueChange={handleCollectionChange}
+          disabled={loading}
         >
           <SelectTrigger>
             <SelectValue placeholder="Pilih Koleksi" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Koleksi</SelectItem>
-            <SelectItem value="none">Tanpa Koleksi</SelectItem>
             {collections.map((collection) => (
-              <SelectItem key={collection.value} value={collection.value}>
-                {collection.label}
+              <SelectItem key={collection.id} value={collection.id}>
+                {collection.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Apply Filters button */}
+      {/* Apply Filters button - highlight when changes are pending */}
       <Button
         className="w-full"
         onClick={handleApplyFilters}
-        disabled={loading}
+        disabled={loading || !hasFilterChanges}
+        variant={hasFilterChanges ? "default" : "outline"}
       >
-        <Filter className="h-4 w-4 mr-2" />
-        Terapkan Filter
+        {loading ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Menerapkan...
+          </>
+        ) : (
+          <>
+            <Filter className="h-4 w-4 mr-2" />
+            Terapkan Filter
+          </>
+        )}
       </Button>
 
       {/* Reset Filters button */}
-      <Button className="w-full" variant="outline" onClick={handleResetFilters}>
+      <Button
+        className="w-full"
+        variant="outline"
+        onClick={handleResetFilters}
+        disabled={loading}
+      >
         Reset Filter
       </Button>
     </div>

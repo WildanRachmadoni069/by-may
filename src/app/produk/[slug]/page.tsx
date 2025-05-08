@@ -17,7 +17,12 @@ import { useParams } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { MinusIcon, PlusIcon, ShoppingCartIcon } from "lucide-react";
+import {
+  MinusIcon,
+  PlusIcon,
+  ShoppingCartIcon,
+  AlertCircle,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/store/useCartStore";
@@ -33,15 +38,21 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { getProductBySlug } from "@/lib/api/products";
-import { Image as ProductImage, Product, PriceVariant } from "@/types/product";
-import useAuthStore from "@/store/useAuthStore"; // Replace useUserStore import
+import { Image as ProductImage, PriceVariant } from "@/types/product";
+import useAuthStore from "@/store/useAuthStore";
 import { getProductPriceDisplay } from "@/utils/product";
+import { useProduct } from "@/hooks/useProduct"; // Import useProduct hook
 
 export default function ProductDetail() {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Get slug from URL params
   const { slug } = useParams();
+  const stringSlug =
+    typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
+
+  // Use the useProduct hook instead of direct API call
+  const { product, isLoading, error } = useProduct(stringSlug);
+
+  // Local UI state
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [firstCarouselApi, setFirstCarouselApi] = useState<CarouselApi>();
   const [secondCarouselApi, setSecondCarouselApi] = useState<CarouselApi>();
@@ -53,41 +64,27 @@ export default function ProductDetail() {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [currentStock, setCurrentStock] = useState<number | null>(null);
 
+  // Images state
   const [variationImageMap, setVariationImageMap] = useState<
     Record<string, number>
   >({});
   const [allImages, setAllImages] = useState<ProductImage[]>([]);
 
-  const { currentUser } = useAuthStore(); // Replace useUserStore with useAuthStore
+  // Auth and cart state from stores
+  const { currentUser } = useAuthStore();
   const [selectedPriceVariant, setSelectedPriceVariant] =
     useState<PriceVariant | null>(null);
-
-  // Get addItem function from cart store
   const { addItem } = useCartStore();
 
+  // Initialize price and stock when product data is loaded - if product has no variations
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        if (typeof slug !== "string") return;
+    if (product && !product.hasVariations) {
+      setCurrentPrice(product.basePrice || 0);
+      setCurrentStock(product.baseStock || 0);
+    }
+  }, [product]);
 
-        const productData = await getProductBySlug(slug);
-        setProduct(productData);
-
-        // Initialize with default price and stock if no variations
-        if (productData && !productData.hasVariations) {
-          setCurrentPrice(productData.basePrice || 0);
-          setCurrentStock(productData.baseStock || 0);
-        }
-      } catch (error) {
-        console.error("Error fetching product:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProduct();
-  }, [slug]);
-
+  // Setup images when product data is loaded
   useEffect(() => {
     if (!product) return;
 
@@ -131,6 +128,7 @@ export default function ProductDetail() {
     }
   }, [product]);
 
+  // Setup carousel sync
   useEffect(() => {
     if (!firstCarouselApi || !secondCarouselApi) return;
 
@@ -145,6 +143,7 @@ export default function ProductDetail() {
     });
   }, [firstCarouselApi, secondCarouselApi]);
 
+  // Helper function to generate variation key
   const generateVariationKey = (
     selectedOpts: Record<string, string>
   ): string => {
@@ -180,7 +179,6 @@ export default function ProductDetail() {
     if (selectedOptionIds.length === 0) return null;
 
     // Find a price variant where all options match the selected options
-    // This is more robust than using the key generation approach
     return product.priceVariants.find((priceVariant) => {
       const variantOptionIds = priceVariant.options.map((o) => o.option.id);
 
@@ -194,6 +192,7 @@ export default function ProductDetail() {
     });
   };
 
+  // Update price and stock based on selected options
   const updatePriceAndStock = (selectedOpts: Record<string, string>) => {
     if (!product) return;
 
@@ -217,6 +216,7 @@ export default function ProductDetail() {
         setSelectedPriceVariant(priceVariant);
         console.log("Found price variant:", priceVariant);
       } else {
+        // Reset to show price range if no matching price variant found
         setCurrentPrice(null);
         setCurrentStock(null);
         setSelectedPriceVariant(null);
@@ -234,6 +234,7 @@ export default function ProductDetail() {
     }
   };
 
+  // Update price and stock when selected options change
   useEffect(() => {
     updatePriceAndStock(selectedOptions);
     // Debug logs
@@ -241,6 +242,7 @@ export default function ProductDetail() {
     console.log("Current Price:", currentPrice);
   }, [selectedOptions]);
 
+  // Handle option selection
   const handleOptionSelect = (variationId: string, optionId: string) => {
     const newSelectedOptions = { ...selectedOptions };
 
@@ -265,17 +267,18 @@ export default function ProductDetail() {
     setSelectedOptions(newSelectedOptions);
   };
 
+  // Handle quantity change
   const handleQuantityChange = (value: number) => {
     if (value >= 1 && (currentStock === null || value <= currentStock)) {
       setQuantity(value);
     }
   };
 
+  // Handle add to cart
   const handleAddToCart = async () => {
     try {
       // Check if user is logged in
       if (!currentUser) {
-        // Use currentUser instead of user
         toast({
           title: "Login Diperlukan",
           description: "Silakan login untuk menambahkan produk ke keranjang.",
@@ -339,6 +342,7 @@ export default function ProductDetail() {
     }
   };
 
+  // Helper to render price range - already properly handling equal min/max prices
   const renderPrice = () => {
     if (!product?.hasVariations) {
       return formatRupiah(product?.basePrice || 0);
@@ -356,13 +360,36 @@ export default function ProductDetail() {
     const minPrice = Math.min(...allPrices);
     const maxPrice = Math.max(...allPrices);
 
-    return `${formatRupiah(minPrice)} - ${formatRupiah(maxPrice)}`;
+    // If min and max prices are the same, show only one price
+    if (minPrice === maxPrice) {
+      return formatRupiah(minPrice);
+    } else {
+      // Otherwise show price range
+      return `${formatRupiah(minPrice)} - ${formatRupiah(maxPrice)}`;
+    }
   };
 
-  // Display product price using our new utility function
+  // Display product price using our utility function
   const displayPrice = product ? getProductPriceDisplay(product) : "";
 
-  if (loading) {
+  // Error handling
+  if (error) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <AlertCircle className="h-16 w-16 text-destructive mb-4" />
+          <h3 className="text-lg font-medium">Produk Tidak Ditemukan</h3>
+          <p className="text-muted-foreground mt-2">{error.message}</p>
+          <Button variant="outline" className="mt-4" asChild>
+            <Link href="/produk">Kembali ke Produk</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
     return (
       <div className="container mx-auto p-6 space-y-6">
         {/* Breadcrumb skeleton */}
@@ -380,10 +407,12 @@ export default function ProductDetail() {
     );
   }
 
+  // No product data
   if (!product) {
     return <div className="container mx-auto p-6">Product not found</div>;
   }
 
+  // Main render with product data
   return (
     <div className="container mx-auto p-4 lg:p-6 space-y-6">
       {/* Breadcrumb */}
@@ -440,6 +469,7 @@ export default function ProductDetail() {
                   <CarouselNext className="relative right-0 translate-x-0 hover:translate-x-0 size-10" />
                 </div>
               </Carousel>
+
               {/* Thumbnails with variation images */}
               <div className="mt-3">
                 <Carousel
@@ -508,9 +538,9 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Product Info Section - Optimized spacing */}
+        {/* Product Info Section */}
         <div className="flex-1 space-y-4 min-w-0">
-          {/* Product Header - Reduced spacing */}
+          {/* Product Header */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold">{product.name}</h1>
@@ -519,13 +549,13 @@ export default function ProductDetail() {
               )}
             </div>
             <div className="text-2xl font-semibold text-primary">
-              {displayPrice}
+              {renderPrice()}
             </div>
           </div>
 
           <Separator className="my-3" />
 
-          {/* Product Options - Added better labeling for variation options */}
+          {/* Product Options */}
           {product.hasVariations && (
             <div
               className={cn(
@@ -571,7 +601,7 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {/* Quantity Selector - Simplified */}
+          {/* Quantity Selector */}
           <div className="space-y-2">
             <h3 className="font-medium">Jumlah</h3>
             <div className="flex items-center gap-4">
@@ -612,7 +642,7 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          {/* Add to Cart - Simplified */}
+          {/* Add to Cart */}
           <Button
             className="w-full sm:w-auto mt-4"
             size="lg"
@@ -634,7 +664,7 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* Description Section - More compact */}
+      {/* Description Section */}
       <Card>
         <div className="px-4 py-3 border-b">
           <h2 className="text-lg font-semibold">Deskripsi Produk</h2>

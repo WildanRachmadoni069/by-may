@@ -162,29 +162,30 @@ export const ProductService = {
     // Log filter lengkap untuk debugging
     console.log("Database filter query:", JSON.stringify(where, null, 2));
 
-    // Tentukan pengurutan
+    // Tentukan pengurutan default
     const orderBy: any = {};
-    switch (sortBy) {
-      case "newest":
-        orderBy.createdAt = "desc";
-        break;
-      case "oldest":
-        orderBy.createdAt = "asc";
-        break;
-      case "price-low":
-        orderBy.basePrice = "asc";
-        break;
-      case "price-high":
-        orderBy.basePrice = "desc";
-        break;
-      case "name-asc":
-        orderBy.name = "asc";
-        break;
-      case "name-desc":
-        orderBy.name = "desc";
-        break;
-      default:
-        orderBy.createdAt = "desc";
+
+    // Perlu pengurutan khusus untuk harga
+    const needsPriceOrder = sortBy === "price-low" || sortBy === "price-high";
+
+    // Pengurutan non-harga
+    if (!needsPriceOrder) {
+      switch (sortBy) {
+        case "newest":
+          orderBy.createdAt = "desc";
+          break;
+        case "oldest":
+          orderBy.createdAt = "asc";
+          break;
+        case "name-asc":
+          orderBy.name = "asc";
+          break;
+        case "name-desc":
+          orderBy.name = "desc";
+          break;
+        default:
+          orderBy.createdAt = "desc";
+      }
     }
 
     try {
@@ -194,8 +195,11 @@ export const ProductService = {
         collection: true,
       };
 
-      // Sertakan priceVariants jika diminta
-      if (includePriceVariants) {
+      // Sertakan priceVariants jika diminta atau jika melakukan pengurutan berdasarkan harga
+      const shouldIncludePriceVariants =
+        includePriceVariants || needsPriceOrder;
+
+      if (shouldIncludePriceVariants) {
         include.priceVariants = {
           include: {
             options: {
@@ -208,13 +212,48 @@ export const ProductService = {
       }
 
       // Ambil produk dengan paginasi dan filter
-      const products = await db.product.findMany({
+      let products = await db.product.findMany({
         where,
         include,
         take: limit,
         skip,
-        orderBy,
+        orderBy: !needsPriceOrder ? orderBy : undefined,
       });
+
+      // Jika perlu pengurutan berdasarkan harga, lakukan pengurutan manual berdasarkan harga minimal
+      if (needsPriceOrder) {
+        products = products.sort((a, b) => {
+          // Fungsi untuk mendapatkan harga minimal dari produk
+          const getMinPrice = (product: any) => {
+            if (!product.hasVariations) {
+              return product.basePrice || 0;
+            }
+
+            if (product.priceVariants && product.priceVariants.length > 0) {
+              // Ambil semua harga dari varian-varian
+              const prices = product.priceVariants
+                .map((variant: any) => variant.price)
+                .filter(Boolean);
+
+              // Jika ada harga, ambil yang terendah, jika tidak kembalikan 0
+              return prices.length > 0 ? Math.min(...prices) : 0;
+            }
+
+            return product.basePrice || 0;
+          };
+
+          // Dapatkan harga minimal dari produk A dan B
+          const minPriceA = getMinPrice(a);
+          const minPriceB = getMinPrice(b);
+
+          // Urutkan berdasarkan sortBy
+          if (sortBy === "price-low") {
+            return minPriceA - minPriceB; // Ascending (terendah ke tertinggi)
+          } else {
+            return minPriceB - minPriceA; // Descending (tertinggi ke terendah)
+          }
+        });
+      }
 
       // Log hasil pencarian
       if (search) {
