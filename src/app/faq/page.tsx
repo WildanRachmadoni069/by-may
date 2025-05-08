@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { getFAQs } from "@/lib/firebase/faqs";
-import { FAQ } from "@/types/faq";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
@@ -20,30 +17,15 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
+import { useFAQs } from "@/hooks/useFAQs";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 export default function FAQPage() {
-  const [faqs, setFaqs] = useState<FAQ[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Gunakan hook SWR untuk FAQ, limit banyak karena FAQ biasanya tidak banyak
+  const { faqs, isLoading, error, mutate } = useFAQs({ limit: 50 });
 
-  useEffect(() => {
-    async function loadFAQs() {
-      try {
-        setLoading(true);
-        const faqsData = await getFAQs();
-        setFaqs(faqsData);
-      } catch (err) {
-        console.error("Error loading FAQs:", err);
-        setError("Gagal memuat data FAQ. Silakan coba lagi nanti.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadFAQs();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <>
         <main className="container px-4 py-8">
@@ -91,7 +73,10 @@ export default function FAQPage() {
           <h1 className="text-4xl font-bold mb-4">
             Pertanyaan yang Sering Diajukan (FAQ)
           </h1>
-          <p className="text-red-500 mt-8">{error}</p>
+          <p className="text-red-500 mt-8 mb-4">{error.message}</p>
+          <Button onClick={() => mutate()} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" /> Coba Lagi
+          </Button>
         </main>
         <Footer />
       </>
@@ -131,12 +116,18 @@ export default function FAQPage() {
           collapsible
           className="w-full max-w-3xl mx-auto"
         >
-          {faqs.map((faq) => (
-            <AccordionItem key={faq.id} value={faq.id}>
-              <AccordionTrigger>{faq.question}</AccordionTrigger>
-              <AccordionContent>{faq.answer}</AccordionContent>
-            </AccordionItem>
-          ))}
+          {faqs.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              Belum ada pertanyaan yang tersedia saat ini.
+            </p>
+          ) : (
+            faqs.map((faq) => (
+              <AccordionItem key={faq.id} value={faq.id}>
+                <AccordionTrigger>{faq.question}</AccordionTrigger>
+                <AccordionContent>{faq.answer}</AccordionContent>
+              </AccordionItem>
+            ))
+          )}
         </Accordion>
 
         <div className="mt-12 text-center">
