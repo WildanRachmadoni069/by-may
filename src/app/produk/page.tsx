@@ -39,7 +39,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
-import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
@@ -60,7 +59,6 @@ function ProductPage() {
 
   // Local UI state
   const [searchQuery, setSearchQuery] = useState(initialQuery);
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const [isSearching, setIsSearching] = useState(false);
 
   // Get filter state from Zustand
@@ -132,25 +130,7 @@ function ProductPage() {
     }
   }, [filters, isValidating]);
 
-  // Update search query when debounced value changes
-  useEffect(() => {
-    if (debouncedSearchQuery !== filters.searchQuery) {
-      setIsSearching(true);
-      setFilters({
-        searchQuery: debouncedSearchQuery || undefined,
-        page: 1,
-      });
-    }
-  }, [debouncedSearchQuery, setFilters, filters.searchQuery]);
-
-  // Reset searching state after loading
-  useEffect(() => {
-    if (!isLoading && isSearching) {
-      setIsSearching(false);
-    }
-  }, [isLoading, isSearching]);
-
-  // Handle search query changes
+  // Handle search query changes (no debounce, just update local state)
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
@@ -158,22 +138,29 @@ function ProductPage() {
   // Handle search submission
   const handleSearchSubmit = () => {
     setIsSearching(true);
+
+    // Apply search filter
     setFilters({
       searchQuery: searchQuery || undefined,
       page: 1,
     });
+
+    setIsSearching(false);
   };
 
-  // Handle search reset
+  // Handle search reset - clicking the X button in search or filter badge
   const handleResetSearch = () => {
+    // Clear the search input
     setSearchQuery("");
+
+    // Clear the search filter
     setFilters({
       searchQuery: undefined,
       page: 1,
     });
   };
 
-  // Handle filter reset
+  // Handle filter reset - resets all filters
   const handleResetFilters = () => {
     setSearchQuery("");
     setFilters({
@@ -371,7 +358,7 @@ function ProductPage() {
           </div>
 
           <div className="lg:col-span-3">
-            {/* Search Bar */}
+            {/* Search Bar - Updated to use button-triggered search */}
             <div className="mb-6 flex items-center justify-between">
               <div className="relative flex-1 max-w-md">
                 <Input
