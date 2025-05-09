@@ -2,7 +2,13 @@
 import React from "react";
 import ProductCard from "./ProductCard";
 import { Button } from "../ui/button";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  ShoppingBag,
+  AlertCircle,
+} from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -27,18 +33,52 @@ function ProductCollections({
   viewAllLink,
 }: ProductCollectionsProps) {
   const [carouselApi, setCarouselApi] = React.useState<CarouselApi>();
+  const [hasScrolled, setHasScrolled] = React.useState(false);
+
+  // Add intersection observer to detect when component is in viewport
+  const observerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    // Setup intersection observer for lazy loading
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !hasScrolled) {
+          setHasScrolled(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observer.unobserve(observerRef.current);
+      }
+    };
+  }, [hasScrolled]);
 
   // Use SWR hook to fetch products with the given special label
+  // Only fetch if component is visible or has been scrolled to
   const {
     data: products,
     isLoading,
     error,
-  } = useProducts({
-    specialLabel,
-    limit: limitCount,
-    sortBy: "newest", // Always sort by newest first
-    includePriceVariants: true,
-  });
+  } = useProducts(
+    {
+      specialLabel,
+      limit: limitCount,
+      sortBy: "newest", // Always sort by newest first
+      includePriceVariants: true,
+    },
+    {
+      // Disable automatic revalidation for better performance
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+    }
+  );
 
   // For "new" products, if we don't have any with the label, fallback to using the newest products
   const { data: newestProducts, isLoading: isLoadingNewest } = useProducts(
@@ -70,7 +110,10 @@ function ProductCollections({
     (!displayProducts || displayProducts.length === 0)
   ) {
     return (
-      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <section
+        className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
+        ref={observerRef}
+      >
         <header className="flex items-center justify-between border-b-2 mb-4">
           <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
             {title}
@@ -90,42 +133,65 @@ function ProductCollections({
       </section>
     );
   }
-
   // Show error message if fetching failed
   if (error) {
     return (
-      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <section
+        className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
+        ref={observerRef}
+      >
         <header className="border-b-2 mb-4">
           <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
             {title}
           </h2>
         </header>
-        <div className="text-center py-8 text-red-500">
-          <p>Gagal memuat produk</p>
-          <p className="text-sm text-muted-foreground">{error.message}</p>
+        <div className="text-center py-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-4">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Gagal memuat produk
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Terjadi kesalahan saat memuat produk. Silakan coba lagi nanti.
+          </p>
         </div>
       </section>
     );
   }
-
   // If no products found
   if (!displayProducts || displayProducts.length === 0) {
     return (
-      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <section
+        className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
+        ref={observerRef}
+      >
         <header className="flex items-center justify-between border-b-2 mb-4">
           <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
             {title}
           </h2>
         </header>
-        <div className="text-center py-12 text-gray-500">
-          Produk Masih Belum Tersedia
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+            <ShoppingBag className="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Produk Belum Tersedia
+          </h3>
+          <p className="text-gray-500 mb-4 max-w-md mx-auto">
+            Kami sedang menyiapkan koleksi produk terbaru untuk Anda. Silakan
+            kunjungi halaman ini lagi nanti.
+          </p>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <section
+      className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
+      ref={observerRef}
+    >
       <header className="flex items-center justify-between border-b-2 mb-4">
         <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
           {title}

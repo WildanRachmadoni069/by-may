@@ -20,6 +20,7 @@ export type PaginationResult<T> = PaginatedResult<T>;
 /**
  * Mengambil semua artikel dengan filter opsional
  * @param options Opsi filter dan paginasi
+ * @param signal AbortSignal untuk membatalkan request
  * @returns Hasil artikel terpaginasi
  */
 export async function getArticles(
@@ -29,7 +30,8 @@ export async function getArticles(
     limit?: number;
     search?: string;
     sort?: "asc" | "desc";
-  } = {}
+  } = {},
+  signal?: AbortSignal
 ): Promise<PaginationResult<ArticleData>> {
   const { status, page = 1, limit = 10, search, sort = "desc" } = options;
 
@@ -42,6 +44,8 @@ export async function getArticles(
 
   const res = await fetch(`/api/articles?${params.toString()}`, {
     next: { tags: ["articles"] },
+    signal, // Add AbortSignal support for fetch cancellation
+    cache: "force-cache", // Use cache for better performance
   });
 
   if (!res.ok) {

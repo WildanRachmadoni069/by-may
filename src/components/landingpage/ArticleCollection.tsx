@@ -1,7 +1,7 @@
 "use client";
 
 import { ArticleCard } from "@/components/general/ArticleCard";
-import { ArticleEmptyState } from "@/components/general/EmptyState";
+import { ArticleEmptyState } from "@/components/article/ArticleEmptyState";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -14,27 +14,47 @@ export default function ArticleCollection() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Memulai pengambilan data setelah komponen dimount
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchArticles = async () => {
       try {
-        // Use the standard getArticles function and handle errors manually
-        const response = await getArticles({
-          status: "published",
-          limit: 3,
-        });
-        setArticles(response.data);
-      } catch (error) {
-        console.error("Error fetching articles:", error);
-        setError("Failed to load articles");
-        // Set articles to empty array to avoid undefined errors
-        setArticles([]);
+        // Gunakan AbortController untuk membatalkan request jika komponen di-unmount
+        const response = await getArticles(
+          {
+            status: "published",
+            limit: 3,
+          },
+          controller.signal
+        );
+
+        // Hanya update state jika komponen masih mounted
+        if (isMounted) {
+          setArticles(response.data);
+        }
+      } catch (error: any) {
+        // Ignore abort errors which happen when the component is unmounted
+        if (error.name !== "AbortError" && isMounted) {
+          console.error("Error fetching articles:", error);
+          setError("Failed to load articles");
+          setArticles([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchArticles();
-  }, []);
 
+    // Cleanup function untuk mencegah memory leak
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, []);
   // Show loading state
   if (isLoading) {
     return (
@@ -42,13 +62,12 @@ export default function ArticleCollection() {
         <div className="container px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Artikel Terbaru</h2>
-            <p className="text-gray-600">Loading articles...</p>
+            <p className="text-gray-600">Memuat artikel...</p>
           </div>
         </div>
       </div>
     );
   }
-
   // Show error state
   if (error) {
     return (
@@ -56,16 +75,15 @@ export default function ArticleCollection() {
         <div className="container px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl mx-auto text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Artikel Terbaru</h2>
-            <p className="text-red-500">{error}</p>
+            <p className="text-red-500">Gagal memuat artikel</p>
           </div>
         </div>
       </div>
     );
   }
-
   // If there are no articles, show the empty state
   if (articles.length === 0) {
-    return <ArticleEmptyState />;
+    return <ArticleEmptyState showHomeButton={false} />;
   }
 
   return (

@@ -26,12 +26,15 @@ import {
   getArticleAction,
   getArticlesAction,
 } from "@/app/actions/article-actions";
+import { generateArticleStructuredData } from "@/lib/utils/performance";
 import { formatDate } from "@/lib/utils";
 import { getBaseUrl } from "@/lib/utils/url";
 import { ArticleContent } from "@/components/article/ArticleContent";
 import { ArticleShare } from "@/components/article/ArticleShare";
 import { ArticleAuthorCard } from "@/components/article/ArticleAuthorCard";
 import { RelatedArticlesSection } from "@/components/article/RelatedArticlesSection";
+// Structured data component
+import StructuredData from "@/components/seo/StructuredData";
 
 // Menghasilkan metadata dinamis untuk setiap artikel
 export async function generateMetadata(
@@ -126,6 +129,9 @@ export default async function ArticleDetailPage({
 
   return (
     <main className="min-h-screen">
+      {" "}
+      {/* Client component for JSON-LD structured data */}
+      <StructuredData data={generateArticleStructuredData(article)} />
       <article
         itemScope
         itemType="https://schema.org/Article"
@@ -213,13 +219,14 @@ export default async function ArticleDetailPage({
                   </div>
 
                   <div className="flex items-center">
-                    <CalendarIcon className="mr-1 h-4 w-4" />
+                    <CalendarIcon className="mr-1 h-4 w-4" />{" "}
                     <time
                       itemProp="datePublished"
                       dateTime={
-                        publishedDate instanceof Date
-                          ? publishedDate.toISOString()
-                          : new Date(publishedDate).toISOString()
+                        typeof publishedDate === "object" &&
+                        publishedDate !== null
+                          ? (publishedDate as Date).toISOString()
+                          : new Date(String(publishedDate || "")).toISOString()
                       }
                     >
                       {formattedDate}

@@ -4,9 +4,13 @@ import { FileText, Search, Home } from "lucide-react";
 
 interface ArticleEmptyStateProps {
   search?: string;
+  showHomeButton?: boolean;
 }
 
-export function ArticleEmptyState({ search }: ArticleEmptyStateProps) {
+export function ArticleEmptyState({
+  search,
+  showHomeButton = false,
+}: ArticleEmptyStateProps) {
   // If the empty state is due to a search query
   if (search) {
     return (
@@ -20,17 +24,19 @@ export function ArticleEmptyState({ search }: ArticleEmptyStateProps) {
         <p className="text-gray-500 mb-6 max-w-md mx-auto">
           Kami tidak dapat menemukan artikel yang sesuai dengan "{search}". Coba
           kata kunci lain atau lihat semua artikel.
-        </p>
+        </p>{" "}
         <div className="flex flex-wrap justify-center gap-3">
           <Link href="/artikel">
             <Button variant="outline">Lihat Semua Artikel</Button>
           </Link>
-          <Link href="/">
-            <Button variant="ghost">
-              <Home className="mr-2 h-4 w-4" />
-              Kembali ke Beranda
-            </Button>
-          </Link>
+          {showHomeButton && (
+            <Link href="/">
+              <Button variant="ghost">
+                <Home className="mr-2 h-4 w-4" />
+                Kembali ke Beranda
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     );
@@ -44,17 +50,23 @@ export function ArticleEmptyState({ search }: ArticleEmptyStateProps) {
       </div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">
         Belum ada artikel
-      </h2>
-      <p className="text-gray-500 mb-6 max-w-md mx-auto">
+      </h2>{" "}
+      <p
+        className={`text-gray-500 max-w-md mx-auto ${
+          showHomeButton ? "mb-6" : "mb-2"
+        }`}
+      >
         Kami sedang menyiapkan artikel-artikel menarik untuk Anda. Silahkan
         kunjungi halaman ini lagi nanti.
       </p>
-      <Link href="/">
-        <Button>
-          <Home className="mr-2 h-4 w-4" />
-          Kembali ke Beranda
-        </Button>
-      </Link>
+      {showHomeButton && (
+        <Link href="/">
+          <Button>
+            <Home className="mr-2 h-4 w-4" />
+            Kembali ke Beranda
+          </Button>
+        </Link>
+      )}
     </div>
   );
 }

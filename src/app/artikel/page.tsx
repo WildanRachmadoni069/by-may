@@ -158,7 +158,7 @@ export default async function ArticlePage({ searchParams }: ArticlePageProps) {
               ))}
             </div>
           ) : (
-            <ArticleEmptyState search={search} />
+            <ArticleEmptyState search={search} showHomeButton={true} />
           )}
         </Suspense>
 
