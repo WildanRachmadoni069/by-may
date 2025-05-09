@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { Navbar } from "@/components/landingpage/Navbar";
+import MainNav from "@/components/landingpage/MainNav";
 import React from "react";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default function ArticleLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <MainNav />
       {children}
     </>
   );

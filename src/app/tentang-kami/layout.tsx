@@ -1,5 +1,5 @@
 import MainNav from "@/components/landingpage/MainNav";
-import { getSeoData } from "@/lib/firebase/seo";
+import { getSeoData } from "@/lib/services/seo";
 import { Metadata } from "next";
 import React from "react";
 
@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
       openGraph: {
         title: seoData?.title || "Tentang Kami",
         description: seoData?.description,
-        images: seoData?.og_image ? [{ url: seoData.og_image }] : undefined,
+        images: seoData?.ogImage ? [{ url: seoData.ogImage }] : undefined,
       },
     };
   } catch (error) {

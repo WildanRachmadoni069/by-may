@@ -15,7 +15,7 @@ const mapArticleToFormData = (article: any): ArticleData => {
     excerpt: article.excerpt || "",
     featuredImage: article.featuredImage || { url: "", alt: "" },
     status: article.status,
-    meta: article.meta || { title: "", description: "", og_image: "" },
+    meta: article.meta || { title: "", description: "", ogImage: "" },
     author: article.author || { id: "", name: "" },
     createdAt: article.createdAt?.toString() || null,
     updatedAt: article.updatedAt?.toString() || null,

@@ -11,14 +11,13 @@ import { useToast } from "@/hooks/use-toast";
 import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
+import { updateSEOSetting } from "@/lib/api/seo";
 
 export interface PageSeoFormValues {
   title: string;
   description: string;
   keywords: string;
-  og_image: string;
+  ogImage: string;
 }
 
 interface PageSeoFormProps {
@@ -45,20 +44,18 @@ export function PageSeoForm({
       title: Yup.string().required("Judul wajib diisi"),
       description: Yup.string().required("Deskripsi wajib diisi"),
       keywords: Yup.string(),
-      og_image: Yup.string().url("URL tidak valid").nullable(),
+      ogImage: Yup.string().url("URL tidak valid").nullable(),
     }),
     onSubmit: async (values) => {
       try {
         setIsSubmitting(true);
 
-        // Update SEO data in Firestore
-        const seoRef = doc(db, "seo_settings", pageId);
-        await updateDoc(seoRef, {
+        // Update SEO data via API
+        await updateSEOSetting(pageId, {
           title: values.title,
           description: values.description,
-          keywords: values.keywords,
-          og_image: values.og_image || "",
-          updatedAt: new Date(),
+          keywords: values.keywords || null,
+          ogImage: values.ogImage || null,
         });
 
         toast({
@@ -109,7 +106,6 @@ export function PageSeoForm({
             </span>
           </div>
         </div>
-
         <div className="space-y-2">
           <LabelWithTooltip
             htmlFor="description"
@@ -131,7 +127,6 @@ export function PageSeoForm({
             type="description"
           />
         </div>
-
         <div className="space-y-2">
           <LabelWithTooltip
             htmlFor="keywords"
@@ -143,21 +138,20 @@ export function PageSeoForm({
             placeholder="contoh: al-quran custom, sajadah, tasbih, hampers islami"
             {...formik.getFieldProps("keywords")}
           />
-        </div>
-
+        </div>{" "}
         <div className="space-y-2">
           <LabelWithTooltip
-            htmlFor="og_image"
+            htmlFor="ogImage"
             label="URL Gambar OG"
             tooltip="Gambar yang muncul ketika halaman Anda dibagikan di media sosial. Ukuran yang direkomendasikan: 1200 x 630 piksel."
           />
           <Input
-            id="og_image"
+            id="ogImage"
             placeholder="https://example.com/image.jpg"
-            {...formik.getFieldProps("og_image")}
+            {...formik.getFieldProps("ogImage")}
           />
-          {formik.touched.og_image && formik.errors.og_image ? (
-            <div className="text-red-500 text-sm">{formik.errors.og_image}</div>
+          {formik.touched.ogImage && formik.errors.ogImage ? (
+            <div className="text-red-500 text-sm">{formik.errors.ogImage}</div>
           ) : null}
         </div>
       </div>

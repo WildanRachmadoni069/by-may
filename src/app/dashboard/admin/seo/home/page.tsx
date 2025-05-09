@@ -1,54 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
+import { useEffect } from "react";
 import { PageSeoForm } from "@/components/admin/seo/PageSeoForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { useSEOSetting } from "@/hooks/useSEOSettings";
+import { useSEOStore } from "@/store/useSEOStore";
+import { createSEOSetting } from "@/lib/api/seo";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 export default function HomePageSEO() {
-  const [seoData, setSeoData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const pageId = "homepage";
+  const { toast } = useToast();
+  const { seoSetting, isLoading, error, mutate } = useSEOSetting(pageId);
+  const {
+    currentSEOSetting,
+    loading,
+    error: storeError,
+    setCurrentSEOSetting,
+    setLoading,
+    setError,
+  } = useSEOStore();
+  // Sync with Zustand store
   useEffect(() => {
-    async function fetchSeoData() {
-      try {
-        setLoading(true);
-        const docRef = doc(db, "seo_settings", "homepage");
-        const docSnap = await getDoc(docRef);
+    setLoading(isLoading);
 
-        if (docSnap.exists()) {
-          setSeoData(docSnap.data());
-        } else {
-          // Create default SEO data if it doesn't exist
-          const defaultData = {
-            title: "Al-Quran Custom Nama Murah di Cover Surabaya",
-            description:
-              "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
-            keywords:
-              "al-quran custom, nama di cover, quran custom surabaya, quran murah berkualitas",
-            og_image: "",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-
-          await setDoc(doc(db, "seo_settings", "homepage"), defaultData);
-          setSeoData(defaultData);
-        }
-      } catch (err) {
-        console.error("Error fetching homepage SEO data:", err);
-        setError("Gagal memuat data SEO. Silakan coba lagi.");
-      } finally {
-        setLoading(false);
-      }
+    // Handle error state - but don't treat 404 (not found) as an error
+    if (error && !error.message?.includes("not found")) {
+      setError(error.message);
+    } else {
+      setError(null);
     }
 
-    fetchSeoData();
-  }, []);
+    // If seoSetting is explicitly null (API returned 404), clear the current setting
+    // This ensures we show the "create" UI when needed
+    if (seoSetting === null) {
+      setCurrentSEOSetting(null);
+    } else if (seoSetting) {
+      // If we got a valid setting, store it
+      setCurrentSEOSetting(seoSetting);
+    }
+  }, [
+    seoSetting,
+    isLoading,
+    error,
+    setCurrentSEOSetting,
+    setLoading,
+    setError,
+  ]);
+  // Removed automatic creation of SEO data
+  // We will instead show a UI to let the user manually create it
 
   if (loading) {
     return (
@@ -62,8 +66,15 @@ export default function HomePageSEO() {
     );
   }
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
+  if (storeError) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{storeError}</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (
@@ -82,17 +93,67 @@ export default function HomePageSEO() {
         </div>
       </div>
 
-      {seoData && (
+      {/* Tampilkan pesan jika data SEO tidak ada */}
+      {!isLoading && !currentSEOSetting && !storeError && (
+        <div className="mb-6">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Data SEO belum ada. Klik tombol di bawah untuk membuatnya.
+            </AlertDescription>
+          </Alert>
+          <Button
+            className="mt-4"
+            onClick={async () => {
+              try {
+                setLoading(true);
+                const defaultData = {
+                  pageId: "homepage",
+                  title: "Al-Quran Custom Nama Murah di Cover Surabaya",
+                  description:
+                    "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
+                  keywords:
+                    "al-quran custom, nama di cover, quran custom surabaya, quran murah berkualitas",
+                  ogImage: "",
+                };
+                const newSeoSetting = await createSEOSetting(defaultData);
+                setCurrentSEOSetting(newSeoSetting);
+                mutate(newSeoSetting);
+                toast({
+                  title: "Data SEO berhasil dibuat",
+                  description:
+                    "Pengaturan SEO untuk halaman beranda telah dibuat",
+                });
+              } catch (err: any) {
+                setError(err.message || "Gagal membuat data SEO");
+                toast({
+                  variant: "destructive",
+                  title: "Gagal membuat data SEO",
+                  description:
+                    err.message || "Terjadi kesalahan saat membuat data SEO",
+                });
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            Buat Data SEO Default
+          </Button>
+        </div>
+      )}
+
+      {currentSEOSetting && (
         <PageSeoForm
           initialValues={{
-            title: seoData.title || "",
-            description: seoData.description || "",
-            keywords: seoData.keywords || "",
-            og_image: seoData.og_image || "",
+            title: currentSEOSetting.title || "",
+            description: currentSEOSetting.description || "",
+            keywords: currentSEOSetting.keywords || "",
+            ogImage: currentSEOSetting.ogImage || "",
           }}
           pageId="homepage"
           pageSlug=""
           pageType="Beranda"
+          onSuccess={() => mutate()}
         />
       )}
     </div>
