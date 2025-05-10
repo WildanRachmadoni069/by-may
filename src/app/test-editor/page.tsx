@@ -52,13 +52,17 @@ function TestEditorPage() {
           </div>
           <div className="grid w-full gap-1.5">
             <Label htmlFor="content">Konten Artikel</Label>
-            <div style={{ height: "300px", position: "relative" }}>
+            <div className="h-[350px] sm:h-[400px] md:h-[450px] relative">
               <MyEditorArticle
                 ref={quillRef}
                 value={content}
                 onChange={setContent}
                 placeholder="Tulis konten artikel di sini..."
-                className="h-full"
+                minHeight="150px"
+                maxHeight="none"
+                size="default"
+                variant="default"
+                fullWidth={true}
               />
             </div>
           </div>
