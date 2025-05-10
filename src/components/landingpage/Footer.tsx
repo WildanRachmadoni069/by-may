@@ -4,31 +4,35 @@ import Image from "next/image";
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t">
+    <footer
+      className="bg-white border-t"
+      itemScope
+      itemType="https://schema.org/WPFooter"
+    >
       <div className="container px-4 py-12 mx-auto">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {/* Brand Column */}
-          <div>
+          <div itemScope itemType="https://schema.org/Organization">
             <div>
-              <Link href="/">
+              <Link href="/" itemProp="url">
                 <Image
                   src="/img/Logo.jpg"
                   alt="By May Scarf"
                   width={150}
                   height={50}
                   className="h-auto"
+                  itemProp="logo"
                 />
               </Link>
             </div>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4" itemProp="description">
               Spesialis Al-Qur&apos;an custom cover dan perlengkapan ibadah
               berkualitas. Mewujudkan keindahan dalam beribadah dengan sentuhan
               personal.
             </p>
-          </div>
-
+          </div>{" "}
           {/* Contact Column */}
-          <div>
+          <div itemScope itemType="https://schema.org/ContactPoint">
             <h3 className="text-lg font-semibold mb-4">Kontak Kami</h3>
             <div className="space-y-2">
               <a
@@ -36,6 +40,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center text-gray-600 hover:text-primary"
+                itemProp="telephone"
               >
                 <Phone className="w-4 h-4 mr-2" />
                 +62 812-9503-8834
@@ -43,6 +48,7 @@ export default function Footer() {
               <a
                 href="mailto:info@bymayscarf.com"
                 className="flex items-center text-gray-600 hover:text-primary"
+                itemProp="email"
               >
                 <Mail className="w-4 h-4 mr-2" />
                 info@bymayscarf.com
@@ -56,83 +62,105 @@ export default function Footer() {
                 <Instagram className="w-4 h-4 mr-2" />
                 @bymayscarf
               </a>
-              <div className="flex items-start text-gray-600">
+              <div
+                className="flex items-start text-gray-600"
+                itemScope
+                itemType="https://schema.org/PostalAddress"
+              >
                 <MapPin className="w-4 h-4 mr-2 mt-1 flex-shrink-0" />
-                <span>Bogor, Jawa Barat, Indonesia</span>
+                <span itemProp="addressLocality">Bogor</span>,{" "}
+                <span itemProp="addressRegion">Jawa Barat</span>,{" "}
+                <span itemProp="addressCountry">Indonesia</span>
               </div>
             </div>
-          </div>
-
+          </div>{" "}
           {/* Products Column */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Produk Kami</h3>
-            <nav className="space-y-2">
+            <nav
+              className="space-y-2"
+              itemScope
+              itemType="https://schema.org/SiteNavigationElement"
+            >
               <Link
                 href="/produk?category=Al-Quran"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Al-Qur&apos;an Custom Cover
+                <span itemProp="name">Al-Qur&apos;an Custom Cover</span>
               </Link>
               <Link
                 href="/produk?category=Sajadah"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Sajadah Premium
+                <span itemProp="name">Sajadah Premium</span>
               </Link>
               <Link
                 href="/produk?category=Tasbih"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Tasbih
+                <span itemProp="name">Tasbih</span>
               </Link>
               <Link
                 href="/produk?category=Hampers"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Hampers Islami
+                <span itemProp="name">Hampers Islami</span>
               </Link>
               <Link
                 href="/produk"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Semua Produk
+                <span itemProp="name">Semua Produk</span>
               </Link>
             </nav>
-          </div>
-
+          </div>{" "}
           {/* Information Column */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Informasi</h3>
-            <nav className="space-y-2">
+            <nav
+              className="space-y-2"
+              itemScope
+              itemType="https://schema.org/SiteNavigationElement"
+            >
               <Link
                 href="/tentang-kami"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Tentang Kami
+                <span itemProp="name">Tentang Kami</span>
               </Link>
               <Link
                 href="/faq"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                FAQ
+                <span itemProp="name">FAQ</span>
               </Link>
               <Link
                 href="/artikel"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Artikel
+                <span itemProp="name">Artikel</span>
               </Link>
               <Link
                 href="/keranjang"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Keranjang
+                <span itemProp="name">Keranjang</span>
               </Link>
               <Link
                 href="/pesanan"
                 className="block text-gray-600 hover:text-primary"
+                itemProp="url"
               >
-                Pesanan Saya
+                <span itemProp="name">Pesanan Saya</span>
               </Link>
             </nav>
           </div>

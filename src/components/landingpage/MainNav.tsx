@@ -42,13 +42,20 @@ function MainNav() {
       .join("")
       .toUpperCase();
   };
-
   return (
-    <header className="bg-white sticky top-0 left-0 right-0 z-50 border-b-2">
+    <header
+      className="bg-white sticky top-0 left-0 right-0 z-50 border-b-2"
+      itemScope
+      itemType="https://schema.org/WPHeader"
+    >
       <div className="mx-auto container px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="md:flex md:items-center md:gap-12">
-            <Link className="block text-primary" href="/">
+            <Link
+              className="block text-primary"
+              href="/"
+              aria-label="ByMay Scarf - Kembali ke Beranda"
+            >
               <span className="sr-only">Home</span>
               <Image
                 src={"/img/Logo.jpg"}

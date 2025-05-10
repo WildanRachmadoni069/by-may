@@ -186,14 +186,20 @@ function ProductCollections({
       </section>
     );
   }
-
   return (
     <section
       className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
       ref={observerRef}
+      aria-labelledby={title.toLowerCase().replace(/\s+/g, "-")}
+      itemScope
+      itemType="https://schema.org/ItemList"
     >
       <header className="flex items-center justify-between border-b-2 mb-4">
-        <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
+        <h2
+          id={title.toLowerCase().replace(/\s+/g, "-")}
+          className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1"
+          itemProp="name"
+        >
           {title}
         </h2>
         <div className="flex items-center gap-2 pb-4">
@@ -229,12 +235,22 @@ function ProductCollections({
           setApi={setCarouselApi}
         >
           <CarouselContent className="-ml-1 md:-ml-2">
-            {displayProducts.map((product) => (
+            {" "}
+            {displayProducts.map((product, index) => (
               <CarouselItem
                 key={product.id}
                 className="basis-1/2 md:basis-1/3 lg:basis-1/6 pl-1 md:pl-2 rounded-md"
+                itemScope
+                itemType="https://schema.org/ListItem"
+                itemProp="itemListElement"
               >
-                <div className="p-1">
+                <meta itemProp="position" content={`${index + 1}`} />
+                <div
+                  className="p-1"
+                  itemProp="item"
+                  itemScope
+                  itemType="https://schema.org/Product"
+                >
                   <ProductCard product={product} />
                 </div>
               </CarouselItem>

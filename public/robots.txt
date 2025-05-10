@@ -1,0 +1,12 @@
+# robots.txt for https://bymayscarf.com/
+User-agent: *
+Allow: /
+
+# Disallow admin and dashboard pages
+Disallow: /dashboard/
+Disallow: /dashboard/admin/
+Disallow: /login
+Disallow: /sign-up
+
+# Sitemap
+Sitemap: https://bymayscarf.com/sitemap.xml

@@ -23,16 +23,25 @@ export default function ProductCard({ product, className }: ProductCardProps) {
     best: "Best Seller",
     sale: "Diskon",
   } as const;
-
   return (
-    <Link href={`/produk/${product.slug}`} className="group">
+    <Link
+      href={`/produk/${product.slug}`}
+      className="group"
+      title={product.name}
+      itemProp="url"
+    >
       <Card
         className={cn(
           "overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow duration-200",
           className
         )}
       >
-        <div className="relative aspect-square overflow-hidden bg-muted">
+        <div
+          className="relative aspect-square overflow-hidden bg-muted"
+          itemProp="image"
+          itemScope
+          itemType="https://schema.org/ImageObject"
+        >
           {product.featuredImage?.url ? (
             <Image
               src={product.featuredImage.url}
@@ -41,6 +50,7 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               sizes="(max-width: 768px) 50vw, 33vw"
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               priority={false}
+              itemProp="contentUrl"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-muted text-muted-foreground text-xs">
@@ -69,15 +79,34 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         </div>
 
         <div className="p-3">
-          <h3 className="font-medium text-sm line-clamp-1 mb-1">
+          <h3 className="font-medium text-sm line-clamp-1 mb-1" itemProp="name">
             {product.name}
           </h3>
-          <p className="text-primary font-semibold">{displayPrice}</p>
+          <p
+            className="text-primary font-semibold"
+            itemProp="offers"
+            itemScope
+            itemType="https://schema.org/Offer"
+          >
+            <span itemProp="price">{displayPrice}</span>
+            <meta itemProp="priceCurrency" content="IDR" />
+            <meta
+              itemProp="availability"
+              content={
+                hasStock
+                  ? "https://schema.org/InStock"
+                  : "https://schema.org/OutOfStock"
+              }
+            />
+          </p>
 
           {/* Category Badge */}
           {product.category && (
             <div className="mt-2">
-              <span className="inline-block text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              <span
+                className="inline-block text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full"
+                itemProp="category"
+              >
                 {product.category.name}
               </span>
             </div>

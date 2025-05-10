@@ -54,9 +54,17 @@ function BannerLandingpage() {
   // Jika tidak ada banner atau sedang loading, tidak render apa-apa
   if (loading) return null;
   if (activeBanners.length === 0) return null;
-
   return (
-    <div className="w-full py-6">
+    <section
+      className="w-full py-6"
+      aria-labelledby="promotion-banners"
+      itemScope
+      itemType="https://schema.org/WebPageElement"
+      itemProp="hasPart"
+    >
+      <h2 className="sr-only" id="promotion-banners">
+        Promosi dan Penawaran Spesial
+      </h2>
       <div className="container mx-auto">
         <Carousel
           opts={{
@@ -101,9 +109,20 @@ function BannerLandingpage() {
                       opacity: current === index ? 1 : 0.7,
                     }}
                   >
+                    {" "}
                     {banner.url ? (
-                      <Link href={banner.url} className="block w-full">
-                        <div className="relative aspect-[1200/300] w-full">
+                      <Link
+                        href={banner.url}
+                        className="block w-full"
+                        title={banner.title}
+                        aria-label={`Promo: ${banner.title}`}
+                      >
+                        <div
+                          className="relative aspect-[1200/300] w-full"
+                          itemScope
+                          itemType="https://schema.org/ImageObject"
+                          itemProp="image"
+                        >
                           <Image
                             src={banner.imageUrl}
                             alt={banner.title}
@@ -112,11 +131,22 @@ function BannerLandingpage() {
                             className="rounded-2xl"
                             style={{ objectFit: "cover" }}
                             sizes="(max-width: 768px) 100vw, 1200px"
+                            itemProp="contentUrl"
+                          />
+                          <meta itemProp="name" content={banner.title} />
+                          <meta
+                            itemProp="description"
+                            content={`Banner promosi untuk ${banner.title}`}
                           />
                         </div>
                       </Link>
                     ) : (
-                      <div className="relative aspect-[1200/300] w-full">
+                      <div
+                        className="relative aspect-[1200/300] w-full"
+                        itemScope
+                        itemType="https://schema.org/ImageObject"
+                        itemProp="image"
+                      >
                         <Image
                           src={banner.imageUrl}
                           alt={banner.title}
@@ -125,6 +155,12 @@ function BannerLandingpage() {
                           className="rounded-2xl"
                           style={{ objectFit: "cover" }}
                           sizes="(max-width: 768px) 100vw, 1200px"
+                          itemProp="contentUrl"
+                        />
+                        <meta itemProp="name" content={banner.title} />
+                        <meta
+                          itemProp="description"
+                          content={`Banner untuk ${banner.title}`}
                         />
                       </div>
                     )}
@@ -156,7 +192,6 @@ function BannerLandingpage() {
             </>
           )}
         </Carousel>
-
         {activeBanners.length > 1 && (
           <div className="py-2 flex justify-center gap-1">
             {Array.from({ length: count }).map((_, index) => (
@@ -171,9 +206,9 @@ function BannerLandingpage() {
               />
             ))}
           </div>
-        )}
+        )}{" "}
       </div>
-    </div>
+    </section>
   );
 }
 

@@ -11,7 +11,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = await Promise.resolve(params);
     const body = await req.json();
     const { quantity } = body;
 
@@ -67,7 +67,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const { id } = await Promise.resolve(params);
 
     // Dapatkan token dari cookie
     const token = req.cookies.get("authToken")?.value;

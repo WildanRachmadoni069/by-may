@@ -31,20 +31,80 @@ const jakartaSans = Plus_Jakarta_Sans({
 
 export async function generateMetadata(): Promise<Metadata> {
   const seoData = await getSeoData("homepage");
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com";
 
   return {
+    metadataBase: new URL(baseUrl),
     title: {
-      default: seoData?.title || "Al-Quran Custom Cover",
+      default: seoData?.title || "Al-Quran Custom Cover | By May Scarf",
       template: "%s | By May Scarf",
     },
     description:
       seoData?.description ||
       "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
-    keywords: seoData?.keywords || undefined,
+    keywords:
+      seoData?.keywords ||
+      "al-quran custom, al-quran custom nama, al-quran custom cover, jual al-quran custom, al-quran custom murah",
+    authors: [{ name: "By May Scarf" }],
+    generator: "Next.js",
+    applicationName: "By May Scarf",
+    referrer: "origin-when-cross-origin",
+    creator: "By May Scarf",
+    publisher: "By May Scarf",
+    formatDetection: {
+      email: true,
+      address: true,
+      telephone: true,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    alternates: {
+      canonical: baseUrl,
+    },
     openGraph: {
-      title: seoData?.title || "Al-Quran Custom Cover",
-      description: seoData?.description,
-      images: seoData?.ogImage ? [{ url: seoData.ogImage }] : undefined,
+      type: "website",
+      locale: "id_ID",
+      url: baseUrl,
+      siteName: "By May Scarf",
+      title: seoData?.title || "Al-Quran Custom Cover | By May Scarf",
+      description:
+        seoData?.description ||
+        "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
+      images: seoData?.ogImage
+        ? [
+            {
+              url: seoData.ogImage,
+              width: 1200,
+              height: 630,
+              alt: "By May Scarf - Al-Quran Custom Cover",
+            },
+          ]
+        : [
+            {
+              url: `${baseUrl}/img/Landing-Page/header-image.webp`,
+              width: 1200,
+              height: 630,
+              alt: "By May Scarf - Al-Quran Custom Cover",
+            },
+          ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seoData?.title || "Al-Quran Custom Cover | By May Scarf",
+      description:
+        seoData?.description ||
+        "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
+      images: seoData?.ogImage
+        ? [seoData.ogImage]
+        : [`${baseUrl}/img/Landing-Page/header-image.webp`],
     },
   };
 }
@@ -69,8 +129,7 @@ export default function RootLayout({
           rel="preconnect"
           href="https://res.cloudinary.com"
           crossOrigin="anonymous"
-        />
-        {/* DNS Prefetch untuk resource eksternal */}
+        />        {/* DNS Prefetch untuk resource eksternal */}
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
       </head>
       <body
