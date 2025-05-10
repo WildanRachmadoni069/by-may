@@ -117,8 +117,6 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        {" "}
-        {/* Preload penting assets */}
         <link
           rel="preload"
           href="/img/Landing-Page/header-image.webp"
@@ -129,7 +127,7 @@ export default function RootLayout({
           rel="preconnect"
           href="https://res.cloudinary.com"
           crossOrigin="anonymous"
-        />        {/* DNS Prefetch untuk resource eksternal */}
+        />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
       </head>
       <body

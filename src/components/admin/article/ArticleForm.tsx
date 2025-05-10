@@ -23,7 +23,7 @@ import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import FeaturedImageArticle from "@/components/admin/article/FeaturedImageArticle";
 import { useToast } from "@/hooks/use-toast";
 import type { ArticleData, ArticleFormData } from "@/types/article";
-import { createArticle, updateArticle } from "@/lib/api/articles";
+import { useArticleStore } from "@/store/useArticleStore";
 
 const QuillEditor = dynamic(() => import("@/components/editor/QuillEditor"), {
   ssr: false,
@@ -157,6 +157,7 @@ export default function ArticleForm({ article }: ArticleFormProps) {
     }
     return getDefaultInitialValues();
   }, [article]);
+  const { createArticle, updateArticle, loading } = useArticleStore();
 
   const formik = useFormik<ArticleFormData>({
     initialValues,
@@ -174,15 +175,18 @@ export default function ArticleForm({ article }: ArticleFormProps) {
         }
 
         if (isEditMode && article) {
-          await updateArticle(article.slug, {
+          const updatedArticle = await updateArticle(article.slug, {
             ...values,
             status: values.status,
           });
 
-          toast({
-            title: "Artikel berhasil diperbarui",
-            description: "Perubahan telah berhasil disimpan",
-          });
+          if (updatedArticle) {
+            toast({
+              title: "Artikel berhasil diperbarui",
+              description: "Perubahan telah berhasil disimpan",
+            });
+            router.push("/dashboard/admin/artikel");
+          }
         } else {
           const articleData = {
             ...values,
@@ -193,15 +197,16 @@ export default function ArticleForm({ article }: ArticleFormProps) {
             },
           };
 
-          await createArticle(articleData);
+          const newArticle = await createArticle(articleData);
 
-          toast({
-            title: "Artikel berhasil dibuat",
-            description: "Artikel telah berhasil disimpan ke database",
-          });
+          if (newArticle) {
+            toast({
+              title: "Artikel berhasil dibuat",
+              description: "Artikel telah berhasil disimpan ke database",
+            });
+            router.push("/dashboard/admin/artikel");
+          }
         }
-
-        router.push("/dashboard/admin/artikel");
       } catch (error) {
         toast({
           title: isEditMode
@@ -499,12 +504,12 @@ export default function ArticleForm({ article }: ArticleFormProps) {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end space-x-4">
+        <div className="flex gap-2 justify-end space-x-4">
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Batal
           </Button>
-          <Button type="submit" disabled={formik.isSubmitting}>
-            {formik.isSubmitting
+          <Button type="submit" disabled={formik.isSubmitting || loading}>
+            {formik.isSubmitting || loading
               ? "Menyimpan..."
               : isEditMode
               ? "Perbarui Artikel"

@@ -66,6 +66,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useArticleStore } from "@/store/useArticleStore";
+import { useArticles } from "@/hooks/useArticles";
 
 function ArtikelAdminPage() {
   const { toast } = useToast();
@@ -77,35 +78,32 @@ function ArtikelAdminPage() {
 
   // State untuk input pencarian
   const [searchInput, setSearchInput] = useState("");
-
-  // Menggunakan Zustand store untuk artikel
+  // Menggunakan Zustand store untuk filter UI state
   const {
-    articles,
-    isLoading,
-    error,
-    pagination,
     filters,
-    fetchArticles,
-    deleteArticle,
-    setFilter,
+    setFilters,
     resetFilters,
+    deleteArticle,
+    getArticleFilters,
+    loading: storeLoading,
+    error: storeError,
   } = useArticleStore();
 
-  // Load data awal saat komponen pertama kali dimuat
-  useEffect(() => {
-    fetchArticles();
-  }, [fetchArticles]);
+  // Menggunakan SWR hook untuk data fetching
+  const {
+    data: articles,
+    pagination,
+    isLoading,
+    error: swrError,
+    mutate,
+  } = useArticles(getArticleFilters());
 
   /**
    * Mengubah arah pengurutan artikel
    */
   const toggleSort = () => {
-    const newDirection = filters.sortDirection === "desc" ? "asc" : "desc";
-    setFilter("sortDirection", newDirection);
-    fetchArticles({
-      page: 1,
-      sort: newDirection,
-    });
+    const newSort = filters.sort === "desc" ? "asc" : "desc";
+    setFilters({ sort: newSort, page: 1 });
   };
 
   /**
@@ -114,17 +112,16 @@ function ArtikelAdminPage() {
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages || page === pagination.page)
       return;
-    fetchArticles({ page });
+    setFilters({ page });
   };
 
   /**
    * Menangani pencarian artikel
    */
   const handleSearch = () => {
-    setFilter("searchQuery", searchInput);
-    fetchArticles({
-      page: 1,
+    setFilters({
       searchQuery: searchInput,
+      page: 1,
     });
   };
 
@@ -133,21 +130,21 @@ function ArtikelAdminPage() {
    */
   const handleResetSearch = () => {
     setSearchInput("");
-    setFilter("searchQuery", "");
-    fetchArticles({ page: 1, searchQuery: "" });
+    setFilters({
+      searchQuery: "",
+      page: 1,
+    });
   };
 
   /**
    * Menangani filter berdasarkan status artikel
    */
   const handleFilterStatus = (status: "all" | "draft" | "published") => {
-    setFilter("status", status);
-    fetchArticles({
+    setFilters({
+      status,
       page: 1,
-      status: status !== "all" ? status : undefined,
     });
   };
-
   /**
    * Menangani penghapusan artikel
    */
@@ -175,9 +172,8 @@ function ArtikelAdminPage() {
       setDeletingArticles((prev) => ({ ...prev, [slug]: false }));
     }
   };
-
   // Fungsi format tanggal
-  const formatDate = (date: Date | string) => {
+  const formatDate = (date: Date | string | null) => {
     if (!date) return "N/A";
     return new Date(date).toLocaleDateString("id-ID", {
       day: "numeric",
@@ -193,10 +189,9 @@ function ArtikelAdminPage() {
     }
     return <Badge variant="secondary">Draft</Badge>;
   };
-
   // Render skeleton loader untuk tabel artikel
   const renderArticleSkeletons = () => {
-    return Array(pagination.itemsPerPage)
+    return Array(pagination.limit || 10)
       .fill(null)
       .map((_, index) => (
         <TableRow key={`skeleton-${index}`} className="animate-pulse">
@@ -463,7 +458,7 @@ function ArtikelAdminPage() {
               >
                 <div className="flex items-center gap-2">
                   Tanggal Dibuat
-                  {filters.sortDirection === "desc" ? (
+                  {filters.sort === "desc" ? (
                     <ChevronDown className="h-4 w-4" />
                   ) : (
                     <ChevronUp className="h-4 w-4" />
@@ -486,9 +481,7 @@ function ArtikelAdminPage() {
               articles.map((article, index) => (
                 <TableRow key={article.id}>
                   <TableCell>
-                    {(pagination.page - 1) * pagination.itemsPerPage +
-                      index +
-                      1}
+                    {(pagination.page - 1) * pagination.limit + index + 1}
                   </TableCell>
                   <TableCell className="font-medium">{article.title}</TableCell>
                   <TableCell>{getStatusBadge(article.status)}</TableCell>

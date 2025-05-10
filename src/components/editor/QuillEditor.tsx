@@ -1,7 +1,15 @@
 "use client";
-import React, { forwardRef, useEffect, useLayoutEffect, useRef } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
+import { Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface QuillEditorProps {
   value?: string;
@@ -14,7 +22,9 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
   ({ value, onChange, readOnly = false, className = "" }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const onChangeRef = useRef(onChange);
-    const imageTracker = useRef<Set<string>>(new Set()); // Track uploaded images
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadError, setUploadError] = useState<string | null>(null);
 
     useLayoutEffect(() => {
       onChangeRef.current = onChange;
@@ -61,50 +71,28 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
           "link",
           "image",
         ],
-      });
-
-      // Add custom image handling
+      }); // Add custom image handling with delete button functionality
+      const Parchment = Quill.import("parchment");
       const ImageBlot = Quill.import("formats/image") as any;
+
+      // Enhance image sanitization
       ImageBlot.sanitize = function (url: string) {
         return url;
       };
-      Quill.register(ImageBlot, true);
 
-      // Extract URLs of images that are already in the content
-      const extractExistingImages = (htmlContent: string) => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(htmlContent, "text/html");
-        const images = doc.querySelectorAll("img");
-        const urls = new Set<string>();
-        images.forEach((img) => {
-          if (img.src.includes("cloudinary.com")) {
-            urls.add(img.src);
-          }
-        });
-        return urls;
-      };
-
-      // Initialize with existing images if any
-      if (value) {
-        const existingImages = extractExistingImages(value);
-        existingImages.forEach((url) => imageTracker.current.add(url));
+      // Create a custom image blot that supports delete button
+      class ImageBlotWithDelete extends ImageBlot {
+        static create(value: string) {
+          const node = super.create(value);
+          node.setAttribute("data-src", value);
+          return node;
+        }
       }
 
-      // Function to extract public_id from Cloudinary URL
-      const getPublicIdFromUrl = (url: string): string | null => {
-        // Patterns for matching Cloudinary URLs with potential folder structures
-        // Improved to handle both folder/publicId and direct publicId formats
-        const folderMatch = url.match(/\/upload\/v\d+\/([^\.]+)\.\w+$/);
-        if (folderMatch && folderMatch[1]) {
-          return folderMatch[1]; // This will include folder path if it exists
-        }
+      Quill.register(ImageBlotWithDelete, true);
 
-        // Fallback to the simpler pattern which might miss folders
-        const simpleMatch = url.match(/\/v\d+\/([^/]+)\.\w+$/);
-        return simpleMatch ? simpleMatch[1] : null;
-      };
-
-      // Modified image handler with tracking
+      // No need to track existing images anymore
+      // Simplified image handling - no need to extract public_id      // Enhanced image handler with progress indicator and error handling
       const imageHandler = async function () {
         const input = document.createElement("input");
         input.setAttribute("type", "file");
@@ -115,25 +103,71 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
           const file = input.files?.[0];
           if (file) {
             try {
+              // Reset states
+              setIsUploading(true);
+              setUploadProgress(0);
+              setUploadError(null);
+
+              // Show upload started toast
+              toast({
+                title: "Mengupload gambar",
+                description: "Mohon tunggu sebentar...",
+              });
+
               const formData = new FormData();
               formData.append("image", file);
 
-              const response = await fetch(
-                "/api/upload/image-article-content",
-                {
-                  method: "POST",
-                  body: formData,
+              // Create a custom fetch with progress tracking using XMLHttpRequest
+              const xhr = new XMLHttpRequest();
+
+              // Track upload progress
+              xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                  const progress = Math.round(
+                    (event.loaded / event.total) * 100
+                  );
+                  setUploadProgress(progress);
                 }
-              );
+              };
 
-              if (!response.ok) throw new Error("Upload failed");
+              // Create a promise to handle the XHR request
+              const uploadPromise = new Promise<any>((resolve, reject) => {
+                xhr.open("POST", "/api/upload/image-article");
 
-              const data = await response.json();
+                xhr.onload = () => {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                      const data = JSON.parse(xhr.responseText);
+                      resolve(data);
+                    } catch (e) {
+                      reject(new Error("Failed to parse response"));
+                    }
+                  } else {
+                    reject(
+                      new Error(`Upload failed with status ${xhr.status}`)
+                    );
+                  }
+                };
 
-              // Add to tracker
-              imageTracker.current.add(data.secure_url);
+                xhr.onerror = () =>
+                  reject(new Error("Network error during upload"));
+                xhr.send(formData);
+              });
 
-              // Get current selection or default to end
+              // Wait for the upload to complete
+              const data = await uploadPromise;
+
+              // Only need the secure_url for embedding the image
+              if (data.secure_url) {
+                console.log("Image uploaded successfully:", data);
+                toast({
+                  title: "Gambar berhasil diupload",
+                  variant: "default",
+                });
+              } else {
+                console.error("No secure_url in response:", data);
+                throw new Error("Image upload failed: No URL returned");
+              } // Get current selection or default to end
               const range = quill.getSelection(true);
 
               // Insert a new line before image if we're not at the start
@@ -149,6 +183,19 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
               quill.setSelection(range.index + 2, 0);
             } catch (error) {
               console.error("Error uploading image:", error);
+              setUploadError(
+                (error as Error).message || "Gagal mengupload gambar"
+              );
+              toast({
+                title: "Gagal mengupload gambar",
+                description:
+                  (error as Error).message ||
+                  "Terjadi kesalahan saat mengupload gambar",
+                variant: "destructive",
+              });
+            } finally {
+              setIsUploading(false);
+              setUploadProgress(0);
             }
           }
         };
@@ -158,66 +205,138 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
       const toolbar = quill.getModule("toolbar") as {
         addHandler: (type: string, handler: () => void) => void;
       };
-      toolbar.addHandler("image", imageHandler);
-
-      // Add custom CSS for images
+      toolbar.addHandler("image", imageHandler); // Add custom CSS for images with delete button
       const style = document.createElement("style");
       style.innerHTML = `
         .ql-editor img {
           display: block;
           max-width: 100%;
           margin: 1em 0;
+          position: relative;
+          transition: all 0.2s ease;
+        }
+        
+        .ql-editor .image-container {
+          position: relative;
+          display: inline-block;
+          margin: 1em 0;
+        }
+        
+        .ql-editor .image-delete-button {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          background-color: rgba(255, 0, 0, 0.7);
+          color: white;
+          border: none;
+          border-radius: 50%;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          z-index: 10;
+          font-size: 14px;
+        }
+        
+        .ql-editor .image-container:hover .image-delete-button {
+          opacity: 1;
+        }
+        
+        .ql-editor .image-container:hover img {
+          filter: brightness(0.95);
         }
       `;
       document.head.appendChild(style);
 
-      // Improved implementation to detect image deletions by comparing the current content with the tracked images
-      const checkForDeletedImages = (htmlContent: string) => {
-        // Extract current image URLs from content
-        const currentImages = extractExistingImages(htmlContent);
-        const imagesToDelete = new Set<string>();
+      // Image interaction handling
+      const enableImageDeleteButtons = () => {
+        // Wait a bit for Quill to render the content
+        setTimeout(() => {
+          const editorElement = quill.root;
+          const images = editorElement.querySelectorAll("img");
 
-        // Find images that were in the tracker but are no longer in the content
-        imageTracker.current.forEach((url) => {
-          if (!currentImages.has(url)) {
-            imagesToDelete.add(url);
-          }
-        });
-
-        // Update the tracker
-        imageTracker.current = currentImages;
-
-        // Delete the removed images
-        imagesToDelete.forEach(async (url) => {
-          try {
-            const publicId = getPublicIdFromUrl(url);
-            if (!publicId) return;
-
-            console.log("Attempting to delete image with public_id:", publicId);
-
-            await fetch("/api/upload/image-article-content/delete", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ publicId }),
+          // Clean up existing delete buttons first
+          editorElement
+            .querySelectorAll(".image-container")
+            .forEach((container) => {
+              // Get the image from the container
+              const img = container.querySelector("img");
+              if (img) {
+                // Put the image back in the editor directly
+                container.parentNode?.insertBefore(img, container);
+                container.remove();
+              }
             });
-          } catch (error) {
-            console.error("Error deleting image:", error);
-          }
-        });
-      };
 
-      // Update event handler to use the new approach
+          // Add delete buttons to all images
+          images.forEach((img) => {
+            // Skip if image is already in a container
+            if (img.parentElement?.classList.contains("image-container"))
+              return;
+
+            // Create container for the image and delete button
+            const container = document.createElement("span");
+            container.classList.add("image-container");
+
+            // Create delete button
+            const deleteBtn = document.createElement("button");
+            deleteBtn.classList.add("image-delete-button");
+            deleteBtn.innerHTML = "×"; // × character
+            deleteBtn.setAttribute("type", "button");
+            deleteBtn.title = "Hapus gambar";
+
+            // Replace the image with the container
+            img.parentNode?.insertBefore(container, img);
+            container.appendChild(img);
+            container.appendChild(deleteBtn);
+
+            // Add event listener for delete button
+            deleteBtn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+
+              // Show confirmation dialog
+              if (
+                window.confirm("Apakah Anda yakin ingin menghapus gambar ini?")
+              ) {
+                // Remove the container which contains the image
+                const imgSrc = img.getAttribute("src");
+                container.remove();
+
+                // Update editor content
+                onChangeRef.current?.(quill.root.innerHTML);
+
+                // Show notification
+                toast({
+                  title: "Gambar dihapus",
+                  description: "Gambar telah dihapus dari artikel",
+                  variant: "default",
+                });
+
+                console.log("Image deleted:", imgSrc);
+              }
+            });
+          });
+        }, 100);
+      }; // Enhanced onChange handler with image delete button support
       quill.on(Quill.events.TEXT_CHANGE, () => {
         const htmlContent = quill.root.innerHTML;
 
-        // Check for and delete removed images
-        checkForDeletedImages(htmlContent);
-
-        // Call the onChange prop
+        // Call the onChange prop with the new HTML content
         onChangeRef.current?.(htmlContent);
+
+        // Add delete buttons to any images
+        enableImageDeleteButtons();
       });
+
+      // Also process initial content for images
+      if (value) {
+        setTimeout(() => enableImageDeleteButtons(), 200);
+      }
 
       if (typeof ref === "function") {
         ref(quill);
@@ -233,27 +352,22 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
       quill.enable(!readOnly);
 
       return () => {
-        // We don't need to delete all images on cleanup
-        // as we only want to delete images that were removed from the content
-
-        // Clean up the ref
+        // Clean up the ref without doing any image deletion
         if (typeof ref === "function") {
           ref(null);
         } else if (ref) {
           ref.current = null;
         }
-
         container.innerHTML = "";
         style.remove();
       };
-    }, [ref]);
+    }, [ref, value]);
 
     useEffect(() => {
       if (ref && "current" in ref && ref.current) {
         ref.current.enable(!readOnly);
       }
     }, [ref, readOnly]);
-
     return (
       <div className={`relative ${className}`}>
         <style jsx global>{`
@@ -274,8 +388,51 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
           .ql-editor {
             min-height: 300px;
           }
+          .upload-progress-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .upload-progress-bar {
+            width: 200px;
+            height: 10px;
+            background-color: #f3f4f6;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+          }
+          .upload-progress-fill {
+            height: 100%;
+            background-color: #60a5fa;
+            border-radius: 5px;
+            transition: width 0.2s ease;
+          }
         `}</style>
         <div ref={containerRef} className="h-full" />
+
+        {/* Upload Progress Indicator */}
+        {isUploading && (
+          <div className="upload-progress-container">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-500 mb-2" />
+            <div className="text-sm font-medium">Mengupload gambar...</div>
+            <div className="upload-progress-bar">
+              <div
+                className="upload-progress-fill"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <div className="text-xs text-gray-500">{uploadProgress}%</div>
+          </div>
+        )}
       </div>
     );
   }
