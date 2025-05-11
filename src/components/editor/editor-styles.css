@@ -1,0 +1,584 @@
+/**
+ * QUILL EDITOR STYLES FOR SHADCN UI
+ * 
+ * This file contains styling for a custom Quill rich text editor component
+ * styled to match Shadcn UI theme using CSS variables
+ */
+
+/**
+ * 1. MAIN CONTAINER
+ * The main wrapper for the entire editor component
+ */
+.quill-editor-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/**
+ * 2. TOOLBAR CONTAINER
+ * Top section containing formatting controls
+ */
+.quill-editor-container .ql-toolbar {
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  border-width: 0px 0px 1px 0px;
+}
+
+/**
+ * 3. EDITOR CONTAINER
+ * The container that wraps the actual content editing area
+ */
+.quill-editor-container .ql-container {
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  border-color: hsl(var(--border));
+  border-width: 0px;
+  font-family: inherit;
+  background-color: hsl(var(--card));
+}
+
+/**
+ * 4. EDITOR CONTENT AREA
+ * The actual editable area where content is entered
+ */
+.quill-editor-container .ql-editor {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: hsl(var(--foreground));
+  min-height: 250px;
+  border-width: 0px;
+}
+
+/**
+ * 5. PLACEHOLDER TEXT
+ * Styling for the placeholder text shown when editor is empty
+ */
+.quill-editor-container .ql-editor.ql-blank::before {
+  font-style: normal;
+  color: hsl(var(--muted-foreground));
+}
+
+/**
+ * 6. TOOLBAR BUTTONS
+ * Basic styling for all toolbar buttons (bold, italic, etc.)
+ */
+.quill-editor-container .ql-toolbar button {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/**
+ * 7. BUTTON HOVER STATE
+ * Appearance of toolbar buttons when hovered
+ */
+.quill-editor-container .ql-toolbar button:hover {
+  background-color: hsl(var(--accent));
+  border: none;
+  border-radius: 4px;
+}
+
+/**
+ * 8. BUTTON GROUP HOVER
+ * Specific styling for button groups (formats) when hovered
+ */
+.quill-editor-container .ql-toolbar .ql-formats button:hover {
+  border-radius: 4px;
+  color: hsl(var(--primary)) !important;
+}
+
+/**
+ * 9. ACTIVE BUTTON STATE
+ * Styling for buttons when they are in active/toggled state
+ */
+.quill-editor-container .ql-toolbar button.ql-active {
+  background-color: hsl(var(--accent));
+  border: none;
+  border-radius: 4px;
+}
+
+/**
+ * 10. DROPDOWN PICKERS
+ * Styling for dropdown elements (font size, heading, etc.)
+ */
+.quill-editor-container .ql-toolbar .ql-picker {
+  color: hsl(var(--foreground));
+}
+
+/**
+ * 11. PICKER LABELS
+ * The visible part of dropdown selectors showing current selection
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label {
+  border-radius: 4px;
+  border: none;
+}
+
+/**
+ * 12. PICKER LABEL HOVER
+ * Styling for picker labels when hovered
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--primary));
+}
+
+/**
+ * 13. PICKER DROPDOWN ICONS
+ * Styling for SVG icons in dropdown pickers on hover
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label:hover .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 14. ACTIVE PICKER STATE
+ * Styling for picker labels when the dropdown is open or option is selected
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label.ql-active {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--primary)) !important;
+}
+
+/**
+ * 15. ACTIVE PICKER ICONS
+ * Styling for SVG icons in picker labels when active
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label.ql-active .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 16. HEADING PICKER SPECIFIC
+ * Special styling for the heading dropdown when active
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-header.ql-picker
+  .ql-picker-label.ql-active {
+  color: hsl(var(--primary)) !important;
+}
+
+/**
+ * 17. SELECTED HEADING ITEM
+ * Styling for the currently selected heading option
+ */
+.quill-editor-container .ql-toolbar .ql-header .ql-picker-item.ql-selected {
+  color: hsl(var(--primary)) !important;
+}
+
+/**
+ * 18. DROPDOWN MENU
+ * Styling for the dropdown menu that appears when picker is clicked
+ */
+.quill-editor-container .ql-toolbar .ql-picker-options {
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--card));
+  padding: 8px 4px;
+}
+
+/**
+ * 19. EXPANDED PICKER STATE
+ * Styling for the picker label when its dropdown is open
+ */
+.quill-editor-container .ql-toolbar .ql-picker.ql-expanded .ql-picker-label {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--primary));
+  border-color: transparent;
+}
+
+/**
+ * 20. DROPDOWN ITEM HOVER
+ * Styling for individual dropdown menu items when hovered
+ */
+.quill-editor-container .ql-toolbar .ql-picker-item:hover {
+  color: hsl(var(--primary));
+}
+
+/**
+ * 21. ICON-BASED PICKERS (ALIGNMENT, LISTS)
+ * Default styling for SVG icons in special pickers
+ */
+.quill-editor-container .ql-toolbar .ql-align .ql-picker-item svg .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-align.ql-picker svg .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-list .ql-picker-item svg .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-list.ql-picker svg .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 22. ICON PICKER HOVER
+ * Styling for SVG icons in alignment/list pickers when hovered
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-align
+  .ql-picker-item:hover
+  svg
+  .ql-stroke,
+.quill-editor-container
+  .ql-toolbar
+  .ql-list
+  .ql-picker-item:hover
+  svg
+  .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 23. SELECTED ICON PICKER ITEM
+ * Styling for selected alignment option in the picker
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-align
+  .ql-picker-item.ql-selected
+  svg
+  .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24. SVG ICONS IN BUTTONS
+ * Default styling for SVG icons in standard buttons
+ */
+.quill-editor-container .ql-toolbar button svg .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 24a. BUTTON HOVER SVG ICONS 
+ * Styling for SVG icons in buttons when hovered
+ */
+.quill-editor-container .ql-toolbar button:hover svg .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24b. ACTIVE BUTTON SVG ICONS
+ * Styling for SVG icons in buttons when active
+ */
+.quill-editor-container .ql-toolbar button.ql-active svg .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24c. SVG FILL ICONS IN BUTTONS
+ * Default styling for SVG fill icons in standard buttons
+ */
+.quill-editor-container .ql-toolbar button svg .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+/**
+ * 24d. BUTTON HOVER SVG FILL ICONS
+ * Styling for SVG fill icons in buttons when hovered
+ */
+.quill-editor-container .ql-toolbar button:hover svg .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24e. ACTIVE BUTTON SVG FILL ICONS
+ * Styling for SVG fill icons in buttons when active
+ */
+.quill-editor-container .ql-toolbar button.ql-active svg .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24f. SVG STROKE MITER IN BUTTONS
+ * Styling for stroke-miter elements in SVG icons
+ */
+.quill-editor-container .ql-toolbar button svg .ql-stroke-miter {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 24g. HOVER BUTTON SVG STROKE MITER
+ * Styling for stroke-miter elements when button is hovered
+ */
+.quill-editor-container .ql-toolbar button:hover svg .ql-stroke-miter {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24h. ACTIVE BUTTON SVG STROKE MITER
+ * Styling for stroke-miter elements when button is active
+ */
+.quill-editor-container .ql-toolbar button.ql-active svg .ql-stroke-miter {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24i. THIN STROKES IN SVG
+ * Styling for thin stroke elements in SVG icons
+ */
+.quill-editor-container .ql-toolbar button svg .ql-thin {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 24j. HOVER BUTTON THIN STROKES
+ * Styling for thin stroke elements when button is hovered
+ */
+.quill-editor-container .ql-toolbar button:hover svg .ql-thin {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24k. ACTIVE BUTTON THIN STROKES
+ * Styling for thin stroke elements when button is active
+ */
+.quill-editor-container .ql-toolbar button.ql-active svg .ql-thin {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24l. COLOR PICKER BUTTONS
+ * Special styling for color picker buttons
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label:hover,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label:hover {
+  background-color: hsl(var(--accent));
+}
+
+/**
+ * 24m. COLOR PICKER ACTIVE
+ * Styling for color picker when active
+ */
+.quill-editor-container .ql-toolbar .ql-color.ql-expanded .ql-picker-label,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background.ql-expanded
+  .ql-picker-label {
+  background-color: hsl(var(--accent));
+  border-color: transparent;
+}
+
+/**
+ * 24n. COLOR PICKER LABEL FILL
+ * Styling for the color picker label's SVG fill elements
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-fill,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+/**
+ * 24o. COLOR PICKER LABEL HOVER FILL
+ * Styling for the color picker label's SVG fill elements when hovered
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label:hover .ql-fill,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label:hover
+  .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24p. COLOR PICKER LABEL ACTIVE FILL
+ * Styling for the color picker label's SVG fill elements when active
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-color.ql-expanded
+  .ql-picker-label
+  .ql-fill,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background.ql-expanded
+  .ql-picker-label
+  .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24q. COLOR PICKER COLOR LABEL SPECIFIC
+ * Styling for the special color-label class in color pickers
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-color-label,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label
+  .ql-color-label {
+  fill: hsl(var(--foreground));
+}
+
+/**
+ * 24r. COLOR PICKER COLOR LABEL HOVER
+ * Styling for the special color-label class when hovered
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-color
+  .ql-picker-label:hover
+  .ql-color-label,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label:hover
+  .ql-color-label {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24s. COLOR PICKER COLOR LABEL ACTIVE
+ * Styling for the special color-label class when active
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-color.ql-expanded
+  .ql-picker-label
+  .ql-color-label,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background.ql-expanded
+  .ql-picker-label
+  .ql-color-label {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24t. COLOR PICKER STROKE ELEMENTS
+ * Styling for stroke elements within color pickers
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 24u. COLOR PICKER STROKE HOVER
+ * Styling for stroke elements within color pickers when hovered
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label:hover .ql-stroke,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label:hover
+  .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24v. COLOR PICKER STROKE ACTIVE
+ * Styling for stroke elements within color pickers when active
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-color.ql-expanded
+  .ql-picker-label
+  .ql-stroke,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background.ql-expanded
+  .ql-picker-label
+  .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 25. TOOLTIP CONTAINER
+ * Styling for tooltips (like link editor popup)
+ */
+.quill-editor-container .ql-tooltip {
+  background-color: hsl(var(--popover));
+  border-color: hsl(var(--border));
+  border-radius: 4px;
+  color: hsl(var(--foreground));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/**
+ * 26. TOOLTIP TEXT INPUTS
+ * Styling for text fields in tooltips (like link URL input)
+ */
+.quill-editor-container .ql-tooltip input[type="text"] {
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+  padding: 4px 8px;
+}
+
+/**
+ * 27. CONTENT TYPOGRAPHY
+ * Styling for different heading levels in the editor content
+ */
+
+/* Heading Level 1 */
+.quill-editor-container .ql-editor h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Heading Level 2 */
+.quill-editor-container .ql-editor h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Heading Level 3 */
+.quill-editor-container .ql-editor h3 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/**
+ * 28. READ-ONLY MODE
+ * Styling applied when editor is in read-only state
+ */
+
+/* Hide toolbar in read-only mode */
+.editor-readonly .ql-toolbar {
+  display: none;
+}
+
+/* Container styling for read-only mode */
+.editor-readonly .ql-container {
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* Content area styling for read-only mode */
+.editor-readonly .ql-editor {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+/**
+ * 29. TRANSITIONS
+ * Smooth transition effects for interactive elements
+ */
+.quill-editor-container .ql-toolbar,
+.quill-editor-container .ql-container,
+.quill-editor-container .ql-editor,
+.quill-editor-container button,
+.quill-editor-container .ql-toolbar button svg .ql-stroke,
+.quill-editor-container .ql-toolbar button svg .ql-fill,
+.quill-editor-container .ql-toolbar button svg .ql-stroke-miter,
+.quill-editor-container .ql-toolbar button svg .ql-thin,
+.quill-editor-container .ql-toolbar .ql-picker-label,
+.quill-editor-container .ql-toolbar .ql-picker-options,
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-fill,
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-color-label,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label .ql-fill,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label .ql-stroke,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label
+  .ql-color-label {
+  transition: all 0.2s ease;
+}
