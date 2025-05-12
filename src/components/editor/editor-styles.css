@@ -582,3 +582,51 @@
   .ql-color-label {
   transition: all 0.2s ease;
 }
+
+/**
+ * 30. IMAGE ALIGNMENT STYLES
+ * Specific styling for image alignment via align toolbar
+ */
+
+/* Default image styles */
+.quill-editor-container .ql-editor img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 1em;
+}
+
+/* Left aligned images */
+.quill-editor-container .ql-editor img.ql-align-left {
+  float: left;
+  margin-right: 1em;
+  margin-bottom: 1em;
+}
+
+/* Center aligned images */
+.quill-editor-container .ql-editor img.ql-align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  float: none;
+}
+
+/* Right aligned images */
+.quill-editor-container .ql-editor img.ql-align-right {
+  float: right;
+  margin-left: 1em;
+  margin-bottom: 1em;
+}
+
+/* Justified images (behaves like left alignment for better usability) */
+.quill-editor-container .ql-editor img.ql-align-justify {
+  float: left;
+  margin-right: 1em;
+  margin-bottom: 1em;
+}
+
+/* Clear floats after images to prevent layout issues */
+.quill-editor-container .ql-editor p:after {
+  content: "";
+  display: table;
+  clear: both;
+}

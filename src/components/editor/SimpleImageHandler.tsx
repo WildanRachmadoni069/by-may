@@ -13,7 +13,9 @@ interface SimpleImageHandlerProps {
  */
 const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
   useEffect(() => {
-    if (!quill) return; // Helper function to check if a leaf node is an image
+    if (!quill) return;
+
+    // Helper function to check if a leaf node is an image
     const isLeafNodeImage = (leafAny: any): boolean => {
       if (!leafAny) return false;
 
@@ -59,7 +61,9 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         console.error("Error checking for image:", error);
         return { isImage: false, imgInfo: null };
       }
-    }; // Helper function to add blue border to selected image
+    };
+
+    // Helper function to add blue border to selected image
     const highlightImage = (imgInfo: any, highlight: boolean = true) => {
       try {
         if (!imgInfo) return;
@@ -83,6 +87,92 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
 
     // Track the currently highlighted image
     let currentlyHighlighted: any = null;
+
+    // Apply alignment to selected image
+    const applyAlignmentToImage = (imgInfo: any, alignment: string) => {
+      try {
+        if (!imgInfo) return;
+
+        const imgElement = (imgInfo.leaf as any).domNode as HTMLElement;
+        if (!imgElement) return;
+
+        // Remove all existing alignment classes
+        imgElement.classList.remove(
+          "ql-align-left",
+          "ql-align-center",
+          "ql-align-right",
+          "ql-align-justify"
+        );
+
+        // Reset inline styles that might interfere
+        imgElement.style.float = "";
+        imgElement.style.marginLeft = "";
+        imgElement.style.marginRight = "";
+        imgElement.style.display = "";
+
+        if (alignment === "left") {
+          imgElement.classList.add("ql-align-left");
+          imgElement.style.float = "left";
+          imgElement.style.marginRight = "1em";
+          imgElement.style.marginBottom = "1em";
+        } else if (alignment === "center") {
+          imgElement.classList.add("ql-align-center");
+          imgElement.style.display = "block";
+          imgElement.style.float = "none";
+          imgElement.style.marginLeft = "auto";
+          imgElement.style.marginRight = "auto";
+        } else if (alignment === "right") {
+          imgElement.classList.add("ql-align-right");
+          imgElement.style.float = "right";
+          imgElement.style.marginLeft = "1em";
+          imgElement.style.marginBottom = "1em";
+        } else {
+          // Default or 'justify' - modified to behave like left alignment for images
+          imgElement.classList.add("ql-align-justify");
+          imgElement.style.float = "left";
+          imgElement.style.marginRight = "1em";
+          imgElement.style.marginBottom = "1em";
+        }
+
+        console.log(`Applied ${alignment} alignment to image`);
+      } catch (error) {
+        console.error("Error applying alignment to image:", error);
+      }
+    };
+
+    // Track toolbar button clicks for alignment
+    const handleToolbarClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      const alignButton =
+        target.closest("button.ql-align") ||
+        target.closest('[class*="ql-align-"]') ||
+        target.closest(".ql-picker-item");
+
+      if (alignButton && currentlyHighlighted) {
+        // Get the alignment value from the button
+        let alignment = "left"; // default
+
+        if (
+          alignButton.classList.contains("ql-align-center") ||
+          alignButton.getAttribute("data-value") === "center"
+        ) {
+          alignment = "center";
+        } else if (
+          alignButton.classList.contains("ql-align-right") ||
+          alignButton.getAttribute("data-value") === "right"
+        ) {
+          alignment = "right";
+        } else if (
+          alignButton.classList.contains("ql-align-justify") ||
+          alignButton.getAttribute("data-value") === "justify"
+        ) {
+          alignment = "justify";
+        }
+
+        // Apply the alignment to the selected image
+        applyAlignmentToImage(currentlyHighlighted, alignment);
+      }
+    };
 
     // Handle selection change to detect when an image is selected
     const handleSelectionChange = (range: any) => {
@@ -111,9 +201,8 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
 
         if (isImageRight) {
           console.log("[Image to RIGHT]", imgInfoRight);
-          // Highlight the image to the right as well to show it's protected
-          highlightImage(imgInfoRight, true);
-          currentlyHighlighted = imgInfoRight;
+          // We don't auto-highlight images to the right anymore
+          // Just log them for debugging
         }
 
         // Check for image to the left
@@ -124,10 +213,13 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
 
           if (isImageLeft) {
             console.log("[Image to LEFT]", imgInfoLeft);
+            // We don't auto-highlight images to the left either
           }
         }
       }
-    }; // Handle keyboard navigation and key events
+    };
+
+    // Handle keyboard navigation and key events
     const handleKeyDown = (e: KeyboardEvent) => {
       const range = quill.getSelection();
       if (!range) return; // Prevent accidental image deletion with backspace/delete
@@ -196,26 +288,177 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
             }
           }
         }
-      }
-
-      // For arrow keys, check if there's an image in that direction
+      } // For arrow keys, check if there's an image in that direction
       if (e.key === "ArrowRight") {
-        const { isImage, imgInfo } = checkForImageAt(range.index + 1);
-        if (isImage) {
-          console.log("[Navigating RIGHT to image]", imgInfo);
+        // Case 1: Image is already selected (range.length === 2 untuk gambar)
+        if (range.length === 2) {
+          const { isImage: isSelectedImage } = checkForImageAt(range.index);
+          if (isSelectedImage) {
+            // We're on an already-selected image, move to position after image
+            console.log(
+              `[ArrowRight] Moving after selected image to index ${
+                range.index + 2
+              }`
+            );
+            e.preventDefault();
+            quill.setSelection(range.index + 2, 0);
+            return;
+          }
+        }
 
-          // Select the image (set cursor position to the image)
-          e.preventDefault(); // Prevent default navigation
-          quill.setSelection(imgInfo.index, 1);
+        // Case 2: Check if cursor is at index where image starts
+        const { isImage: isCurrentImage } = checkForImageAt(range.index);
+        const { isImage: isNextImage, imgInfo: nextImgInfo } = checkForImageAt(
+          range.index + 1
+        ); // If cursor is at index before image (like 138)
+        if (
+          !isCurrentImage &&
+          isNextImage &&
+          nextImgInfo &&
+          range.length === 0
+        ) {
+          // First arrow right: select the image rather than jumping over it
+          console.log(
+            `[ArrowRight] Selecting image at index ${nextImgInfo.index}`
+          );
+          e.preventDefault(); // Highlight gambar secara manual terlebih dahulu
+          highlightImage(nextImgInfo, true);
+          currentlyHighlighted = nextImgInfo;
+
+          // Set selection dengan length 2 karena gambar menempati 2 index (139-140)
+          quill.setSelection(nextImgInfo.index, 2);
+
+          // Gunakan setTimeout untuk memastikan selection tetap pada gambar
+          // Quill mungkin mencoba "menormalkan" selection setelah kita mengaturnya
+          setTimeout(() => {
+            const currentSelection = quill.getSelection();
+            if (
+              currentSelection &&
+              (currentSelection.index !== nextImgInfo.index ||
+                currentSelection.length !== 2)
+            ) {
+              console.log(
+                "[ArrowRight] Mempertahankan seleksi gambar dengan length 2"
+              );
+              quill.setSelection(nextImgInfo.index, 2);
+            }
+          }, 10);
+
+          return;
+        } // Case 3: We're ON an image but it's not explicitly selected
+        if (isCurrentImage && range.length === 0) {
+          console.log(
+            `[ArrowRight] On image, selecting the image at index ${range.index}`
+          );
+          e.preventDefault();
+
+          // Seleksi gambar terlebih dahulu alih-alih melompat ke posisi selanjutnya
+          // Highlight gambar secara manual untuk memastikan visual seleksi muncul
+          const { imgInfo } = checkForImageAt(range.index);
+          if (imgInfo) {
+            highlightImage(imgInfo, true);
+            currentlyHighlighted = imgInfo; // Set seleksi dengan length 2 karena gambar menempati 2 index (139-140)
+            quill.setSelection(range.index, 2);
+
+            // Gunakan setTimeout untuk memastikan seleksi tetap pada gambar
+            setTimeout(() => {
+              const currentSelection = quill.getSelection();
+              if (
+                currentSelection &&
+                (currentSelection.index !== range.index ||
+                  currentSelection.length !== 2)
+              ) {
+                console.log(
+                  "[ArrowRight] Mempertahankan seleksi gambar pada posisi yang sama dengan length 2"
+                );
+                quill.setSelection(range.index, 2);
+              }
+            }, 10);
+          }
+          return;
         }
       } else if (e.key === "ArrowLeft" && range.index > 0) {
-        const { isImage, imgInfo } = checkForImageAt(range.index - 1);
-        if (isImage) {
-          console.log("[Navigating LEFT to image]", imgInfo);
+        // Case 1: Image is already selected (range.length === 2 untuk gambar)
+        if (range.length === 2) {
+          const { isImage: isSelectedImage } = checkForImageAt(range.index);
+          if (isSelectedImage) {
+            // We're on an already-selected image, move to position before image
+            console.log(
+              `[ArrowLeft] Moving before selected image to index ${
+                range.index - 1
+              }`
+            );
+            e.preventDefault();
+            quill.setSelection(range.index - 1, 0);
+            return;
+          }
+        } // Case 2: We're currently at an image position but not selected
+        const { isImage: isCurrentImage } = checkForImageAt(range.index);
+        if (isCurrentImage && range.length === 0) {
+          console.log(
+            `[ArrowLeft] On image, selecting the image at index ${range.index}`
+          );
+          e.preventDefault();
 
-          // Select the image (set cursor position to the image)
-          e.preventDefault(); // Prevent default navigation
-          quill.setSelection(imgInfo.index, 1);
+          // Seleksi gambar terlebih dahulu alih-alih melompat ke posisi sebelumnya
+          // Highlight gambar secara manual untuk memastikan visual seleksi muncul
+          const { imgInfo } = checkForImageAt(range.index);
+          if (imgInfo) {
+            highlightImage(imgInfo, true);
+            currentlyHighlighted = imgInfo; // Set seleksi dengan length 2 karena gambar menempati 2 index (139-140)
+            quill.setSelection(range.index, 2);
+
+            // Gunakan setTimeout untuk memastikan seleksi tetap pada gambar
+            setTimeout(() => {
+              const currentSelection = quill.getSelection();
+              if (
+                currentSelection &&
+                (currentSelection.index !== range.index ||
+                  currentSelection.length !== 2)
+              ) {
+                console.log(
+                  "[ArrowLeft] Mempertahankan seleksi gambar pada posisi yang sama dengan length 2"
+                );
+                quill.setSelection(range.index, 2);
+              }
+            }, 10);
+          }
+          return;
+        } // Case 3: We're just after an image (like at position 141)
+        // Check if there's an image at the position immediately to our left
+        const { isImage, imgInfo } = checkForImageAt(range.index - 1);
+        if (isImage && imgInfo) {
+          console.log("[Navigating LEFT to image]", imgInfo);
+          e.preventDefault();
+
+          // Untuk posisi 141 (setelah gambar), imgInfo.index adalah 140 (akhir gambar)
+          // Kita perlu mengurangi 1 untuk mendapatkan posisi awal gambar (139)
+          const imageStartIndex = imgInfo.index - 1;
+          console.log(
+            `[ArrowLeft] Selecting image starting at index ${imageStartIndex}`
+          );
+
+          // Highlight gambar terlebih dahulu
+          highlightImage(imgInfo, true);
+          currentlyHighlighted = imgInfo;
+
+          // Gunakan length 2 untuk seleksi gambar (karena gambar menempati index 139-140)
+          quill.setSelection(imageStartIndex, 2);
+
+          // Gunakan setTimeout untuk memastikan seleksi tetap pada gambar
+          setTimeout(() => {
+            const currentSelection = quill.getSelection();
+            if (
+              currentSelection &&
+              (currentSelection.index !== imageStartIndex ||
+                currentSelection.length !== 2)
+            ) {
+              console.log(
+                `[ArrowLeft] Mempertahankan seleksi gambar pada index ${imageStartIndex} dengan length 2`
+              );
+              quill.setSelection(imageStartIndex, 2);
+            }
+          }, 10);
         }
       }
     };
@@ -238,12 +481,21 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
           const { isImage, imgInfo } = checkForImageAt(i);
           if (isImage && imgInfo.src === imgSrc) {
             // Found the image that was clicked
-            quill.setSelection(imgInfo.index, 1);
+            console.log("[Image clicked] Selecting with length 2", imgInfo);
+
+            // Highlight gambar terlebih dahulu
+            highlightImage(imgInfo, true);
+            currentlyHighlighted = imgInfo;
+
+            // Menggunakan length 2 untuk seleksi gambar (karena gambar menempati index 139-140)
+            quill.setSelection(imgInfo.index, 2);
             break;
           }
         }
       }
-    }; // Function to check if a range contains any images
+    };
+
+    // Function to check if a range contains any images
     const rangeContainsImage = (index: number, length: number): boolean => {
       if (length <= 0) return false;
 
@@ -256,7 +508,9 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       }
 
       return false;
-    }; // Create a safer wrapper for the deleteText method
+    };
+
+    // Create a safer wrapper for the deleteText method
     const originalDeleteText = quill.deleteText.bind(quill);
     const safeDeleteText = function (
       index: number,
@@ -305,13 +559,25 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
     };
 
     // Listen for text changes
-    quill.on("text-change", handleTextChange);
-    // Add an ultra-aggressive keydown handler with capture phase that runs first
+    quill.on("text-change", handleTextChange); // Add an ultra-aggressive keydown handler with capture phase that runs first
     const preventImageDeleteCapture = (e: KeyboardEvent) => {
       if (e.key !== "Backspace" && e.key !== "Delete") return;
 
       const range = quill.getSelection();
       if (!range) return;
+
+      // First check if an image is currently selected (works for both Backspace and Delete)
+      if (range.length > 0) {
+        for (let i = range.index; i < range.index + range.length; i++) {
+          const { isImage } = checkForImageAt(i);
+          if (isImage) {
+            console.log("[CAPTURE] Prevented deletion of selected image");
+            e.preventDefault();
+            e.stopImmediatePropagation(); // Stop other handlers from running
+            return false;
+          }
+        }
+      }
 
       // For Backspace, prevent if image is at position - 1
       if (e.key === "Backspace" && range.index > 0) {
@@ -322,7 +588,9 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
           e.stopImmediatePropagation(); // Stop other handlers from running
           return false;
         }
-      } // For Delete key, prevent if image is at current position OR the next position
+      }
+
+      // For Delete key, prevent if image is at current position OR the next position
       if (e.key === "Delete") {
         // Check current position first
         const { isImage } = checkForImageAt(range.index);
@@ -350,8 +618,36 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       }
     };
 
+    // Handle alignment from format module
+    const handleFormatChange = (format: string, value: any) => {
+      if (format === "align" && currentlyHighlighted) {
+        console.log(`[Format Change] Align: ${value}`);
+        applyAlignmentToImage(currentlyHighlighted, value || "left");
+      }
+    }; // Watch for toolbar changes specifically for alignment
+    const toolbar = quill.getModule("toolbar") as any;
+    if (toolbar && toolbar.container) {
+      // Add listener to all alignment buttons in the toolbar
+      const toolbarContainer = toolbar.container;
+      toolbarContainer.addEventListener("click", handleToolbarClick);
+    }
+
     // Add event listeners
     quill.on("selection-change", handleSelectionChange);
+    quill.on("editor-change", (eventName: string, ...args: any[]) => {
+      if (eventName === "text-change" && args.length >= 3) {
+        const [delta, oldContents, source] = args;
+        if (source === "user" && delta.ops) {
+          // Find format-related operations
+          delta.ops.forEach((op: any) => {
+            if (op.attributes && op.attributes.align !== undefined) {
+              handleFormatChange("align", op.attributes.align);
+            }
+          });
+        }
+      }
+    });
+
     const editorElement = quill.container.querySelector(".ql-editor");
     if (editorElement) {
       // Capturing phase runs before bubbling phase
@@ -359,7 +655,9 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       // Regular handlers
       editorElement.addEventListener("keydown", handleKeyDown as any);
       editorElement.addEventListener("click", handleEditorClick as any);
-    } // Clean up
+    }
+
+    // Clean up
     return () => {
       // Remove highlighting from any selected image
       if (currentlyHighlighted) {
@@ -369,6 +667,7 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       // Remove all event listeners
       quill.off("selection-change", handleSelectionChange);
       quill.off("text-change", handleTextChange);
+      quill.off("editor-change");
 
       // Remove document capture listener
       document.removeEventListener("keydown", preventImageDeleteCapture, true);
@@ -377,6 +676,11 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       if (editorElement) {
         editorElement.removeEventListener("keydown", handleKeyDown as any);
         editorElement.removeEventListener("click", handleEditorClick as any);
+      }
+      // Remove toolbar click listener
+      const toolbar = quill.getModule("toolbar") as any;
+      if (toolbar && toolbar.container) {
+        toolbar.container.removeEventListener("click", handleToolbarClick);
       }
 
       // Restore original deleteText if we patched it
