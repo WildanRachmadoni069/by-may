@@ -233,10 +233,131 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       }
     };
 
+    // Function to check if current selection contains an image
+    const selectionContainsImage = (): boolean => {
+      const range = quill.getSelection();
+      if (!range) return false;
+
+      // Check for zero-length selection at image position
+      if (range.length === 0) {
+        const { isImage } = checkForImageAt(range.index);
+        return isImage;
+      }
+
+      // Check for selection with length > 0
+      for (let i = range.index; i < range.index + range.length; i++) {
+        const { isImage } = checkForImageAt(i);
+        if (isImage) return true;
+      }
+
+      return false;
+    };
+
+    // Prevent replacing images with character input
+    const preventImageReplacement = (e: KeyboardEvent) => {
+      // Skip modifier key combinations that might be shortcuts
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      // Skip navigation, selection and function keys
+      if (
+        e.key.startsWith("Arrow") ||
+        e.key === "Shift" ||
+        e.key === "Control" ||
+        e.key === "Alt" ||
+        e.key === "Meta" ||
+        e.key === "Escape" ||
+        e.key === "Tab" ||
+        (e.key.startsWith("F") && e.key.length > 1) // F1-F12
+      )
+        return;
+
+      // Special handling for Enter key - insert paragraph after the image instead of replacing it
+      if (e.key === "Enter") {
+        const range = quill.getSelection();
+        if (range && range.length > 0) {
+          for (let i = range.index; i < range.index + range.length; i++) {
+            const { isImage, imgInfo } = checkForImageAt(i);
+            if (isImage && imgInfo) {
+              console.log(
+                "[Enter pressed on selected image] Inserting new paragraph after image"
+              );
+              e.preventDefault();
+              e.stopPropagation();
+
+              // Calculate position after image - usually image takes 2 positions in Quill
+              // First, find the end position of the image
+              let imageEndPosition = range.index;
+              if (range.length === 2) {
+                // If we have a proper image selection with length 2
+                imageEndPosition = range.index + range.length;
+              } else {
+                // Try to find the actual end of image
+                imageEndPosition = imgInfo.index + 1;
+                // Check if the next position is still part of the image
+                const { isImage: isNextPosImage } =
+                  checkForImageAt(imageEndPosition);
+                if (isNextPosImage) {
+                  imageEndPosition += 1;
+                }
+              }
+
+              // Insert a new paragraph after the image
+              quill.insertText(imageEndPosition, "\n");
+              // Move cursor to the new paragraph
+              quill.setSelection(imageEndPosition + 1, 0);
+              return false;
+            }
+          }
+        }
+        // Continue with normal Enter behavior if no image is selected
+        return;
+      }
+
+      // For all other keys (characters, Space, etc), check if an image is selected
+      if (selectionContainsImage()) {
+        console.log(`[Prevented replacing image with character: ${e.key}]`);
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+
+    // Handler for paste events
+    const preventPasteOnImage = (e: ClipboardEvent) => {
+      if (selectionContainsImage()) {
+        console.log("[Prevented pasting content over image]");
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+
     // Handle keyboard navigation and key events
     const handleKeyDown = (e: KeyboardEvent) => {
       const range = quill.getSelection();
-      if (!range) return; // Prevent accidental image deletion with backspace/delete
+      if (!range) return; // First check if we need to prevent character input on selected image
+      if (
+        e.key !== "Backspace" &&
+        e.key !== "Delete" &&
+        e.key !== "Enter" && // Skip enter here since we handle it in preventImageReplacement
+        !e.key.startsWith("Arrow") &&
+        !e.ctrlKey &&
+        !e.metaKey
+      ) {
+        if (range.length > 0) {
+          for (let i = range.index; i < range.index + range.length; i++) {
+            const { isImage } = checkForImageAt(i);
+            if (isImage) {
+              console.log(`[Prevented replacing image with: ${e.key}]`);
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+          }
+        }
+      }
+
+      // Prevent accidental image deletion with backspace/delete
       if (e.key === "Backspace") {
         // Check if there's an image right before the cursor
         if (range.index > 0 && range.length === 0) {
@@ -666,10 +787,38 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
     if (editorElement) {
       // Capturing phase runs before bubbling phase
       document.addEventListener("keydown", preventImageDeleteCapture, true);
+      // Add new event listener for preventing character input on images
+      document.addEventListener("keydown", preventImageReplacement, true);
+      // Add paste event handler
+      editorElement.addEventListener("paste", preventPasteOnImage as any);
       // Regular handlers
       editorElement.addEventListener("keydown", handleKeyDown as any);
       editorElement.addEventListener("click", handleEditorClick as any);
     }
+
+    // Create wrapper for Quill's insertText to prevent inserting at image position
+    const originalInsertText = quill.insertText.bind(quill);
+    const safeInsertText = function (
+      index: number,
+      text: string,
+      source?: any
+    ): void {
+      // Check if we're trying to insert at an image position
+      const { isImage } = checkForImageAt(index);
+      if (isImage) {
+        console.log("[Blocked text insertion at image position]", {
+          index,
+          text,
+        });
+        return;
+      }
+
+      // If not inserting at image position, proceed with original insertion
+      originalInsertText(index, text, source);
+    };
+
+    // Replace Quill's insertText method with our safer version
+    (quill as any).insertText = safeInsertText;
 
     // Clean up
     return () => {
@@ -685,21 +834,28 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
 
       // Remove document capture listener
       document.removeEventListener("keydown", preventImageDeleteCapture, true);
+      document.removeEventListener("keydown", preventImageReplacement, true);
 
       const editorElement = quill.container.querySelector(".ql-editor");
       if (editorElement) {
         editorElement.removeEventListener("keydown", handleKeyDown as any);
         editorElement.removeEventListener("click", handleEditorClick as any);
+        editorElement.removeEventListener("paste", preventPasteOnImage as any);
       }
+
       // Remove toolbar click listener
       const toolbar = quill.getModule("toolbar") as any;
       if (toolbar && toolbar.container) {
         toolbar.container.removeEventListener("click", handleToolbarClick);
       }
 
-      // Restore original deleteText if we patched it
+      // Restore original methods if we patched them
       if (originalDeleteText) {
         (quill as any).deleteText = originalDeleteText;
+      }
+
+      if (originalInsertText) {
+        (quill as any).insertText = originalInsertText;
       }
     };
   }, [quill]);
