@@ -3,6 +3,7 @@ import Quill from "quill";
 import React, { forwardRef, useEffect, useLayoutEffect, useRef } from "react";
 import "quill/dist/quill.snow.css";
 import "./editor-styles.css";
+import SimpleImageHandler from "./SimpleImageHandler";
 
 interface MyEditorArticleProps {
   readOnly?: boolean;
@@ -89,14 +90,26 @@ const MyEditorArticle = forwardRef<Quill, MyEditorArticleProps>(
         }
         container.innerHTML = "";
       };
+    }, [ref]); // Store quill instance in a ref for SimpleImageHandler
+    const quillRef = useRef<Quill | null>(null);
+
+    useEffect(() => {
+      // Update quillRef when ref is updated
+      if (ref && typeof ref === "object" && ref.current) {
+        quillRef.current = ref.current;
+      }
     }, [ref]);
+
     return (
-      <div
-        ref={containerRef}
-        className={`quill-editor-container ${
-          readOnly ? "editor-readonly" : ""
-        }`}
-      />
+      <>
+        <div
+          ref={containerRef}
+          className={`quill-editor-container ${
+            readOnly ? "editor-readonly" : ""
+          }`}
+        />
+        {quillRef.current && <SimpleImageHandler quill={quillRef.current} />}
+      </>
     );
   }
 );
