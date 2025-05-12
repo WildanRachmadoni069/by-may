@@ -61,9 +61,7 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         console.error("Error checking for image:", error);
         return { isImage: false, imgInfo: null };
       }
-    };
-
-    // Helper function to add blue border to selected image
+    }; // Helper function to add modern border to selected image
     const highlightImage = (imgInfo: any, highlight: boolean = true) => {
       try {
         if (!imgInfo) return;
@@ -74,11 +72,27 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
 
         // Add/remove highlight styles
         if (highlight) {
-          imgElement.style.border = "2px solid blue";
-          imgElement.style.boxShadow = "0 0 5px rgba(0, 0, 255, 0.5)";
+          // Modern styling with elegant border, no background color block
+          imgElement.style.border = "2px solid #3b82f6"; // Modern blue color
+          imgElement.style.borderRadius = "4px";
+          imgElement.style.boxShadow = "0 2px 6px rgba(0, 0, 0, 0.1)";
+          imgElement.style.transition = "all 0.2s ease";
+
+          // Add class for CSS selector to target selected images
+          imgElement.classList.add("ql-image-selected");
+
+          // Add additional attributes to prevent text-like selection
+          imgElement.setAttribute("unselectable", "on");
         } else {
+          // Reset all styles
           imgElement.style.border = "";
+          imgElement.style.borderRadius = "";
           imgElement.style.boxShadow = "";
+          imgElement.style.transition = "";
+
+          // Remove selection class and attributes
+          imgElement.classList.remove("ql-image-selected");
+          imgElement.removeAttribute("unselectable");
         }
       } catch (error) {
         console.error("Error highlighting image:", error);

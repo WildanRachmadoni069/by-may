@@ -630,3 +630,36 @@
   display: table;
   clear: both;
 }
+
+/**
+ * IMAGE SELECTION STYLE FIXES
+ * Prevent blue selection overlay on images when selected
+ */
+
+/* Target all images in Quill editor to prevent text-like selection */
+.quill-editor-container .ql-editor img {
+  user-select: none !important;
+}
+
+/* Additional specificity for selected images */
+.quill-editor-container .ql-editor img.ql-image-selected {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Remove the blue selection background on all browsers */
+.quill-editor-container .ql-editor img::selection {
+  background-color: transparent !important;
+}
+
+.quill-editor-container .ql-editor img::-moz-selection {
+  background-color: transparent !important;
+}
+
+/* Ensure the container itself doesn't show selection color when images are selected */
+.quill-editor-container .ql-editor img.ql-image-selected::selection,
+.quill-editor-container .ql-editor img.ql-image-selected::-moz-selection {
+  background-color: transparent !important;
+}
