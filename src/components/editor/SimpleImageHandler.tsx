@@ -28,12 +28,73 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
   const applyImageAlignmentRef =
     useRef<(imgInfo: any, alignment: string) => void>();
   const quillRef = useRef(quill);
-
   // Update quill ref whenever prop changes
   useEffect(() => {
     quillRef.current = quill;
     console.log("[SimpleImageHandler] Quill instance updated");
   }, [quill]);
+
+  // Setup alignment function reference - runs only once
+  useEffect(() => {
+    applyImageAlignmentRef.current = (imgInfo: any, alignment: string) => {
+      console.log(
+        `[SimpleImageHandler] Applying alignment ${alignment} to image from ref`,
+        imgInfo
+      );
+
+      try {
+        if (!imgInfo) return;
+
+        const imgElement = (imgInfo.leaf as any).domNode as HTMLElement;
+        if (!imgElement) return;
+
+        // Remove all existing alignment classes
+        imgElement.classList.remove(
+          "ql-align-left",
+          "ql-align-center",
+          "ql-align-right",
+          "ql-align-justify"
+        );
+
+        // Reset inline styles that might interfere
+        imgElement.style.float = "";
+        imgElement.style.marginLeft = "";
+        imgElement.style.marginRight = "";
+        imgElement.style.display = "";
+
+        if (alignment === "left") {
+          imgElement.classList.add("ql-align-left");
+          imgElement.style.float = "left";
+          imgElement.style.marginRight = "1em";
+          imgElement.style.marginBottom = "1em";
+        } else if (alignment === "center") {
+          imgElement.classList.add("ql-align-center");
+          imgElement.style.display = "block";
+          imgElement.style.float = "none";
+          imgElement.style.marginLeft = "auto";
+          imgElement.style.marginRight = "auto";
+        } else if (alignment === "right") {
+          imgElement.classList.add("ql-align-right");
+          imgElement.style.float = "right";
+          imgElement.style.marginLeft = "1em";
+          imgElement.style.marginBottom = "1em";
+        } else {
+          // Default or 'justify' - modified to behave like left alignment for images
+          imgElement.classList.add("ql-align-justify");
+          imgElement.style.float = "left";
+          imgElement.style.marginRight = "1em";
+          imgElement.style.marginBottom = "1em";
+        }
+
+        console.log(`Applied ${alignment} alignment to image via ref`);
+      } catch (error) {
+        console.error("Error applying alignment to image:", error);
+      }
+    };
+    console.log(
+      "[SimpleImageHandler] applyImageAlignmentRef is now initialized"
+    );
+  }, []);
 
   // Handler for aligning images from the bubble toolbar
   const handleAlignImage = (alignment: string) => {
@@ -230,18 +291,17 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         console.error("Error highlighting image:", error);
       }
     }; // Track the currently highlighted image
-    let currentlyHighlighted: any = null;
-
-    // Apply alignment to selected image
+    let currentlyHighlighted: any = null; // Apply alignment to selected image
     const applyAlignmentToImage = (imgInfo: any, alignment: string) => {
       console.log(
         `[SimpleImageHandler] Applying alignment ${alignment} to image`,
         imgInfo
       );
 
-      // Store the function in ref for external access
-      if (!applyImageAlignmentRef.current) {
-        applyImageAlignmentRef.current = applyAlignmentToImage;
+      // Use the function from the ref if available, otherwise handle it directly
+      if (applyImageAlignmentRef.current) {
+        applyImageAlignmentRef.current(imgInfo, alignment);
+        return;
       }
       try {
         if (!imgInfo) return;
