@@ -1,10 +1,18 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Quill from "quill";
+import ImageBubbleToolbar from "./ImageBubbleToolbar";
+import "./image-bubble-toolbar.css";
 
 interface SimpleImageHandlerProps {
   quill: Quill;
+}
+
+interface SelectedImageInfo {
+  index: number;
+  imgElement: HTMLElement;
+  imgInfo: any;
 }
 
 /**
@@ -12,6 +20,130 @@ interface SimpleImageHandlerProps {
  * and keyboard navigation to images
  */
 const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
+  const [selectedImage, setSelectedImage] = useState<SelectedImageInfo | null>(
+    null
+  );
+
+  // Store key functions in ref to access across renders
+  const applyImageAlignmentRef =
+    useRef<(imgInfo: any, alignment: string) => void>();
+  const quillRef = useRef(quill);
+
+  // Update quill ref whenever prop changes
+  useEffect(() => {
+    quillRef.current = quill;
+    console.log("[SimpleImageHandler] Quill instance updated");
+  }, [quill]);
+
+  // Handler for aligning images from the bubble toolbar
+  const handleAlignImage = (alignment: string) => {
+    console.log(
+      `[SimpleImageHandler] Align image called with alignment: ${alignment}`
+    );
+    console.log(`[SimpleImageHandler] Current selectedImage:`, selectedImage);
+
+    if (selectedImage && selectedImage.imgInfo) {
+      if (applyImageAlignmentRef.current) {
+        console.log(`[SimpleImageHandler] Applying alignment via ref`);
+        applyImageAlignmentRef.current(selectedImage.imgInfo, alignment);
+      } else {
+        console.error(
+          "[SimpleImageHandler] applyImageAlignmentRef is not set, attempting direct alignment"
+        );
+
+        try {
+          // Fall back to direct DOM manipulation if ref is not available
+          const imgElement = selectedImage.imgElement;
+          if (imgElement && imgElement.tagName === "IMG") {
+            // Remove existing alignment classes
+            imgElement.classList.remove(
+              "ql-align-left",
+              "ql-align-center",
+              "ql-align-right",
+              "ql-align-justify"
+            );
+
+            // Add appropriate class and styles based on alignment
+            if (alignment === "center") {
+              imgElement.classList.add("ql-align-center");
+              imgElement.style.display = "block";
+              imgElement.style.float = "none";
+              imgElement.style.marginLeft = "auto";
+              imgElement.style.marginRight = "auto";
+            } else if (alignment === "right") {
+              imgElement.classList.add("ql-align-right");
+              imgElement.style.float = "right";
+              imgElement.style.marginLeft = "1em";
+              imgElement.style.marginBottom = "1em";
+            } else {
+              // Default to left alignment
+              imgElement.classList.add("ql-align-left");
+              imgElement.style.float = "left";
+              imgElement.style.marginRight = "1em";
+              imgElement.style.marginBottom = "1em";
+            }
+            console.log(
+              `[SimpleImageHandler] Applied ${alignment} alignment directly to image`
+            );
+          }
+        } catch (error) {
+          console.error(
+            "[SimpleImageHandler] Error applying alignment directly:",
+            error
+          );
+        }
+      }
+    } else {
+      console.error("[SimpleImageHandler] No image selected for alignment");
+    }
+  };
+
+  // Handler for deleting images from the bubble toolbar
+  const handleDeleteImage = () => {
+    if (selectedImage) {
+      console.log("[SimpleImageHandler] Delete image requested", selectedImage);
+
+      try {
+        // Implement actual image deletion
+        // First move cursor before the image
+        const index = selectedImage.index;
+
+        // Delete the image content (length 1 is usually sufficient for embedded content)
+        if (quillRef.current) {
+          console.log(`[SimpleImageHandler] Deleting image at index ${index}`);
+
+          // First make sure any highlighting is removed
+          if (selectedImage.imgElement) {
+            selectedImage.imgElement.style.border = "";
+            selectedImage.imgElement.style.borderRadius = "";
+            selectedImage.imgElement.style.boxShadow = "";
+            selectedImage.imgElement.classList.remove("ql-image-selected");
+          }
+
+          // Then delete the content
+          quillRef.current.deleteText(index, 1, "user");
+
+          // Move cursor to deletion point
+          setTimeout(() => {
+            quillRef.current.setSelection(index, 0);
+          }, 10);
+
+          // Reset selected image state
+          setSelectedImage(null);
+        } else {
+          // Fallback if quill instance not available
+          quill.setSelection(selectedImage.index - 1, 0);
+          console.log("[SimpleImageHandler] Using fallback deletion method");
+        }
+      } catch (error) {
+        console.error("[SimpleImageHandler] Error deleting image:", error);
+        // Fallback to just moving cursor
+        quill.setSelection(selectedImage.index - 1, 0);
+      }
+    } else {
+      console.error("[SimpleImageHandler] No image selected for deletion");
+    }
+  };
   useEffect(() => {
     if (!quill) return;
 
@@ -97,13 +229,20 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       } catch (error) {
         console.error("Error highlighting image:", error);
       }
-    };
-
-    // Track the currently highlighted image
+    }; // Track the currently highlighted image
     let currentlyHighlighted: any = null;
 
     // Apply alignment to selected image
     const applyAlignmentToImage = (imgInfo: any, alignment: string) => {
+      console.log(
+        `[SimpleImageHandler] Applying alignment ${alignment} to image`,
+        imgInfo
+      );
+
+      // Store the function in ref for external access
+      if (!applyImageAlignmentRef.current) {
+        applyImageAlignmentRef.current = applyAlignmentToImage;
+      }
       try {
         if (!imgInfo) return;
 
@@ -186,11 +325,18 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         // Apply the alignment to the selected image
         applyAlignmentToImage(currentlyHighlighted, alignment);
       }
-    };
-
-    // Handle selection change to detect when an image is selected
+    }; // Handle selection change to detect when an image is selected
     const handleSelectionChange = (range: any) => {
-      if (!range) return;
+      if (!range) {
+        // Selection was removed, clear selected image
+        setSelectedImage(null);
+
+        if (currentlyHighlighted) {
+          highlightImage(currentlyHighlighted, false);
+          currentlyHighlighted = null;
+        }
+        return;
+      }
 
       // Remove highlight from previously selected image
       if (currentlyHighlighted) {
@@ -198,13 +344,40 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         currentlyHighlighted = null;
       }
 
-      // Check if cursor is on an image
+      // Reset selected image state
+      setSelectedImage(null);
+
+      // Check if cursor is on an image OR if selection includes an image
+      // First check at the selection index
       const { isImage, imgInfo } = checkForImageAt(range.index);
+
+      // For range.length === 2, we need to check if both parts are the same image
+      let isImageSelection = false;
+      if (range.length === 2) {
+        const { isImage: isImage1 } = checkForImageAt(range.index);
+        const { isImage: isImage2 } = checkForImageAt(range.index + 1);
+        isImageSelection = isImage1 && isImage2;
+      }
 
       if (isImage) {
         console.log("[Image Selected]", imgInfo);
         highlightImage(imgInfo, true);
         currentlyHighlighted = imgInfo;
+
+        // Get actual DOM element for the image
+        const imgElement = (imgInfo.leaf as any).domNode as HTMLElement;
+        if (imgElement) {
+          // Update selectedImage state for bubble toolbar
+          setSelectedImage({
+            index: range.index,
+            imgElement: imgElement,
+            imgInfo: imgInfo,
+          });
+
+          console.log(
+            `[handleSelectionChange] Set selectedImage at index ${range.index}`
+          );
+        }
       } // Check for images adjacent to cursor (for keyboard navigation)
       if (range.length === 0) {
         // Only if it's a cursor, not a selection
@@ -596,9 +769,7 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
           }, 10);
         }
       }
-    };
-
-    // Handle direct clicks on images
+    }; // Handle direct clicks on images
     const handleEditorClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
@@ -622,10 +793,26 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
             highlightImage(imgInfo, true);
             currentlyHighlighted = imgInfo;
 
+            // Update selectedImage state for bubble toolbar
+            setSelectedImage({
+              index: imgInfo.index,
+              imgElement: target,
+              imgInfo: imgInfo,
+            });
+
+            console.log(
+              `[handleEditorClick] Set selectedImage at index ${imgInfo.index}`
+            );
+
             // Menggunakan length 2 untuk seleksi gambar (karena gambar menempati index 139-140)
             quill.setSelection(imgInfo.index, 2);
             break;
           }
+        }
+      } else {
+        // Click was not on an image, clear selection if clicking outside
+        if (selectedImage && !e.defaultPrevented) {
+          setSelectedImage(null);
         }
       }
     };
@@ -859,9 +1046,20 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       }
     };
   }, [quill]);
-
-  // This component doesn't render anything
-  return null;
+  // Add the ImageBubbleToolbar component to render the toolbar
+  // when an image is selected
+  return (
+    <>
+      {selectedImage && (
+        <ImageBubbleToolbar
+          quill={quill}
+          selectedImage={selectedImage.imgInfo}
+          onAlignImage={handleAlignImage}
+          onDeleteImage={handleDeleteImage}
+        />
+      )}
+    </>
+  );
 };
 
 export default SimpleImageHandler;

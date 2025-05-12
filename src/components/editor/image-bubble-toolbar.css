@@ -1,0 +1,65 @@
+.image-bubble-toolbar {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  z-index: 1000; /* Make sure it's above other content */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.image-bubble-toolbar.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  margin: 0 2px;
+  color: #64748b; /* slate-500 */
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.toolbar-button:hover {
+  background-color: #f1f5f9; /* slate-100 */
+  color: #0f172a; /* slate-900 */
+}
+
+.toolbar-button.active {
+  background-color: #e2e8f0; /* slate-200 */
+  color: #0f172a; /* slate-900 */
+}
+
+.toolbar-button.delete {
+  color: #ef4444; /* red-500 */
+}
+
+.toolbar-button.delete:hover {
+  background-color: #fee2e2; /* red-100 */
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 18px;
+  background-color: #e2e8f0;
+  margin: 0 4px;
+}
+
+.toolbar-icon {
+  width: 16px;
+  height: 16px;
+}
