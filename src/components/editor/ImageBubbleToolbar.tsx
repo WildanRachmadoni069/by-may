@@ -62,104 +62,13 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
         clearTimeout(visibilityTimeoutRef.current);
       }
     };
-  }, [selectedImage]);
-  // Update toolbar position when selected image changes
+  }, [selectedImage]); // Update toolbar position when selected image changes
   useEffect(() => {
     if (!selectedImage) {
       return;
     }
 
     console.log("[ImageBubbleToolbar] Updating position for selected image");
-
-    const updatePosition = () => {
-      // Gunakan metode getBoundingClientRect untuk posisi yang lebih akurat
-      if (selectedImage.leaf && selectedImage.leaf.domNode) {
-        try {
-          // Dapatkan referensi DOM element gambar
-          const imgElement = selectedImage.leaf.domNode;
-
-          // Ambil ukuran dan posisi gambar relatif terhadap viewport
-          const imgRect = imgElement.getBoundingClientRect();
-
-          // Ambil container editor untuk koordinat relatif
-          const editorContainer = quill.container.querySelector(".ql-editor");
-          if (!editorContainer) return;
-
-          // Ambil posisi editor relatif terhadap viewport
-          const editorRect = editorContainer.getBoundingClientRect();
-
-          // Dapatkan ukuran toolbar untuk perhitungan yang akurat
-          let toolbarHeight = 40; // Default height
-          let toolbarWidth = 140; // Default width
-
-          if (toolbarRef.current) {
-            const toolbarRect = toolbarRef.current.getBoundingClientRect();
-            toolbarHeight = toolbarRect.height || toolbarHeight;
-            toolbarWidth = toolbarRect.width || toolbarWidth;
-            console.log("[ImageBubbleToolbar] Toolbar dimensions:", {
-              toolbarHeight,
-              toolbarWidth,
-            });
-          } // Jarak vertical yang lebih pendek antara toolbar dan gambar
-          const verticalGap = 5; // Dikurangi dari 10 menjadi 5px
-
-          // Posisi toolbar di atas gambar menggunakan langsung imgRect
-          // Menghitung posisi top: imgRect.top dikurangi tinggi toolbar dan vertical gap
-          const newPosition = {
-            top: imgRect.top - toolbarHeight - verticalGap, // Langsung posisi di atas gambar dari viewport
-            left: imgRect.left + imgRect.width / 2, // Centered horizontally over the image
-          };
-
-          console.log(
-            "[ImageBubbleToolbar] Setting toolbar position:",
-            newPosition,
-            "Image rect:",
-            imgRect,
-            "Editor rect:",
-            editorRect
-          );
-
-          setToolbarPosition(newPosition); // Jika toolbar akan berada di atas viewport, posisikan di bawah gambar
-          if (newPosition.top < 5) {
-            const belowPosition = {
-              top: imgRect.top + imgRect.height + verticalGap,
-              left: imgRect.left + imgRect.width / 2,
-            };
-            console.log(
-              "[ImageBubbleToolbar] Repositioning below image:",
-              belowPosition
-            );
-            setToolbarPosition(belowPosition);
-          }
-        } catch (error) {
-          console.error("[ImageBubbleToolbar] Error updating position:", error);
-        }
-      } else {
-        // Fallback ke quill getBounds jika tidak bisa mendapatkan DOM node
-        try {
-          const bounds = quill.getBounds(selectedImage.index, 2);
-          console.log("[ImageBubbleToolbar] Fallback to getBounds:", bounds);
-
-          let toolbarHeight = 40;
-          if (toolbarRef.current) {
-            toolbarHeight =
-              toolbarRef.current.getBoundingClientRect().height ||
-              toolbarHeight;
-          }
-
-          const verticalGap = 5;
-          setToolbarPosition({
-            top: bounds.top - verticalGap - toolbarHeight,
-            left: bounds.left + bounds.width / 2,
-          });
-        } catch (fallbackError) {
-          console.error(
-            "[ImageBubbleToolbar] Fallback getBounds failed:",
-            fallbackError
-          );
-        }
-      }
-    };
 
     // Set position initially
     updatePosition();
@@ -171,7 +80,90 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
     return () => {
       window.removeEventListener("resize", updatePosition);
     };
-  }, [selectedImage, quill]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedImage, quill, selectedImage?._updated]); // Include _updated timestamp to trigger repositioning  // Create a reusable function to update position
+  // This function is called both on initial render and when alignment changes
+  const updatePosition = () => {
+    if (!selectedImage || !selectedImage.leaf || !selectedImage.leaf.domNode) {
+      return;
+    }
+
+    try {
+      // Get the image element
+      const imgElement = selectedImage.leaf.domNode;
+
+      // Get image position and dimensions
+      const imgRect = imgElement.getBoundingClientRect();
+
+      // Get editor container for relative coordinates
+      const editorContainer = quill.container.querySelector(".ql-editor");
+      if (!editorContainer) return;
+
+      // Get editor position
+      const editorRect = editorContainer.getBoundingClientRect();
+
+      // Get toolbar dimensions
+      let toolbarHeight = 40; // Default height
+      let toolbarWidth = 140; // Default width
+
+      if (toolbarRef.current) {
+        const toolbarRect = toolbarRef.current.getBoundingClientRect();
+        toolbarHeight = toolbarRect.height || toolbarHeight;
+        toolbarWidth = toolbarRect.width || toolbarWidth;
+      }
+
+      const verticalGap = 5;
+
+      // Calculate position above the image
+      const newPosition = {
+        top: imgRect.top - toolbarHeight - verticalGap,
+        left: imgRect.left + imgRect.width / 2, // Center horizontally
+      };
+
+      // If too close to the top, position below the image
+      if (newPosition.top < 5) {
+        const belowPosition = {
+          top: imgRect.top + imgRect.height + verticalGap,
+          left: imgRect.left + imgRect.width / 2,
+        };
+        setToolbarPosition(belowPosition);
+        console.log(
+          "[ImageBubbleToolbar] Positioned below image:",
+          belowPosition
+        );
+      } else {
+        setToolbarPosition(newPosition);
+        console.log(
+          "[ImageBubbleToolbar] Positioned above image:",
+          newPosition
+        );
+      }
+    } catch (error) {
+      console.error("[ImageBubbleToolbar] Error updating position:", error);
+
+      // Fallback to quill getBounds
+      try {
+        const bounds = quill.getBounds(selectedImage.index, 2);
+
+        let toolbarHeight = 40;
+        if (toolbarRef.current) {
+          toolbarHeight =
+            toolbarRef.current.getBoundingClientRect().height || toolbarHeight;
+        }
+
+        const verticalGap = 5;
+        setToolbarPosition({
+          top: bounds.top - verticalGap - toolbarHeight,
+          left: bounds.left + bounds.width / 2,
+        });
+      } catch (fallbackError) {
+        console.error(
+          "[ImageBubbleToolbar] Fallback getBounds failed:",
+          fallbackError
+        );
+      }
+    }
+  };
 
   // Handle button clicks
   const handleAlign = (alignment: string) => {
@@ -180,6 +172,12 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
     setCurrentAlignment(alignment);
     // Call parent handler to actually apply the alignment
     onAlignImage(alignment);
+
+    // Update the toolbar position after alignment changes
+    // Use a small timeout to allow the DOM to update with new alignment styles
+    setTimeout(() => {
+      updatePosition();
+    }, 10);
   };
 
   const handleDelete = () => {

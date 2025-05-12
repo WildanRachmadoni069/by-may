@@ -13,6 +13,7 @@ interface SelectedImageInfo {
   index: number;
   imgElement: HTMLElement;
   imgInfo: any;
+  _updated?: number; // Optional timestamp property to force updates
 }
 
 /**
@@ -95,7 +96,6 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       "[SimpleImageHandler] applyImageAlignmentRef is now initialized"
     );
   }, []);
-
   // Handler for aligning images from the bubble toolbar
   const handleAlignImage = (alignment: string) => {
     console.log(
@@ -107,6 +107,20 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       if (applyImageAlignmentRef.current) {
         console.log(`[SimpleImageHandler] Applying alignment via ref`);
         applyImageAlignmentRef.current(selectedImage.imgInfo, alignment);
+
+        // After alignment is applied, force an update to the selectedImage object
+        // to ensure the toolbar position updates correctly
+        setTimeout(() => {
+          if (selectedImage && selectedImage.imgElement) {
+            // Create a new selectedImage object with the same properties
+            // This will trigger the useEffect in ImageBubbleToolbar
+            setSelectedImage({
+              ...selectedImage,
+              // Add timestamp to force React to treat it as a new object
+              _updated: Date.now(),
+            });
+          }
+        }, 10);
       } else {
         console.error(
           "[SimpleImageHandler] applyImageAlignmentRef is not set, attempting direct alignment"
@@ -146,6 +160,14 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
             console.log(
               `[SimpleImageHandler] Applied ${alignment} alignment directly to image`
             );
+
+            // Force update after direct manipulation too
+            setTimeout(() => {
+              setSelectedImage({
+                ...selectedImage,
+                _updated: Date.now(),
+              });
+            }, 10);
           }
         } catch (error) {
           console.error(
