@@ -5,12 +5,14 @@
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   padding: 6px;
   z-index: 1000; /* Make sure it's above other content */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
+  /* Make the toolbar fixed in position and not affected by parent scroll */
+  position: fixed;
 }
 
 .image-bubble-toolbar.visible {

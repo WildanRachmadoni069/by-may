@@ -864,6 +864,12 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       if (target.tagName === "IMG") {
         console.log("[Image clicked directly]");
 
+        // Clear any existing highlight
+        if (currentlyHighlighted) {
+          highlightImage(currentlyHighlighted, false);
+          currentlyHighlighted = null;
+        }
+
         // Find the index of this image in the editor
         let imgNode = target;
         const imgSrc = imgNode.getAttribute("src");
@@ -900,6 +906,12 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         // Click was not on an image, clear selection if clicking outside
         if (selectedImage && !e.defaultPrevented) {
           setSelectedImage(null);
+          
+          // Also clear any existing highlight
+          if (currentlyHighlighted) {
+            highlightImage(currentlyHighlighted, false);
+            currentlyHighlighted = null;
+          }
         }
       }
     };
@@ -1162,3 +1174,6 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
 };
 
 export default SimpleImageHandler;
+
+
+

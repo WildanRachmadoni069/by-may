@@ -63,7 +63,9 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
         clearTimeout(visibilityTimeoutRef.current);
       }
     };
-  }, [selectedImage]); // Update toolbar position when selected image changes
+  }, [selectedImage]);
+
+  // Update toolbar position when selected image changes
   useEffect(() => {
     if (!selectedImage) {
       return;
@@ -74,15 +76,18 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
     // Set position initially
     updatePosition();
 
-    // Update position when window resizes
+    // Update position when window resizes or scrolls
     window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true); // Capture phase for nested scrolling containers
 
-    // Clean up event listener on unmount
+    // Clean up event listeners on unmount
     return () => {
       window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedImage, quill, selectedImage?._updated]); // Include _updated timestamp to trigger repositioning  // Create a reusable function to update position
+  }, [selectedImage, quill, selectedImage?._updated]); // Include _updated timestamp to trigger repositioning
+
   // This function is called both on initial render and when alignment changes
   const updatePosition = () => {
     if (!selectedImage || !selectedImage.leaf || !selectedImage.leaf.domNode) {
@@ -92,15 +97,15 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
     try {
       // Get the image element
       const imgElement = selectedImage.leaf.domNode;
-
-      // Get image position and dimensions
       const imgRect = imgElement.getBoundingClientRect();
 
-      // Get editor container for relative coordinates
+      // Get Quill bounds for accurate positioning
+      const bounds = quill.getBounds(selectedImage.index, 2);
+
+      // Get editor container for reference
       const editorContainer = quill.container.querySelector(".ql-editor");
       if (!editorContainer) return;
 
-      // Get editor position
       const editorRect = editorContainer.getBoundingClientRect();
 
       // Get toolbar dimensions
@@ -113,18 +118,20 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
         toolbarWidth = toolbarRect.width || toolbarWidth;
       }
 
-      const verticalGap = 5;
+      // Increase vertical gap for better visibility
+      const verticalGap = 15;
 
       // Calculate position above the image
       const newPosition = {
+        // Use direct position from getBoundingClientRect for absolute positioning
         top: imgRect.top - toolbarHeight - verticalGap,
         left: imgRect.left + imgRect.width / 2, // Center horizontally
       };
 
       // If too close to the top, position below the image
-      if (newPosition.top < 5) {
+      if (newPosition.top < 10) {
         const belowPosition = {
-          top: imgRect.top + imgRect.height + verticalGap,
+          top: imgRect.bottom + verticalGap,
           left: imgRect.left + imgRect.width / 2,
         };
         setToolbarPosition(belowPosition);
@@ -146,15 +153,22 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
       try {
         const bounds = quill.getBounds(selectedImage.index, 2);
 
+        // Get editor container
+        const editorContainer = quill.container.querySelector(".ql-editor");
+        const editorRect = editorContainer
+          ? editorContainer.getBoundingClientRect()
+          : null;
+
         let toolbarHeight = 40;
         if (toolbarRef.current) {
           toolbarHeight =
             toolbarRef.current.getBoundingClientRect().height || toolbarHeight;
         }
 
-        const verticalGap = 5;
+        const verticalGap = 15;
+
         setToolbarPosition({
-          top: bounds.top - verticalGap - toolbarHeight,
+          top: bounds.top - verticalGap - toolbarHeight + window.scrollY,
           left: bounds.left + bounds.width / 2,
         });
       } catch (fallbackError) {
@@ -198,7 +212,8 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
         left: `${toolbarPosition.left}px`,
         transform: `translateX(-50%)`, // Center the toolbar
       }}
-    >      {/* Align Left Button */}
+    >
+      {/* Align Left Button */}
       <button
         type="button"
         className={`toolbar-button ${
