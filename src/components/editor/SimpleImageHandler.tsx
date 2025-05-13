@@ -24,6 +24,9 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
   const [selectedImage, setSelectedImage] = useState<SelectedImageInfo | null>(
     null
   );
+  
+  // Flag to track if we're performing intentional image deletion
+  const intentionalImageDeletionRef = useRef<boolean>(false);
 
   // Store key functions in ref to access across renders
   const applyImageAlignmentRef =
@@ -180,7 +183,6 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       console.error("[SimpleImageHandler] No image selected for alignment");
     }
   };
-
   // Handler for deleting images from the bubble toolbar
   const handleDeleteImage = () => {
     if (selectedImage) {
@@ -201,18 +203,21 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
             selectedImage.imgElement.style.borderRadius = "";
             selectedImage.imgElement.style.boxShadow = "";
             selectedImage.imgElement.classList.remove("ql-image-selected");
-          }
+          }          // Set a flag to temporarily bypass image deletion prevention
+          // This is needed to avoid conflicts with our safeguards
+          intentionalImageDeletionRef.current = true;
+          const imageToDelete = { ...selectedImage };
+          setSelectedImage(null); // Clear selection first to avoid interference
 
-          // Then delete the content
-          quillRef.current.deleteText(index, 1, "user");
+          // Then delete the content with "api" source parameter to bypass protection
+          quillRef.current.deleteText(index, 2, "api");
 
-          // Move cursor to deletion point
+          // Reset flag after deletion
           setTimeout(() => {
-            quillRef.current.setSelection(index, 0);
+            intentionalImageDeletionRef.current = false;
+            // Move cursor to deletion point
+            quillRef.current?.setSelection(index, 0);
           }, 10);
-
-          // Reset selected image state
-          setSelectedImage(null);
         } else {
           // Fallback if quill instance not available
           quill.setSelection(selectedImage.index - 1, 0);
@@ -912,15 +917,21 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       }
 
       return false;
-    };
-
-    // Create a safer wrapper for the deleteText method
+    };    // Create a safer wrapper for the deleteText method
     const originalDeleteText = quill.deleteText.bind(quill);
     const safeDeleteText = function (
       index: number,
       length: number,
       source?: any
     ): void {
+      // Allow deletion if source is "silent" or "api" (programmatic deletion)
+      // This is to enable our custom delete button to work
+      if (source === "silent" || source === "api") {
+        console.log("[Allowing programmatic deletion]", { index, length, source });
+        originalDeleteText(index, length, source);
+        return;
+      }
+      
       // Check if we're trying to delete an image - be extra cautious
       if (rangeContainsImage(index, length)) {
         console.log("[Blocked deletion of image via API in range]", {
@@ -960,11 +971,17 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
           }
         });
       }
-    };
-
-    // Listen for text changes
-    quill.on("text-change", handleTextChange); // Add an ultra-aggressive keydown handler with capture phase that runs first
+    };    // Listen for text changes
+    quill.on("text-change", handleTextChange); 
+    
+    // Add an ultra-aggressive keydown handler with capture phase that runs first
     const preventImageDeleteCapture = (e: KeyboardEvent) => {
+      // Allow deletion if we're intentionally deleting via our API
+      if (intentionalImageDeletionRef.current) {
+        console.log("[CAPTURE] Allowing intentional image deletion");
+        return;
+      }
+
       if (e.key !== "Backspace" && e.key !== "Delete") return;
 
       const range = quill.getSelection();
