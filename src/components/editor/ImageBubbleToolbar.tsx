@@ -6,6 +6,7 @@ import "./image-bubble-toolbar.css";
 import { useEditorImageDelete } from "@/hooks/useEditorImageDelete";
 import { toast } from "@/hooks/use-toast";
 import DeleteImageDialog from "./DeleteImageDialog";
+import { useEditorImageStore } from "@/store/useEditorImageStore";
 
 interface ImageBubbleToolbarProps {
   quill: any;
@@ -35,8 +36,9 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
   const visibilityTimeoutRef = useRef<NodeJS.Timeout>();
   const { deleteImageByUrl, isDeleting } = useEditorImageDelete();
 
-  // State untuk dialog konfirmasi hapus
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  // Get dialog state from the global store
+  const { isDeleteDialogOpen, openDeleteDialog, closeDeleteDialog } =
+    useEditorImageStore();
 
   // Add slight delay before showing toolbar to prevent flickering
   useEffect(() => {
@@ -205,12 +207,12 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
     console.log(
       "[ImageBubbleToolbar] Delete button clicked, showing confirmation dialog"
     );
-    setIsDeleteDialogOpen(true);
+    openDeleteDialog();
   };
 
   // Handler untuk menutup dialog tanpa menghapus
   const handleCloseDeleteDialog = () => {
-    setIsDeleteDialogOpen(false);
+    closeDeleteDialog();
   };
 
   // Handler untuk proses penghapusan setelah konfirmasi
@@ -261,13 +263,11 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
             throw new Error("Respons penghapusan tidak valid");
           }
         }
-      }
-
-      // Tetap jalankan handler delete dari editor
+      } // Tetap jalankan handler delete dari editor
       onDeleteImage();
 
       // Tutup dialog dan toolbar
-      setIsDeleteDialogOpen(false);
+      closeDeleteDialog();
       setIsVisible(false);
     } catch (error) {
       console.error("[ImageBubbleToolbar] Error deleting image:", error);
@@ -284,7 +284,7 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
       onDeleteImage();
 
       // Tutup dialog dan toolbar
-      setIsDeleteDialogOpen(false);
+      closeDeleteDialog();
       setIsVisible(false);
     } finally {
       // Aktifkan kembali editor

@@ -3,7 +3,7 @@
 import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
 import { useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
-import { useEditorUploadState } from "@/store/useEditorUploadState";
+import { useEditorImageStore } from "@/store/useEditorImageStore";
 import type Quill from "quill";
 
 interface EditorImageUploaderProps {
@@ -22,7 +22,7 @@ const createHiddenImageInput = (): HTMLInputElement => {
 const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const { uploadImage } = useEditorImageUpload();
-  const { setUploading } = useEditorUploadState();
+  const { setUploading } = useEditorImageStore();
   const originalHandlerRef = useRef<any>(null);
 
   useEffect(() => {

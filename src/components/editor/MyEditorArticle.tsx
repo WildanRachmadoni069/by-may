@@ -5,7 +5,7 @@ import "quill/dist/quill.snow.css";
 import "./editor-styles.css";
 import SimpleImageHandler from "./SimpleImageHandler";
 import EditorImageUploadOverlay from "./EditorImageUploadOverlay";
-import { useEditorUploadState } from "@/store/useEditorUploadState";
+import { useEditorImageStore } from "@/store/useEditorImageStore";
 
 interface MyEditorArticleProps {
   readOnly?: boolean;
@@ -22,10 +22,8 @@ const MyEditorArticle = forwardRef<Quill, MyEditorArticleProps>(
     const containerRef = useRef<HTMLDivElement | null>(null);
     const defaultValueRef = useRef(defaultValue);
     const onTextChangeRef = useRef(onTextChange);
-    const onSelectionChangeRef = useRef(onSelectionChange);
-
-    // Gunakan state upload dari store global
-    const { isUploading } = useEditorUploadState();
+    const onSelectionChangeRef = useRef(onSelectionChange); // Gunakan state upload dari store global
+    const { isUploading } = useEditorImageStore();
 
     useLayoutEffect(() => {
       onTextChangeRef.current = onTextChange;
