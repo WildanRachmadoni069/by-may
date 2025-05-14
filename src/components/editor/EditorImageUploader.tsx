@@ -6,11 +6,19 @@ import { toast } from "@/hooks/use-toast";
 import { useEditorImageStore } from "@/store/useEditorImageStore";
 import type Quill from "quill";
 
+/**
+ * Props untuk komponen EditorImageUploader
+ * @interface EditorImageUploaderProps
+ * @property {Quill} quill - Instance editor Quill
+ */
 interface EditorImageUploaderProps {
   quill: Quill;
 }
 
-// Fungsi untuk membuat image input yang tersembunyi
+/**
+ * Fungsi untuk membuat input file gambar tersembunyi
+ * @returns {HTMLInputElement} Elemen input file yang sudah dikonfigurasi
+ */
 const createHiddenImageInput = (): HTMLInputElement => {
   const input = document.createElement("input");
   input.setAttribute("type", "file");
@@ -19,10 +27,23 @@ const createHiddenImageInput = (): HTMLInputElement => {
   return input;
 };
 
+/**
+ * Komponen untuk mengelola unggahan gambar ke editor Quill
+ *
+ * Komponen ini menambahkan fungsionalitas unggahan gambar dengan:
+ * 1. Mengganti handler tombol gambar bawaan Quill
+ * 2. Menampilkan dialog pemilihan file
+ * 3. Mengunggah gambar ke layanan penyimpanan
+ * 4. Menyisipkan gambar ke editor setelah diunggah
+ */
 const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
+  /** Referensi ke elemen input file tersembunyi */
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  /** Hook untuk fungsi unggahan gambar */
   const { uploadImage } = useEditorImageUpload();
+  /** Fungsi untuk mengatur status unggahan di store global */
   const { setUploading } = useEditorImageStore();
+  /** Referensi ke handler gambar asli dari Quill */
   const originalHandlerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -58,14 +79,7 @@ const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
       const wasEnabled = quill.isEnabled();
       quill.disable(); // Tampilkan overlay loading daripada teks
       setUploading(true);
-
       try {
-        console.log(
-          "[EditorImageUploader] Uploading image to Cloudinary...",
-          file.name,
-          file.type
-        );
-
         // Upload ke Cloudinary dengan timeout untuk mencegah hang
         const uploadPromise = Promise.race([
           uploadImage(file, {
@@ -79,21 +93,11 @@ const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
               30000
             )
           ),
-        ]);
-
+        ]); // Tunggu unggahan selesai dan dapatkan URL gambar
         const result = await uploadPromise;
-        console.log(
-          "[EditorImageUploader] Upload success, URL:",
-          result.secure_url
-        );
 
-        // Sisipkan gambar yang sudah diupload
-        console.log(
-          "[EditorImageUploader] Inserting Cloudinary image at index:",
-          range.index
-        );
+        // Sisipkan gambar yang sudah diunggah ke editor
         quill.insertEmbed(range.index, "image", result.secure_url);
-        console.log("[EditorImageUploader] Image embedded successfully");
 
         // Pindahkan cursor setelah gambar
         quill.setSelection(range.index + 1);
@@ -128,15 +132,14 @@ const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
       imageInputRef.current.addEventListener("change", handleFileChange);
     } // Dapatkan modul toolbar dari Quill
     const toolbar = quill.getModule("toolbar") as any;
-    // Definisikan custom handler untuk gambar
+    /*** Definisikan custom handler untuk gambar
+     * Handler kustom untuk tombol gambar di toolbar
+     * Memicu dialog pemilihan file saat tombol gambar diklik
+     */
     function imageHandler() {
-      console.log("[EditorImageUploader] Custom image handler executed");
       // Klik input file tersembunyi saat tombol image di toolbar diklik
       if (imageInputRef.current) {
-        console.log("[EditorImageUploader] Triggering file input click");
         imageInputRef.current.click();
-      } else {
-        console.log("[EditorImageUploader] Error: File input not available");
       }
     }
 
@@ -148,12 +151,8 @@ const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
         originalHandlerRef.current = toolbar.handlers.image;
       }
 
-      // Gunakan metode addHandler yang direkomendasikan oleh dokumentasi Quill
+      // Gunakan metode addHandler yang direkomendasikan oleh dokumentasi Quill      // Tambahkan handler kustom untuk tombol gambar
       toolbar.addHandler("image", imageHandler);
-
-      console.log(
-        "[EditorImageUploader] Custom image handler added to toolbar"
-      );
     }
 
     // Cleanup

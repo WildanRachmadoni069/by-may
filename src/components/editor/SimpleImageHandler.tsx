@@ -7,40 +7,62 @@ import EditorImageUploader from "./EditorImageUploader";
 import "./image-bubble-toolbar.css";
 import { useEditorImageStore } from "@/store/useEditorImageStore";
 
+/**
+ * Props untuk komponen SimpleImageHandler
+ * @interface SimpleImageHandlerProps
+ * @property {Quill} quill - Instance editor Quill
+ */
 interface SimpleImageHandlerProps {
   quill: Quill;
 }
 
+/**
+ * Informasi tentang gambar yang sedang dipilih
+ * @interface SelectedImageInfo
+ * @property {number} index - Posisi gambar dalam dokumen
+ * @property {HTMLElement} imgElement - Elemen DOM dari gambar
+ * @property {any} imgInfo - Informasi tambahan tentang gambar
+ * @property {number} [_updated] - Timestamp untuk memaksa komponen melakukan update
+ */
 interface SelectedImageInfo {
   index: number;
   imgElement: HTMLElement;
   imgInfo: any;
-  _updated?: number; // Optional timestamp property to force updates
+  _updated?: number;
 }
 
 /**
- * A simplified component that just handles image selection detection
- * and keyboard navigation to images
+ * Komponen yang menangani deteksi pemilihan gambar dan navigasi keyboard
+ * untuk gambar dalam editor Quill
+ *
+ * Komponen ini mengatur:
+ * 1. Deteksi pemilihan gambar
+ * 2. Navigasi antar gambar dengan keyboard
+ * 3. Penghapusan gambar
  */
 const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
-  // Using local state for internal handling
+  /** State lokal untuk menangani gambar yang dipilih */
   const [selectedImage, setSelectedImage] = useState<SelectedImageInfo | null>(
     null
   );
 
-  // Using the global store for shared state with other components
+  /** Menggunakan store global untuk berbagi state dengan komponen lain */
   const { setSelectedImage: setGlobalSelectedImage, openDeleteDialog } =
     useEditorImageStore();
 
-  // Flag to track if we're performing intentional image deletion
+  /** Flag untuk melacak jika pengguna sedang melakukan penghapusan gambar dengan sengaja */
   const intentionalImageDeletionRef = useRef<boolean>(false);
 
-  // Store key functions in ref to access across renders
+  /** Menyimpan fungsi-fungsi utama dalam ref untuk diakses di berbagai render */
   const applyImageAlignmentRef =
     useRef<(imgInfo: any, alignment: string) => void>();
-  const quillRef = useRef(quill);
 
-  // Sync local selection state to global store
+  /** Referensi ke instance Quill */
+  const quillRef = useRef(quill);
+  /**
+   * Sinkronisasi state pemilihan gambar lokal ke store global
+   * agar komponen lain dapat mengakses informasi gambar yang dipilih
+   */
   useEffect(() => {
     if (selectedImage) {
       setGlobalSelectedImage(selectedImage.imgInfo);
@@ -49,10 +71,11 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
     }
   }, [selectedImage, setGlobalSelectedImage]);
 
-  // Update quill ref whenever prop changes
+  /**
+   * Memperbarui referensi quill ketika prop berubah
+   */
   useEffect(() => {
     quillRef.current = quill;
-    console.log("[SimpleImageHandler] Quill instance updated");
   }, [quill]);
 
   // Setup alignment function reference - runs only once
@@ -99,12 +122,11 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
     };
   }, []);
 
-  // Handler for aligning images from the bubble toolbar
+  /**
+   * Menangani permintaan perataan gambar dari toolbar
+   * @param {string} alignment - Jenis perataan ('left', 'center', atau 'right')
+   */
   const handleAlignImage = (alignment: string) => {
-    console.log(
-      `[SimpleImageHandler] Align image called with alignment: ${alignment}`
-    );
-
     if (
       selectedImage &&
       selectedImage.imgInfo &&
@@ -124,17 +146,16 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
     }
   };
 
-  // Handler for deleting images from the bubble toolbar
+  /**
+   * Menangani permintaan penghapusan gambar dari toolbar
+   * Fungsi ini akan menghapus gambar yang dipilih dari editor
+   */
   const handleDeleteImage = () => {
     if (selectedImage) {
-      console.log("[SimpleImageHandler] Delete image requested", selectedImage);
-
       try {
         const index = selectedImage.index;
 
         if (quillRef.current) {
-          console.log(`[SimpleImageHandler] Deleting image at index ${index}`);
-
           // Remove highlighting
           if (selectedImage.imgElement) {
             selectedImage.imgElement.style.border = "";
@@ -311,21 +332,19 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         (e.key.startsWith("F") && e.key.length > 1)
       ) {
         return;
-      }
-
-      // For all other keys (characters, Space, etc), check if an image is selected
+      } // Untuk tombol lain (karakter, Space, dll), periksa apakah ada gambar yang dipilih
       if (selectionContainsImage()) {
-        console.log(`[Prevented replacing image with character: ${e.key}]`);
         e.preventDefault();
         e.stopPropagation();
         return false;
       }
     };
-
-    // Handler for paste events
+    /**
+     * Handler untuk mencegah paste konten di atas gambar
+     * @param {ClipboardEvent} e - Event clipboard
+     */
     const preventPasteOnImage = (e: ClipboardEvent) => {
       if (selectionContainsImage()) {
-        console.log("[Prevented pasting content over image]");
         e.preventDefault();
         e.stopPropagation();
         return false;
@@ -336,7 +355,7 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
     const rangeContainsImage = (index: number, length: number): boolean => {
       if (length <= 0) return false;
 
-      // Check every position in the range
+      // Memeriksa setiap posisi dalam range
       for (let i = index; i < index + length; i++) {
         const { isImage } = checkForImageAt(i);
         if (isImage) {
@@ -347,39 +366,45 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       return false;
     };
 
-    // Create a safer wrapper for deleteText
+    /**
+     * Membuat wrapper yang lebih aman untuk fungsi deleteText Quill
+     * Mencegah penghapusan gambar kecuali dilakukan secara sengaja
+     */
     const originalDeleteText = quill.deleteText.bind(quill);
     const safeDeleteText = function (
       index: number,
       length: number,
       source?: any
     ): void {
-      // Allow deletion if source is "api" (programmatic deletion)
+      // Izinkan penghapusan jika sumbernya adalah "api" (penghapusan terprogram)
       if (source === "api") {
         originalDeleteText(index, length, source);
         return;
       }
 
-      // Otherwise prevent image deletion
+      // Mencegah penghapusan gambar dalam kondisi lain
       if (rangeContainsImage(index, length)) {
         return;
       }
 
-      // If not deleting an image, proceed with the original deletion
+      // Jika bukan menghapus gambar, lanjutkan dengan penghapusan
       originalDeleteText(index, length, source);
     };
 
     // Replace Quill's deleteText method
     (quill as any).deleteText = safeDeleteText;
 
-    // Create wrapper for insertText
+    /**
+     * Membuat wrapper untuk fungsi insertText Quill
+     * Mencegah penyisipan teks pada posisi gambar
+     */
     const originalInsertText = quill.insertText.bind(quill);
     const safeInsertText = function (
       index: number,
       text: string,
       source?: any
     ): void {
-      // Allow normal insertion if not at image position
+      // Izinkan penyisipan normal jika tidak pada posisi gambar
       const { isImage } = checkForImageAt(index);
       if (!isImage) {
         originalInsertText(index, text, source);

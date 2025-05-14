@@ -8,6 +8,14 @@ import { toast } from "@/hooks/use-toast";
 import DeleteImageDialog from "./DeleteImageDialog";
 import { useEditorImageStore } from "@/store/useEditorImageStore";
 
+/**
+ * Props untuk komponen ImageBubbleToolbar
+ * @interface ImageBubbleToolbarProps
+ * @property {any} quill - Instance editor Quill
+ * @property {any} selectedImage - Informasi gambar yang dipilih
+ * @property {Function} onAlignImage - Callback untuk mengubah perataan gambar
+ * @property {Function} onDeleteImage - Callback untuk menghapus gambar
+ */
 interface ImageBubbleToolbarProps {
   quill: any;
   selectedImage: any;
@@ -15,7 +23,11 @@ interface ImageBubbleToolbarProps {
   onDeleteImage: () => void;
 }
 
-// Helper function to get current alignment of an image
+/**
+ * Fungsi pembantu untuk mendapatkan perataan gambar saat ini
+ * @param {HTMLElement} imgElement - Elemen gambar yang diperiksa
+ * @returns {string} - Jenis perataan ('left', 'center', 'right', atau 'justify')
+ */
 const getCurrentImageAlignment = (imgElement: HTMLElement): string => {
   if (imgElement.classList.contains("ql-align-center")) return "center";
   if (imgElement.classList.contains("ql-align-right")) return "right";
@@ -23,48 +35,53 @@ const getCurrentImageAlignment = (imgElement: HTMLElement): string => {
   return "left"; // Default alignment
 };
 
+/**
+ * Komponen toolbar yang muncul di atas gambar yang dipilih
+ * Menyediakan kontrol untuk perataan dan penghapusan gambar
+ */
 const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
   quill,
   selectedImage,
   onAlignImage,
   onDeleteImage,
 }) => {
+  /** Status visibilitas toolbar */
   const [isVisible, setIsVisible] = useState(false);
+  /** Posisi toolbar relatif terhadap gambar */
   const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
+  /** Perataan gambar saat ini */
   const [currentAlignment, setCurrentAlignment] = useState<string>("left");
+  /** Referensi ke elemen toolbar */
   const toolbarRef = useRef<HTMLDivElement>(null);
+  /** Referensi ke timeout untuk menunda perubahan visibilitas */
   const visibilityTimeoutRef = useRef<NodeJS.Timeout>();
+  /** Hook untuk fungsi penghapusan gambar */
   const { deleteImageByUrl, isDeleting } = useEditorImageDelete();
 
-  // Get dialog state from the global store
+  /** Mengambil state dialog dari store global */
   const { isDeleteDialogOpen, openDeleteDialog, closeDeleteDialog } =
     useEditorImageStore();
 
-  // Add slight delay before showing toolbar to prevent flickering
+  /**
+   * Menambahkan sedikit penundaan sebelum menampilkan toolbar
+   * untuk mencegah toolbar berkedip-kedip
+   */
   useEffect(() => {
-    console.log(
-      "[ImageBubbleToolbar] Selected image state changed:",
-      selectedImage ? "has image" : "no image"
-    );
-
     if (selectedImage) {
       visibilityTimeoutRef.current = setTimeout(() => {
         setIsVisible(true);
-        console.log("[ImageBubbleToolbar] Setting toolbar visible");
 
-        // Get current image alignment when selected
+        // Mendapatkan perataan gambar saat ini ketika dipilih
         if (selectedImage.leaf && selectedImage.leaf.domNode) {
           const alignment = getCurrentImageAlignment(
             selectedImage.leaf.domNode
           );
           setCurrentAlignment(alignment);
-          console.log("[ImageBubbleToolbar] Current alignment:", alignment);
         }
       }, 100);
     } else {
       clearTimeout(visibilityTimeoutRef.current);
       setIsVisible(false);
-      console.log("[ImageBubbleToolbar] Hiding toolbar");
     }
 
     return () => {
@@ -73,19 +90,18 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
       }
     };
   }, [selectedImage]);
-
-  // Update toolbar position when selected image changes
+  /**
+   * Memperbarui posisi toolbar saat gambar yang dipilih berubah
+   */
   useEffect(() => {
     if (!selectedImage) {
       return;
     }
 
-    console.log("[ImageBubbleToolbar] Updating position for selected image");
-
-    // Set position initially
+    // Setel posisi awal
     updatePosition();
 
-    // Update position when window resizes or scrolls
+    // Perbarui posisi ketika jendela diubah ukurannya atau discroll
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true); // Capture phase for nested scrolling containers
 
@@ -144,16 +160,8 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
           left: imgRect.left + imgRect.width / 2,
         };
         setToolbarPosition(belowPosition);
-        console.log(
-          "[ImageBubbleToolbar] Positioned below image:",
-          belowPosition
-        );
       } else {
         setToolbarPosition(newPosition);
-        console.log(
-          "[ImageBubbleToolbar] Positioned above image:",
-          newPosition
-        );
       }
     } catch (error) {
       console.error("[ImageBubbleToolbar] Error updating position:", error);
@@ -188,37 +196,41 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
       }
     }
   };
-
-  // Handle button clicks
+  /**
+   * Menangani klik tombol perataan gambar
+   * @param {string} alignment - Jenis perataan ('left', 'center', 'right')
+   */
   const handleAlign = (alignment: string) => {
-    console.log(`[ImageBubbleToolbar] Align clicked: ${alignment}`);
-    // Update local state to highlight correct button
+    // Perbarui state lokal untuk menyorot tombol yang benar
     setCurrentAlignment(alignment);
-    // Call parent handler to actually apply the alignment
+    // Panggil handler dari parent untuk menerapkan perataan
     onAlignImage(alignment);
 
-    // Update the toolbar position after alignment changes
-    // Use a small timeout to allow the DOM to update with new alignment styles
+    // Perbarui posisi toolbar setelah perubahan perataan
+    // Gunakan timeout kecil untuk memungkinkan DOM diperbarui dengan gaya perataan baru
     setTimeout(() => {
       updatePosition();
     }, 10);
-  }; // Handler untuk menampilkan dialog konfirmasi hapus
+  };
+
+  /**
+   * Handler untuk menampilkan dialog konfirmasi penghapusan gambar
+   */
   const handleDeleteClick = () => {
-    console.log(
-      "[ImageBubbleToolbar] Delete button clicked, showing confirmation dialog"
-    );
     openDeleteDialog();
   };
 
-  // Handler untuk menutup dialog tanpa menghapus
+  /**
+   * Handler untuk menutup dialog tanpa menghapus gambar
+   */
   const handleCloseDeleteDialog = () => {
     closeDeleteDialog();
   };
-
-  // Handler untuk proses penghapusan setelah konfirmasi
+  /**
+   * Handler untuk proses penghapusan gambar setelah konfirmasi
+   * Menghapus gambar dari Cloudinary jika URL gambar mengandung "cloudinary.com"
+   */
   const handleConfirmDelete = async () => {
-    console.log("[ImageBubbleToolbar] Delete confirmed");
-
     try {
       // Jika gambar berasal dari Cloudinary, hapus juga dari Cloudinary
       if (selectedImage && selectedImage.leaf && selectedImage.leaf.domNode) {
@@ -226,11 +238,6 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
         const imgUrl = imgElement.getAttribute("src");
 
         if (imgUrl && imgUrl.includes("cloudinary.com")) {
-          console.log(
-            "[ImageBubbleToolbar] Deleting Cloudinary image:",
-            imgUrl
-          );
-
           // Disable sementara editor untuk menghindari interaksi selama proses
           quill.disable();
 
@@ -244,10 +251,7 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
               )
             ),
           ]);
-
           const result = await deletePromise;
-
-          console.log("[ImageBubbleToolbar] Delete result:", result);
 
           // Verifikasi hasil penghapusan
           if (
@@ -293,8 +297,6 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
       }
     }
   };
-
-  console.log("[ImageBubbleToolbar] Rendering toolbar, isVisible:", isVisible);
 
   return (
     <div
