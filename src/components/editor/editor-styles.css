@@ -10,6 +10,7 @@
  * The main wrapper for the entire editor component
  */
 .quill-editor-container {
+  position: relative; /* Make sure it's set as relative for absolute children */
   display: flex;
   flex-direction: column;
 }

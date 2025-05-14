@@ -4,6 +4,8 @@ import React, { forwardRef, useEffect, useLayoutEffect, useRef } from "react";
 import "quill/dist/quill.snow.css";
 import "./editor-styles.css";
 import SimpleImageHandler from "./SimpleImageHandler";
+import EditorImageUploadOverlay from "./EditorImageUploadOverlay";
+import { useEditorUploadState } from "@/store/useEditorUploadState";
 
 interface MyEditorArticleProps {
   readOnly?: boolean;
@@ -21,6 +23,9 @@ const MyEditorArticle = forwardRef<Quill, MyEditorArticleProps>(
     const defaultValueRef = useRef(defaultValue);
     const onTextChangeRef = useRef(onTextChange);
     const onSelectionChangeRef = useRef(onSelectionChange);
+
+    // Gunakan state upload dari store global
+    const { isUploading } = useEditorUploadState();
 
     useLayoutEffect(() => {
       onTextChangeRef.current = onTextChange;
@@ -105,8 +110,11 @@ const MyEditorArticle = forwardRef<Quill, MyEditorArticleProps>(
           ref={containerRef}
           className={`quill-editor-container ${
             readOnly ? "editor-readonly" : ""
-          }`}
-        />
+          } relative`}
+        >
+          {/* Overlay upload spinner */}
+          <EditorImageUploadOverlay visible={isUploading} />
+        </div>
         {quillRef.current && <SimpleImageHandler quill={quillRef.current} />}
       </>
     );

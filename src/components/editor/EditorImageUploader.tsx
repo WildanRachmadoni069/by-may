@@ -3,6 +3,7 @@
 import { useEditorImageUpload } from "@/hooks/useEditorImageUpload";
 import { useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
+import { useEditorUploadState } from "@/store/useEditorUploadState";
 import type Quill from "quill";
 
 interface EditorImageUploaderProps {
@@ -20,7 +21,8 @@ const createHiddenImageInput = (): HTMLInputElement => {
 
 const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const { uploadImage, isUploading } = useEditorImageUpload();
+  const { uploadImage } = useEditorImageUpload();
+  const { setUploading } = useEditorUploadState();
   const originalHandlerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -54,11 +56,9 @@ const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
 
       // Nonaktifkan editor selama upload untuk menghindari interaksi
       const wasEnabled = quill.isEnabled();
-      quill.disable();
+      quill.disable(); // Tampilkan overlay loading daripada teks
+      setUploading(true);
 
-      // Tampilkan loading state di editor
-      quill.insertText(range.index, "Mengupload gambar...");
-      const placeholderLength = "Mengupload gambar...".length;
       try {
         console.log(
           "[EditorImageUploader] Uploading image to Cloudinary...",
@@ -82,14 +82,12 @@ const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
         ]);
 
         const result = await uploadPromise;
-
         console.log(
           "[EditorImageUploader] Upload success, URL:",
           result.secure_url
         );
 
-        // Hapus teks placeholder loading
-        quill.deleteText(range.index, placeholderLength); // Sisipkan gambar yang sudah diupload
+        // Sisipkan gambar yang sudah diupload
         console.log(
           "[EditorImageUploader] Inserting Cloudinary image at index:",
           range.index
@@ -105,9 +103,6 @@ const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
           imageInputRef.current.value = "";
         }
       } catch (error) {
-        // Hapus teks placeholder jika terjadi error
-        quill.deleteText(range.index, placeholderLength);
-
         // Tampilkan pesan error
         toast({
           title: "Gagal mengupload gambar",
@@ -118,6 +113,9 @@ const EditorImageUploader: React.FC<EditorImageUploaderProps> = ({ quill }) => {
           variant: "destructive",
         });
       } finally {
+        // Nonaktifkan overlay upload
+        setUploading(false);
+
         // Kembalikan status editor seperti semula
         if (wasEnabled) {
           quill.enable();
