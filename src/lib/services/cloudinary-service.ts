@@ -26,20 +26,28 @@ export const CloudinaryService = {
       }
 
       // Ekstrak bagian setelah /upload/
-      const uploadMatch = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
+      // Perbaikan: Tangani versi dengan lebih tepat (v1234567890)
+      const uploadMatch = url.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.\w+)?$/);
       if (!uploadMatch || !uploadMatch[1]) {
         return null;
       }
 
-      // Hapus parameter transformasi dan ekstensi file
+      // Dapatkan public ID - ini adalah semua setelah /upload/vXXX/ dan sebelum ekstensi file
       let publicId = uploadMatch[1];
 
-      // Hapus parameter transformasi jika ada
-      if (publicId.includes("/")) {
-        const parts = publicId.split("/");
-        if (parts[0].includes(",") || parts[0].includes("_")) {
-          // Ini mungkin parameter transformasi
-          publicId = parts.slice(1).join("/");
+      // Periksa jika ini adalah URL dengan transformasi (contoh: w_200,h_300/folder/file)
+      const firstSlashIndex = publicId.indexOf("/");
+      if (firstSlashIndex > 0) {
+        const firstPart = publicId.substring(0, firstSlashIndex);
+
+        // Jika bagian pertama mengandung koma atau underscore, kemungkinan itu adalah transformasi
+        // Contoh: w_200,h_300,c_crop/folder/file
+        if (
+          firstPart.includes(",") ||
+          (firstPart.includes("_") && /[a-z]_\d/.test(firstPart))
+        ) {
+          // Format transformasi biasanya seperti w_200
+          publicId = publicId.substring(firstSlashIndex + 1);
         }
       }
 

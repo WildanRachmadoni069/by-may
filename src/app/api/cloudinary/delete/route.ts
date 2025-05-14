@@ -13,29 +13,11 @@ cloudinary.config({
 
 /**
  * Ekstrak public_id dari URL Cloudinary
+ * Menggunakan implementasi yang lebih lengkap dari CloudinaryService
  */
 function extractPublicIdFromUrl(url: string): string | null {
-  try {
-    if (!url || typeof url !== "string") return null;
-
-    // Ekstrak bagian setelah /upload/
-    const uploadMatch = url.match(/\/upload\/(?:v\d+\/)?(.+)$/);
-    if (!uploadMatch || !uploadMatch[1]) {
-      return null;
-    }
-
-    // Hapus parameter transformasi dan ekstensi file
-    let publicId = uploadMatch[1];
-
-    // Hapus ekstensi file jika ada
-    if (publicId.includes(".")) {
-      publicId = publicId.substring(0, publicId.lastIndexOf("."));
-    }
-
-    return publicId;
-  } catch (error) {
-    return null;
-  }
+  // Gunakan implementasi dari CloudinaryService yang lebih lengkap
+  return CloudinaryService.extractPublicIdFromUrl(url);
 }
 
 export async function POST(request: NextRequest) {
@@ -66,7 +48,6 @@ export async function POST(request: NextRequest) {
     else if (url) {
       fromUrl = true;
       imageId = extractPublicIdFromUrl(url);
-
       if (!imageId) {
         return NextResponse.json(
           { error: "Tidak dapat mengekstrak publicId dari URL" },
@@ -76,19 +57,29 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      // Log untuk debugging
+      console.log(`[API] Deleting image from Cloudinary with ID: ${imageId}`);
+
       // Hapus dari Cloudinary
       const result = await cloudinary.uploader.destroy(imageId!);
+
+      console.log(`[API] Cloudinary delete result:`, result);
 
       return NextResponse.json({
         success: true,
         result,
+        publicId: imageId, // Tambahkan publicId ke respons untuk konfirmasi
       });
     } catch (cloudinaryError: any) {
+      // Log error untuk debugging
+      console.error(`[API] Cloudinary delete error:`, cloudinaryError);
+
       // Jika resource tidak ditemukan tapi kita menghapus, anggap sukses
       if (cloudinaryError.error?.message?.includes("not found")) {
         return NextResponse.json({
           success: true,
           result: { result: "not found" },
+          publicId: imageId, // Tambahkan publicId ke respons untuk konfirmasi
           message:
             "Sumber daya tidak ditemukan di Cloudinary (sudah dihapus atau tidak pernah ada)",
         });

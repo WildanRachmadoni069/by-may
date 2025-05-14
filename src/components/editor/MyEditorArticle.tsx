@@ -99,7 +99,6 @@ const MyEditorArticle = forwardRef<Quill, MyEditorArticleProps>(
         quillRef.current = ref.current;
       }
     }, [ref]);
-
     return (
       <>
         <div

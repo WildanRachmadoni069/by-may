@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AlignLeft, AlignCenter, AlignRight, Trash2 } from "lucide-react";
 import "./image-bubble-toolbar.css";
+import { useEditorImageDelete } from "@/hooks/useEditorImageDelete";
+import { toast } from "@/hooks/use-toast";
+import DeleteImageDialog from "./DeleteImageDialog";
 
 interface ImageBubbleToolbarProps {
   quill: any;
@@ -30,6 +33,10 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
   const [currentAlignment, setCurrentAlignment] = useState<string>("left");
   const toolbarRef = useRef<HTMLDivElement>(null);
   const visibilityTimeoutRef = useRef<NodeJS.Timeout>();
+  const { deleteImageByUrl, isDeleting } = useEditorImageDelete();
+
+  // State untuk dialog konfirmasi hapus
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Add slight delay before showing toolbar to prevent flickering
   useEffect(() => {
@@ -193,12 +200,98 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
     setTimeout(() => {
       updatePosition();
     }, 10);
+  }; // Handler untuk menampilkan dialog konfirmasi hapus
+  const handleDeleteClick = () => {
+    console.log(
+      "[ImageBubbleToolbar] Delete button clicked, showing confirmation dialog"
+    );
+    setIsDeleteDialogOpen(true);
   };
 
-  const handleDelete = () => {
-    console.log("[ImageBubbleToolbar] Delete clicked");
-    onDeleteImage();
-    setIsVisible(false);
+  // Handler untuk menutup dialog tanpa menghapus
+  const handleCloseDeleteDialog = () => {
+    setIsDeleteDialogOpen(false);
+  };
+
+  // Handler untuk proses penghapusan setelah konfirmasi
+  const handleConfirmDelete = async () => {
+    console.log("[ImageBubbleToolbar] Delete confirmed");
+
+    try {
+      // Jika gambar berasal dari Cloudinary, hapus juga dari Cloudinary
+      if (selectedImage && selectedImage.leaf && selectedImage.leaf.domNode) {
+        const imgElement = selectedImage.leaf.domNode;
+        const imgUrl = imgElement.getAttribute("src");
+
+        if (imgUrl && imgUrl.includes("cloudinary.com")) {
+          console.log(
+            "[ImageBubbleToolbar] Deleting Cloudinary image:",
+            imgUrl
+          );
+
+          // Disable sementara editor untuk menghindari interaksi selama proses
+          quill.disable();
+
+          // Hapus gambar dari Cloudinary dengan timeout
+          const deletePromise = Promise.race([
+            deleteImageByUrl(imgUrl),
+            new Promise((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Delete timeout after 10s")),
+                10000
+              )
+            ),
+          ]);
+
+          const result = await deletePromise;
+
+          console.log("[ImageBubbleToolbar] Delete result:", result);
+
+          // Verifikasi hasil penghapusan
+          if (
+            result &&
+            (result.success || result.result?.result === "not found")
+          ) {
+            // Tampilkan notifikasi sukses
+            toast({
+              title: "Gambar berhasil dihapus",
+              description: "Gambar telah dihapus dari server",
+            });
+          } else {
+            throw new Error("Respons penghapusan tidak valid");
+          }
+        }
+      }
+
+      // Tetap jalankan handler delete dari editor
+      onDeleteImage();
+
+      // Tutup dialog dan toolbar
+      setIsDeleteDialogOpen(false);
+      setIsVisible(false);
+    } catch (error) {
+      console.error("[ImageBubbleToolbar] Error deleting image:", error);
+
+      // Tampilkan pesan error tapi tetap hapus dari editor
+      toast({
+        title: "Peringatan",
+        description:
+          "Gambar dihapus dari artikel namun mungkin masih tersimpan di server",
+        variant: "destructive",
+      });
+
+      // Tetap jalankan handler delete dari editor meski error di cloudinary
+      onDeleteImage();
+
+      // Tutup dialog dan toolbar
+      setIsDeleteDialogOpen(false);
+      setIsVisible(false);
+    } finally {
+      // Aktifkan kembali editor
+      if (!quill.isEnabled()) {
+        quill.enable();
+      }
+    }
   };
 
   console.log("[ImageBubbleToolbar] Rendering toolbar, isVisible:", isVisible);
@@ -224,7 +317,6 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
       >
         <AlignLeft className="toolbar-icon" />
       </button>
-
       {/* Align Center Button */}
       <button
         type="button"
@@ -236,7 +328,6 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
       >
         <AlignCenter className="toolbar-icon" />
       </button>
-
       {/* Align Right Button */}
       <button
         type="button"
@@ -248,19 +339,23 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
       >
         <AlignRight className="toolbar-icon" />
       </button>
-
       {/* Separator */}
-      <div className="toolbar-separator"></div>
-
-      {/* Delete Button */}
+      <div className="toolbar-separator"></div> {/* Delete Button */}
       <button
         type="button"
         className="toolbar-button delete"
-        onClick={handleDelete}
+        onClick={handleDeleteClick}
         title="Delete Image"
       >
         <Trash2 className="toolbar-icon" />
       </button>
+      {/* Dialog Konfirmasi Delete */}
+      <DeleteImageDialog
+        isOpen={isDeleteDialogOpen}
+        isDeleting={isDeleting}
+        onClose={handleCloseDeleteDialog}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 };

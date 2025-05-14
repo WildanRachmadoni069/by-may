@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Quill from "quill";
 import ImageBubbleToolbar from "./ImageBubbleToolbar";
+import EditorImageUploader from "./EditorImageUploader";
 import "./image-bubble-toolbar.css";
 
 interface SimpleImageHandlerProps {
@@ -24,7 +25,7 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
   const [selectedImage, setSelectedImage] = useState<SelectedImageInfo | null>(
     null
   );
-  
+
   // Flag to track if we're performing intentional image deletion
   const intentionalImageDeletionRef = useRef<boolean>(false);
 
@@ -203,7 +204,7 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
             selectedImage.imgElement.style.borderRadius = "";
             selectedImage.imgElement.style.boxShadow = "";
             selectedImage.imgElement.classList.remove("ql-image-selected");
-          }          // Set a flag to temporarily bypass image deletion prevention
+          } // Set a flag to temporarily bypass image deletion prevention
           // This is needed to avoid conflicts with our safeguards
           intentionalImageDeletionRef.current = true;
           const imageToDelete = { ...selectedImage };
@@ -906,7 +907,7 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         // Click was not on an image, clear selection if clicking outside
         if (selectedImage && !e.defaultPrevented) {
           setSelectedImage(null);
-          
+
           // Also clear any existing highlight
           if (currentlyHighlighted) {
             highlightImage(currentlyHighlighted, false);
@@ -929,7 +930,7 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       }
 
       return false;
-    };    // Create a safer wrapper for the deleteText method
+    }; // Create a safer wrapper for the deleteText method
     const originalDeleteText = quill.deleteText.bind(quill);
     const safeDeleteText = function (
       index: number,
@@ -939,11 +940,15 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
       // Allow deletion if source is "silent" or "api" (programmatic deletion)
       // This is to enable our custom delete button to work
       if (source === "silent" || source === "api") {
-        console.log("[Allowing programmatic deletion]", { index, length, source });
+        console.log("[Allowing programmatic deletion]", {
+          index,
+          length,
+          source,
+        });
         originalDeleteText(index, length, source);
         return;
       }
-      
+
       // Check if we're trying to delete an image - be extra cautious
       if (rangeContainsImage(index, length)) {
         console.log("[Blocked deletion of image via API in range]", {
@@ -983,9 +988,9 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
           }
         });
       }
-    };    // Listen for text changes
-    quill.on("text-change", handleTextChange); 
-    
+    }; // Listen for text changes
+    quill.on("text-change", handleTextChange);
+
     // Add an ultra-aggressive keydown handler with capture phase that runs first
     const preventImageDeleteCapture = (e: KeyboardEvent) => {
       // Allow deletion if we're intentionally deleting via our API
@@ -1156,11 +1161,13 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
         (quill as any).insertText = originalInsertText;
       }
     };
-  }, [quill]);
-  // Add the ImageBubbleToolbar component to render the toolbar
+  }, [quill]); // Add the ImageBubbleToolbar component to render the toolbar
   // when an image is selected
   return (
     <>
+      {/* Tambahkan EditorImageUploader untuk menangani upload gambar */}
+      <EditorImageUploader quill={quill} />
+
       {selectedImage && (
         <ImageBubbleToolbar
           quill={quill}
@@ -1174,6 +1181,3 @@ const SimpleImageHandler: React.FC<SimpleImageHandlerProps> = ({ quill }) => {
 };
 
 export default SimpleImageHandler;
-
-
-
