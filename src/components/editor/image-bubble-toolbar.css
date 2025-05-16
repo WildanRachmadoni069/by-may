@@ -1,5 +1,8 @@
+/**
+ * Toolbar yang muncul di dekat gambar saat dipilih
+ * Menampilkan kontrol untuk mengatur perataan dan menghapus gambar
+ */
 .image-bubble-toolbar {
-  position: absolute;
   display: flex;
   align-items: center;
   background-color: #ffffff;
@@ -7,19 +10,26 @@
   border-radius: 4px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   padding: 6px;
-  z-index: 5; /* Make sure it's above other content */
+  z-index: 5; /* Pastikan berada di atas konten lain */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
-  /* Make the toolbar fixed in position and not affected by parent scroll */
+  /* Posisi toolbar tetap dan tidak terpengaruh oleh scroll parent */
   position: fixed;
 }
 
+/**
+ * Status visible untuk toolbar saat gambar dipilih
+ */
 .image-bubble-toolbar.visible {
   opacity: 1;
   visibility: visible;
 }
 
+/**
+ * Tombol dalam toolbar gambar
+ * Digunakan untuk perataan kiri, tengah, kanan, dan penghapusan gambar
+ */
 .toolbar-button {
   display: flex;
   align-items: center;
@@ -36,24 +46,39 @@
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/**
+ * Status hover untuk tombol toolbar
+ */
 .toolbar-button:hover {
   background-color: #f1f5f9; /* slate-100 */
   color: #0f172a; /* slate-900 */
 }
 
+/**
+ * Status aktif untuk tombol toolbar (opsi yang terpilih)
+ */
 .toolbar-button.active {
   background-color: #e2e8f0; /* slate-200 */
   color: #0f172a; /* slate-900 */
 }
 
+/**
+ * Tombol hapus, diberi warna merah untuk menunjukkan aksi destruktif
+ */
 .toolbar-button.delete {
   color: #ef4444; /* red-500 */
 }
 
+/**
+ * Status hover untuk tombol hapus
+ */
 .toolbar-button.delete:hover {
   background-color: #fee2e2; /* red-100 */
 }
 
+/**
+ * Pembatas vertikal antara tombol-tombol perataan dan tombol hapus
+ */
 .toolbar-separator {
   width: 1px;
   height: 18px;
@@ -61,6 +86,9 @@
   margin: 0 4px;
 }
 
+/**
+ * Ikon dalam tombol toolbar
+ */
 .toolbar-icon {
   width: 16px;
   height: 16px;

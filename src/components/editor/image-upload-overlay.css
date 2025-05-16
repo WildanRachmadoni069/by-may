@@ -1,8 +1,12 @@
 /* 
-  Image upload overlay styles
-  Provides modern styling for the image upload overlay in Quill editor
+  Gaya overlay unggah gambar
+  Menyediakan tampilan modern untuk overlay saat mengunggah gambar di editor Quill
 */
 
+/**
+ * Container utama untuk overlay unggah gambar
+ * Menutupi seluruh editor saat proses unggah berlangsung
+ */
 .editor-image-upload-overlay {
   position: absolute;
   top: 0;
@@ -18,6 +22,10 @@
   backdrop-filter: blur(2px);
 }
 
+/**
+ * Konten dalam overlay
+ * Kotak dengan latar belakang putih yang berisi spinner dan teks
+ */
 .overlay-content {
   background-color: white;
   border-radius: 8px;
@@ -31,6 +39,10 @@
   min-width: 200px;
 }
 
+/**
+ * Container untuk spinner loading
+ * Memberikan ukuran konsisten dan penataan spinner
+ */
 .spinner-container {
   display: flex;
   align-items: center;
@@ -39,6 +51,10 @@
   height: 48px;
 }
 
+/**
+ * Spinner animasi berputar
+ * Menunjukkan proses unggahan sedang berlangsung
+ */
 .spinner {
   width: 32px;
   height: 32px;
@@ -48,6 +64,10 @@
   animation: spin 0.8s linear infinite;
 }
 
+/**
+ * Teks informasi pada overlay
+ * Memberitahu pengguna bahwa gambar sedang diunggah
+ */
 .overlay-text {
   font-weight: 500;
   color: #1e293b;
@@ -55,6 +75,10 @@
   text-align: center;
 }
 
+/**
+ * Animasi berputar untuk spinner
+ * Memberikan efek perputaran 360 derajat yang berulang
+ */
 @keyframes spin {
   to {
     transform: rotate(360deg);
