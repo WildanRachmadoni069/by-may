@@ -61,26 +61,39 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
   /** Mengambil state dialog dari store global */
   const { isDeleteDialogOpen, openDeleteDialog, closeDeleteDialog } =
     useEditorImageStore();
-
   /**
    * Menambahkan sedikit penundaan sebelum menampilkan toolbar
    * untuk mencegah toolbar berkedip-kedip
-   */
-  useEffect(() => {
-    if (selectedImage) {
+   */ useEffect(() => {
+    // Clear timeout jika ada
+    if (visibilityTimeoutRef.current) {
+      clearTimeout(visibilityTimeoutRef.current);
+    }
+
+    // Cek apakah ada gambar yang dipilih
+    if (
+      selectedImage &&
+      selectedImage.element &&
+      selectedImage.element.classList.contains("selected-image")
+    ) {
       visibilityTimeoutRef.current = setTimeout(() => {
         setIsVisible(true);
 
         // Mendapatkan perataan gambar saat ini ketika dipilih
-        if (selectedImage.leaf && selectedImage.leaf.domNode) {
-          const alignment = getCurrentImageAlignment(
-            selectedImage.leaf.domNode
-          );
+        let imgElement: HTMLElement | null = null;
+        if (selectedImage.element) {
+          imgElement = selectedImage.element;
+        } else if (selectedImage.leaf && selectedImage.leaf.domNode) {
+          imgElement = selectedImage.leaf.domNode as HTMLElement;
+        }
+
+        if (imgElement) {
+          const alignment = getCurrentImageAlignment(imgElement);
           setCurrentAlignment(alignment);
         }
       }, 100);
     } else {
-      clearTimeout(visibilityTimeoutRef.current);
+      // Jika tidak ada gambar yang dipilih atau highlight hilang, sembunyikan toolbar
       setIsVisible(false);
     }
 
@@ -112,16 +125,24 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedImage, quill, selectedImage?._updated]); // Include _updated timestamp to trigger repositioning
-
   // This function is called both on initial render and when alignment changes
   const updatePosition = () => {
-    if (!selectedImage || !selectedImage.leaf || !selectedImage.leaf.domNode) {
+    if (!selectedImage) {
       return;
     }
 
+    // Gunakan element jika leaf tidak tersedia
+    let imgElement: HTMLElement;
+    if (selectedImage.element) {
+      imgElement = selectedImage.element;
+    } else if (selectedImage.leaf && selectedImage.leaf.domNode) {
+      imgElement = selectedImage.leaf.domNode as HTMLElement;
+    } else {
+      console.error("[ImageBubbleToolbar] No valid image element found");
+      return;
+    }
     try {
-      // Get the image element
-      const imgElement = selectedImage.leaf.domNode;
+      // Gunakan imgElement yang sudah didefinisikan sebelumnya
       const imgRect = imgElement.getBoundingClientRect();
 
       // Get Quill bounds for accurate positioning
@@ -229,12 +250,24 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
   /**
    * Handler untuk proses penghapusan gambar setelah konfirmasi
    * Menghapus gambar dari Cloudinary jika URL gambar mengandung "cloudinary.com"
-   */
-  const handleConfirmDelete = async () => {
+   */ const handleConfirmDelete = async () => {
     try {
       // Jika gambar berasal dari Cloudinary, hapus juga dari Cloudinary
-      if (selectedImage && selectedImage.leaf && selectedImage.leaf.domNode) {
-        const imgElement = selectedImage.leaf.domNode;
+      let imgElement: HTMLElement | null = null;
+      if (selectedImage) {
+        if (selectedImage.element) {
+          imgElement = selectedImage.element;
+        } else if (selectedImage.leaf && selectedImage.leaf.domNode) {
+          imgElement = selectedImage.leaf.domNode as HTMLElement;
+        }
+      }
+
+      // Jalankan handler delete dari editor terlebih dahulu
+      // untuk memastikan isi editor diperbarui
+      onDeleteImage();
+
+      // Kemudian lanjutkan dengan penghapusan dari server jika diperlukan
+      if (imgElement) {
         const imgUrl = imgElement.getAttribute("src");
 
         if (imgUrl && imgUrl.includes("cloudinary.com")) {
@@ -267,8 +300,7 @@ const ImageBubbleToolbar: React.FC<ImageBubbleToolbarProps> = ({
             throw new Error("Respons penghapusan tidak valid");
           }
         }
-      } // Tetap jalankan handler delete dari editor
-      onDeleteImage();
+      }
 
       // Tutup dialog dan toolbar
       closeDeleteDialog();

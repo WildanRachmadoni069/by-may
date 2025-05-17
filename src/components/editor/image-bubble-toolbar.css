@@ -10,12 +10,13 @@
   border-radius: 4px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   padding: 6px;
-  z-index: 5; /* Pastikan berada di atas konten lain */
+  z-index: 50; /* Meningkatkan z-index untuk memastikan berada di atas konten lain */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   /* Posisi toolbar tetap dan tidak terpengaruh oleh scroll parent */
   position: fixed;
+  pointer-events: auto; /* Memastikan toolbar dapat menerima interaksi mouse */
 }
 
 /**
