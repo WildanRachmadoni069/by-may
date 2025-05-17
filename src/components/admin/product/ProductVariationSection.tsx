@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import { Plus, X, Ban, Check, Edit2, ImageIcon } from "lucide-react";
 import ImageUploadPreview from "@/components/admin/product/ImageUploadPreview";
+import Image from "next/image";
 
 /**
  * Menghapus gambar dari Cloudinary
@@ -111,10 +112,12 @@ const VariationPreview = ({
           >
             {index === 0 && option.imageUrl ? (
               <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-sm overflow-hidden relative">
-                <img
+                <Image
                   src={option.imageUrl}
                   alt={option.name}
-                  className="object-cover h-full w-full"
+                  className="object-cover"
+                  fill
+                  sizes="(max-width: 768px) 16px, 20px"
                 />
               </div>
             ) : index === 0 ? (

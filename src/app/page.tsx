@@ -1,12 +1,10 @@
-import ProductCollections from "@/components/general/ProductCollections";
-import ArticleCollection from "@/components/landingpage/ArticleCollection";
 import BannerLandingpage from "@/components/landingpage/BannerLandingpage";
 import HeroLandingpage from "@/components/landingpage/HeroLandingpage";
 import MainLayout from "@/components/layouts/MainLayout";
-import StructuredData from "@/components/seo/StructuredData";
-import { generateHomeStructuredData } from "@/lib/utils/performance";
-import { getProducts } from "@/lib/api/products";
+import SimpleStructuredData from "@/components/seo/SimpleStructuredData";
+import { generateLightHomeStructuredData } from "@/lib/utils/lightSeo";
 import type { Metadata } from "next";
+import HomeCollections from "@/components/landingpage/HomeCollections";
 
 /**
  * Metadata spesifik untuk halaman beranda
@@ -24,66 +22,30 @@ export const metadata: Metadata = {
   ],
 };
 
-export default async function Home() {
-  // Fetch products for structured data
-  const featuredProducts = await getProducts({
-    specialLabel: "best",
-    limit: 10,
-    includePriceVariants: true,
-  }).catch(() => ({ data: [] }));
+// Increase revalidation period to reduce build frequency
+export const revalidate = 86400; // 24 hours
 
-  const newProducts = await getProducts({
-    specialLabel: "new",
-    limit: 10,
-    includePriceVariants: true,
-  }).catch(() => ({ data: [] }));
+export default async function Home() {
+  // Use lightweight structured data that doesn't depend on fetched products
+  const lightStructuredData = generateLightHomeStructuredData();
+
   // Halaman home dengan metadata dan structured data optimasi SEO
   return (
     <MainLayout>
-      {/* Client component untuk JSON-LD structured data */}
-      <StructuredData
-        data={generateHomeStructuredData(
-          featuredProducts?.data || [],
-          newProducts?.data || []
-        )}
-      />
+      {/* Use lightweight structured data component */}
+      <SimpleStructuredData data={lightStructuredData} />
 
       {/* Main hero section dengan properti semantik yang tepat */}
       <HeroLandingpage />
       <BannerLandingpage />
 
-      {/* Section produk unggulan dengan atribut HTML semantik */}
-      <section
-        aria-labelledby="featured-products"
-        className="py-12"
-        itemScope
-        itemType="https://schema.org/CollectionPage"
-      >
-        <ProductCollections
-          title="Produk Unggulan"
-          specialLabel="best"
-          viewAllLink="/produk?specialLabel=best"
-        />
-      </section>
-
-      {/* Section produk terbaru dengan atribut HTML semantik */}
-      <section
-        aria-labelledby="new-products"
-        className="py-12"
-        itemScope
-        itemType="https://schema.org/CollectionPage"
-      >
-        <ProductCollections
-          title="Produk Terbaru"
-          specialLabel="new"
-          viewAllLink="/produk?specialLabel=new"
-        />
-      </section>
-
-      {/* Section artikel terbaru */}
-      <section aria-labelledby="latest-articles" className="py-12">
-        <ArticleCollection />
-      </section>
+      {/* Use the client component wrapper for collections */}
+      <HomeCollections
+        featuredProductsTitle="Produk Unggulan"
+        featuredProductsLink="/produk?specialLabel=best"
+        newProductsTitle="Produk Terbaru"
+        newProductsLink="/produk?specialLabel=new"
+      />
     </MainLayout>
   );
 }

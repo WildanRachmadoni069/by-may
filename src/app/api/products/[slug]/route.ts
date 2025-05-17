@@ -12,10 +12,10 @@ import { revalidatePath } from "next/cache";
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = await Promise.resolve(params);
+    const { slug } = await params;
 
     if (!slug) {
       return NextResponse.json({ error: "Slug is required" }, { status: 400 });
@@ -46,7 +46,7 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     // Verifikasi autentikasi
@@ -65,9 +65,8 @@ export async function PATCH(
         { status: 403 }
       );
     }
-
     const body = await req.json();
-    const { slug } = await Promise.resolve(params);
+    const { slug } = await params;
 
     const product = await ProductService.updateProduct(slug, body);
 
@@ -99,7 +98,7 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     // Verifikasi autentikasi
@@ -118,8 +117,7 @@ export async function DELETE(
         { status: 403 }
       );
     }
-
-    const { slug } = await Promise.resolve(params);
+    const { slug } = await params;
     const result = await ProductService.deleteProduct(slug);
 
     if (!result.success) {

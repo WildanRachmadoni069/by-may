@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import ImageUploadPreview from "@/components/admin/product/ImageUploadPreview";
-import QuillEditor from "@/components/editor/QuillEditor";
+import QuillEditor from "@/components/editor/DynamicQuillEditor";
 import { SPECIAL_LABELS } from "@/constants/product";
 import { slugify, createExcerptFromHtml } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";

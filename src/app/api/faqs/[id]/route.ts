@@ -9,11 +9,12 @@ import { revalidatePath } from "next/cache";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const faq = await prisma.fAQ.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!faq) {
@@ -36,7 +37,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Cek autentikasi admin menggunakan pendekatan yang sama dengan API products
@@ -71,9 +72,9 @@ export async function PATCH(
       );
     }
 
-    // Cek apakah FAQ ada
+    const { id } = await params;
     const existingFAQ = await prisma.fAQ.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingFAQ) {
@@ -88,9 +89,8 @@ export async function PATCH(
     if (question !== undefined) updateData.question = question;
     if (answer !== undefined) updateData.answer = answer;
     if (order !== undefined) updateData.order = order;
-
     const updatedFAQ = await prisma.fAQ.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     });
 
@@ -114,7 +114,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Cek autentikasi admin menggunakan pendekatan yang sama dengan API products
@@ -125,7 +125,6 @@ export async function DELETE(
         { status: 401 }
       );
     }
-
     const payload = verifyToken(token);
     if (!payload || payload.role !== "admin") {
       return NextResponse.json(
@@ -134,9 +133,11 @@ export async function DELETE(
       );
     }
 
+    const { id } = await params;
+
     // Cek apakah FAQ ada
     const existingFAQ = await prisma.fAQ.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingFAQ) {
@@ -144,11 +145,9 @@ export async function DELETE(
         { error: "FAQ tidak ditemukan" },
         { status: 404 }
       );
-    }
-
-    // Hapus FAQ
+    } // Hapus FAQ
     await prisma.fAQ.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     // Revalidate path seperti pada API products

@@ -38,6 +38,7 @@
   border-width: 0px;
   font-family: inherit;
   background-color: hsl(var(--card));
+  min-height: 250px;
 }
 
 /**

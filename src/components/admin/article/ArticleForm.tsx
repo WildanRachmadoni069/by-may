@@ -25,9 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ArticleData, ArticleFormData } from "@/types/article";
 import { useArticleStore } from "@/store/useArticleStore";
 
-const QuillEditor = dynamic(() => import("@/components/editor/QuillEditor"), {
-  ssr: false,
-});
+import MyEditorArticle from "@/components/editor/DynamicEditor";
 
 /**
  * Skema validasi untuk formulir artikel
@@ -355,12 +353,16 @@ export default function ArticleForm({ article }: ArticleFormProps) {
                 label="Konten"
                 tooltip="Isi utama artikel. Gunakan editor untuk memformat teks, menambah gambar, dan mengatur layout."
               />
-              <div className="h-[400px] relative">
-                <QuillEditor
+              <div>
+                <MyEditorArticle
                   ref={quillRef}
-                  value={formik.values.content}
-                  onChange={(value) => formik.setFieldValue("content", value)}
-                  className="h-full"
+                  defaultValue={formik.values.content}
+                  onTextChange={(delta, oldDelta, source) => {
+                    if (source === "user" && quillRef.current) {
+                      const content = quillRef.current.root.innerHTML;
+                      formik.setFieldValue("content", content);
+                    }
+                  }}
                 />
               </div>
               {formik.touched.content && formik.errors.content && (

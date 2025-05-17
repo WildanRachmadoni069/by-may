@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth/auth";
+import { verifyEdgeToken } from "@/lib/auth/edge-auth";
 
 /**
  * Middleware Autentikasi
@@ -12,7 +12,7 @@ import { verifyToken } from "@/lib/auth/auth";
  * @param {NextRequest} request - Permintaan masuk
  * @returns {NextResponse} Respons atau redirect
  */
-export default function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   // Get token from cookies
   const token = request.cookies.get("authToken")?.value;
 
@@ -42,7 +42,7 @@ export default function middleware(request: NextRequest) {
   // Handle login/signup pages - redirect to home if already logged in
   if (isAuthPage && token) {
     try {
-      const payload = verifyToken(token);
+      const payload = await verifyEdgeToken(token);
       if (payload) {
         // User is authenticated, redirect to home page
         url.pathname = "/";
@@ -64,7 +64,7 @@ export default function middleware(request: NextRequest) {
 
     try {
       // Verify token and check user role
-      const payload = verifyToken(token);
+      const payload = await verifyEdgeToken(token);
       if (!payload || payload.role !== "admin") {
         // If authenticated but not admin, redirect to home
         if (payload) {

@@ -5,13 +5,13 @@ import { ArticleService } from "@/lib/services/article-service";
 // Get a single article by slug
 export async function GET(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // Await params before using its properties
-    const resolvedParams = await params;
+    // Access the slug using the proper Promise-based approach
+    const { slug } = await params;
 
-    const article = await ArticleService.getArticleBySlug(resolvedParams.slug);
+    const article = await ArticleService.getArticleBySlug(slug);
 
     if (!article) {
       return NextResponse.json({ error: "Article not found" }, { status: 404 });
@@ -30,22 +30,18 @@ export async function GET(
 // Update an article
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // Await params before using its properties
-    const resolvedParams = await params;
+    const { slug } = await params;
 
     const body = await req.json();
 
-    const article = await ArticleService.updateArticle(
-      resolvedParams.slug,
-      body
-    );
+    const article = await ArticleService.updateArticle(slug, body);
 
     // Revalidate the paths to ensure fresh data
     revalidatePath("/artikel");
-    revalidatePath(`/artikel/${resolvedParams.slug}`);
+    revalidatePath(`/artikel/${slug}`);
     revalidatePath("/dashboard/admin/artikel");
 
     return NextResponse.json(article);
@@ -61,17 +57,16 @@ export async function PATCH(
 // Delete an article
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // Await params before using its properties
-    const resolvedParams = await params;
+    const { slug } = await params;
 
-    await ArticleService.deleteArticle(resolvedParams.slug);
+    await ArticleService.deleteArticle(slug);
 
     // Revalidate paths
     revalidatePath("/artikel");
-    revalidatePath(`/artikel/${resolvedParams.slug}`);
+    revalidatePath(`/artikel/${slug}`);
     revalidatePath("/dashboard/admin/artikel");
 
     return NextResponse.json({ success: true });

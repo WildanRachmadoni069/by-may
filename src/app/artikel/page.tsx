@@ -47,15 +47,15 @@ export const metadata: Metadata = {
 };
 
 interface ArticlePageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     search?: string;
-  };
+  }>;
 }
 
 export default async function ArticlePage({ searchParams }: ArticlePageProps) {
-  // Await searchParams untuk menghindari error "searchParams should be awaited"
-  const params = await Promise.resolve(searchParams);
+  // searchParams perlu di-await di Next.js 15
+  const params = await searchParams;
 
   // Parse parameter pencarian dengan nilai default
   const page = Number(params.page) || 1;

@@ -2,19 +2,17 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/auth";
 import { CollectionService } from "@/lib/services/collection-service";
 
-interface Props {
-  params: { id: string };
-}
-
 /**
  * GET /api/collections/[id]
  *
  * Mengambil koleksi berdasarkan ID
  */
-export async function GET(request: Request, { params }: Props) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     const collection = await CollectionService.getCollectionById(id);
 
     if (!collection) {
@@ -39,7 +37,10 @@ export async function GET(request: Request, { params }: Props) {
  *
  * Memperbarui koleksi (admin only)
  */
-export async function PATCH(request: Request, { params }: Props) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     // Check auth
     const token = request.headers
@@ -55,8 +56,7 @@ export async function PATCH(request: Request, { params }: Props) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     const data = await request.json();
 
     // Validate input
@@ -90,7 +90,10 @@ export async function PATCH(request: Request, { params }: Props) {
  *
  * Menghapus koleksi (admin only)
  */
-export async function DELETE(request: Request, { params }: Props) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     // Check auth
     const token = request.headers
@@ -106,8 +109,7 @@ export async function DELETE(request: Request, { params }: Props) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     await CollectionService.deleteCollection(id);
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -26,7 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 function MobileNav() {
   const [open, setOpen] = useState(false);
-  const { currentUser, userData, isAdmin } = useAuthStore();
+  const { currentUser, isAdmin } = useAuthStore();
   const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
 
   // Get initials from user's fullName
@@ -69,21 +69,22 @@ function MobileNav() {
                       <AccordionTrigger className="w-full p-2 rounded-md bg-slate-100 hover:bg-slate-200 hover:no-underline transition-colors">
                         {/* Gunakan info profil sebagai trigger accordion */}
                         <div className="flex items-center gap-3 w-full">
+                          {" "}
                           <Avatar className="h-10 w-10 border-2 border-primary/20">
                             <AvatarImage
                               src=""
-                              alt={userData?.fullName || "User"}
+                              alt={currentUser?.fullName || "User"}
                             />
                             <AvatarFallback className="bg-gradient-to-br from-primary/90 to-primary/70 text-white font-medium text-sm">
-                              {getInitials(userData?.fullName || "User")}
+                              {getInitials(currentUser?.fullName || "User")}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0 text-left">
                             <p className="font-medium text-sm truncate">
-                              {userData?.fullName || "User"}
+                              {currentUser?.fullName || "User"}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {userData?.email}
+                              {currentUser?.email}
                             </p>
                           </div>
                           {/* Chevron sudah ditangani oleh AccordionTrigger */}

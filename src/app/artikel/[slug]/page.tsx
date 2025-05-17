@@ -38,12 +38,11 @@ import StructuredData from "@/components/seo/StructuredData";
 
 // Menghasilkan metadata dinamis untuk setiap artikel
 export async function generateMetadata(
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  // Awaiting params untuk menghindari error TypeScript
-  const resolvedParams = await Promise.resolve(params);
-  const slug = resolvedParams.slug;
+  // Awaiting params untuk Next.js 15
+  const { slug } = await params;
 
   // Fetch data artikel
   const article = await getArticleAction(slug);
@@ -89,11 +88,10 @@ export async function generateMetadata(
 export default async function ArticleDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  // Awaiting params untuk menghindari error TypeScript
-  const resolvedParams = await Promise.resolve(params);
-  const slug = resolvedParams.slug;
+  // Awaiting params untuk Next.js 15
+  const { slug } = await params;
 
   // Fetch data artikel
   const article = await getArticleAction(slug);

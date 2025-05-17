@@ -2,13 +2,7 @@
 import React from "react";
 import ProductCard from "./ProductCard";
 import { Button } from "../ui/button";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Loader2,
-  ShoppingBag,
-  AlertCircle,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, ShoppingBag, AlertCircle } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -33,35 +27,8 @@ function ProductCollections({
   viewAllLink,
 }: ProductCollectionsProps) {
   const [carouselApi, setCarouselApi] = React.useState<CarouselApi>();
-  const [hasScrolled, setHasScrolled] = React.useState(false);
-
-  // Add intersection observer to detect when component is in viewport
-  const observerRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    // Setup intersection observer for lazy loading
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !hasScrolled) {
-          setHasScrolled(true);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerRef.current) {
-      observer.observe(observerRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observer.unobserve(observerRef.current);
-      }
-    };
-  }, [hasScrolled]);
 
   // Use SWR hook to fetch products with the given special label
-  // Only fetch if component is visible or has been scrolled to
   const {
     data: products,
     isLoading,
@@ -110,10 +77,7 @@ function ProductCollections({
     (!displayProducts || displayProducts.length === 0)
   ) {
     return (
-      <section
-        className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
-        ref={observerRef}
-      >
+      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <header className="flex items-center justify-between border-b-2 mb-4">
           <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
             {title}
@@ -133,13 +97,11 @@ function ProductCollections({
       </section>
     );
   }
+
   // Show error message if fetching failed
   if (error) {
     return (
-      <section
-        className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
-        ref={observerRef}
-      >
+      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <header className="border-b-2 mb-4">
           <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
             {title}
@@ -159,13 +121,11 @@ function ProductCollections({
       </section>
     );
   }
+
   // If no products found
   if (!displayProducts || displayProducts.length === 0) {
     return (
-      <section
-        className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
-        ref={observerRef}
-      >
+      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <header className="flex items-center justify-between border-b-2 mb-4">
           <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
             {title}
@@ -186,10 +146,10 @@ function ProductCollections({
       </section>
     );
   }
+
   return (
     <section
       className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
-      ref={observerRef}
       aria-labelledby={title.toLowerCase().replace(/\s+/g, "-")}
       itemScope
       itemType="https://schema.org/ItemList"

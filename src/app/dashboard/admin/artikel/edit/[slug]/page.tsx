@@ -26,11 +26,10 @@ const mapArticleToFormData = (article: any): ArticleData => {
 export default async function ArticleEditPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  // Make sure params is a non-promise object
-  const resolvedParams = params;
-  const { slug } = await resolvedParams;
+  // Awaiting params untuk Next.js 15
+  const { slug } = await params;
 
   // Use server action instead of direct database call or separate function
   const article = await getArticleAction(slug);

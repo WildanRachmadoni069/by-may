@@ -13,6 +13,9 @@ export interface FAQFormData {
   order?: number;
 }
 
+// Alias FAQFormValues to FAQFormData for backward compatibility
+export type FAQFormValues = FAQFormData;
+
 export interface FAQsResponse {
   faqs: FAQ[];
   pagination: {
@@ -27,4 +30,21 @@ export interface FAQFilters {
   page?: number;
   limit?: number;
   searchQuery?: string;
+}
+
+// Options for getting filtered FAQs
+export interface GetFAQsOptions {
+  searchQuery?: string;
+  itemsPerPage?: number;
+  page?: number;
+}
+
+// Response structure for filtered FAQs
+export interface FilteredFAQsResponse {
+  faqs: FAQ[];
+  pagination: {
+    page: number;
+    total: number;
+    hasMore: boolean;
+  };
 }

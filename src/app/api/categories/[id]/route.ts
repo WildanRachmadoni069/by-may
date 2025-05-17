@@ -2,19 +2,17 @@ import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/auth";
 import { CategoryService } from "@/lib/services/category-service";
 
-interface Props {
-  params: { id: string };
-}
-
 /**
  * GET /api/categories/[id]
  *
  * Mengambil kategori berdasarkan ID
  */
-export async function GET(request: Request, { params }: Props) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     const category = await CategoryService.getCategoryById(id);
 
     if (!category) {
@@ -39,7 +37,10 @@ export async function GET(request: Request, { params }: Props) {
  *
  * Memperbarui kategori (admin only)
  */
-export async function PATCH(request: Request, { params }: Props) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     // Check auth
     const token = request.headers
@@ -55,8 +56,7 @@ export async function PATCH(request: Request, { params }: Props) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     const data = await request.json();
 
     // Validate input
@@ -93,7 +93,10 @@ export async function PATCH(request: Request, { params }: Props) {
  *
  * Menghapus kategori (admin only)
  */
-export async function DELETE(request: Request, { params }: Props) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     // Check auth
     const token = request.headers
@@ -109,8 +112,7 @@ export async function DELETE(request: Request, { params }: Props) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const resolvedParams = await Promise.resolve(params);
-    const { id } = resolvedParams;
+    const { id } = await params;
     await CategoryService.deleteCategory(id);
     return NextResponse.json({ success: true });
   } catch (error) {

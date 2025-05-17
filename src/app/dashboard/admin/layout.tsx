@@ -26,7 +26,7 @@ import {
   ShoppingCart,
   Users,
   Newspaper,
-  Image,
+  Image as ImageIcon,
   HelpCircle,
   Search,
   Home,
@@ -304,7 +304,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                       isActive={pathname === "/dashboard/admin/banner"}
                     >
                       <Link href="/dashboard/admin/banner">
-                        <Image className="text-primary" />
+                        <ImageIcon className="text-primary" />
                         <span>Banner</span>
                       </Link>
                     </SidebarMenuButton>

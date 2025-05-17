@@ -8,10 +8,10 @@ import { CartService } from "@/lib/services/cart-service";
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
     const body = await req.json();
     const { quantity } = body;
 
@@ -64,10 +64,10 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await Promise.resolve(params);
+    const { id } = await params;
 
     // Dapatkan token dari cookie
     const token = req.cookies.get("authToken")?.value;

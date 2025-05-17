@@ -15,8 +15,11 @@ interface FAQState {
   loading: boolean;
   error: string | null;
   selectedFAQ: FAQ | null;
-  lastDoc: any;
-  hasMore: boolean;
+  pagination: {
+    page: number;
+    total: number;
+    hasMore: boolean;
+  };
 
   fetchFAQs: () => Promise<void>;
   fetchFilteredFAQs: (options: GetFAQsOptions) => Promise<void>;
@@ -36,8 +39,11 @@ export const useFaqStore = create<FAQState>((set, get) => ({
   loading: false,
   error: null,
   selectedFAQ: null,
-  lastDoc: null,
-  hasMore: true,
+  pagination: {
+    page: 1,
+    total: 0,
+    hasMore: false,
+  },
 
   fetchFAQs: async () => {
     set({ loading: true });
@@ -51,15 +57,13 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       set({ loading: false });
     }
   },
-
   fetchFilteredFAQs: async (options: GetFAQsOptions) => {
     set({ loading: true });
     try {
       const response = await getFilteredFAQs(options);
       set({
         faqs: response.faqs,
-        lastDoc: response.lastDoc,
-        hasMore: response.hasMore,
+        pagination: response.pagination,
         error: null,
       });
     } catch (error) {
@@ -71,21 +75,21 @@ export const useFaqStore = create<FAQState>((set, get) => ({
   },
 
   fetchMoreFAQs: async (options: GetFAQsOptions) => {
-    const { lastDoc, hasMore } = get();
+    const { pagination } = get();
 
-    if (!hasMore) return;
+    if (!pagination.hasMore) return;
 
     set({ loading: true });
     try {
+      const nextPage = pagination.page + 1;
       const response = await getFilteredFAQs({
         ...options,
-        lastDoc,
+        page: nextPage,
       });
 
       set((state) => ({
         faqs: [...state.faqs, ...response.faqs],
-        lastDoc: response.lastDoc,
-        hasMore: response.hasMore,
+        pagination: response.pagination,
         error: null,
       }));
     } catch (error) {

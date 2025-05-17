@@ -3,9 +3,10 @@ import { Metadata } from "next";
 import { ProductService } from "@/lib/services/product-service";
 import { createExcerptFromHtml } from "@/lib/utils";
 
+// Props untuk layout dengan Promise-based params sesuai Next.js 15
 interface Props {
   children: React.ReactNode;
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 // Define a proper type for the meta object to fix property access errors
@@ -15,9 +16,13 @@ interface ProductMeta {
   ogImage?: string;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   try {
-    const { slug } = await Promise.resolve(params);
+    const { slug } = await params;
     const product = await ProductService.getProductBySlug(slug);
 
     if (!product) {

@@ -1,5 +1,5 @@
 // SERVER-SIDE ONLY - do not import in client components
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client"; // Import Prisma namespace
 import type {
   FAQ,
@@ -10,7 +10,7 @@ import type {
 
 // Get all FAQs
 export async function getFAQs(): Promise<FAQ[]> {
-  const faqs = await prisma.fAQ.findMany({
+  const faqs = await db.fAQ.findMany({
     orderBy: { order: "asc" },
   });
 
@@ -21,7 +21,7 @@ export async function getFAQs(): Promise<FAQ[]> {
 export async function getFilteredFAQs(
   options: GetFAQsOptions
 ): Promise<FilteredFAQsResponse> {
-  const { searchQuery, itemsPerPage = 10 } = options;
+  const { searchQuery, itemsPerPage = 10, page = 1 } = options;
 
   // Use proper Prisma.QueryMode enum instead of string
   const where = searchQuery
@@ -43,24 +43,30 @@ export async function getFilteredFAQs(
       }
     : {};
 
-  const faqs = await prisma.fAQ.findMany({
+  const skip = (page - 1) * itemsPerPage;
+
+  const faqs = await db.fAQ.findMany({
     where,
     orderBy: { order: "asc" },
     take: itemsPerPage,
+    skip,
   });
 
-  const total = await prisma.fAQ.count({ where });
+  const total = await db.fAQ.count({ where });
 
   return {
     faqs: faqs.map(formatFaqResponse),
-    lastDoc: null, // No longer needed with SQL
-    hasMore: faqs.length < total,
+    pagination: {
+      page,
+      total,
+      hasMore: skip + faqs.length < total,
+    },
   };
 }
 
 // Get single FAQ by ID
 export async function getFAQ(id: string): Promise<FAQ | null> {
-  const faq = await prisma.fAQ.findUnique({
+  const faq = await db.fAQ.findUnique({
     where: { id },
   });
 
@@ -72,13 +78,13 @@ export async function getFAQ(id: string): Promise<FAQ | null> {
 // Create new FAQ
 export async function createFAQ(faqData: FAQFormValues): Promise<FAQ> {
   // Get max order to place new FAQ at the end
-  const maxOrderFaq = await prisma.fAQ.findFirst({
+  const maxOrderFaq = await db.fAQ.findFirst({
     orderBy: { order: "desc" },
   });
 
   const nextOrder = maxOrderFaq ? maxOrderFaq.order + 1 : 0;
 
-  const faq = await prisma.fAQ.create({
+  const faq = await db.fAQ.create({
     data: {
       ...faqData,
       order: nextOrder,
@@ -93,7 +99,7 @@ export async function updateFAQ(
   id: string,
   faqData: Partial<FAQFormValues>
 ): Promise<FAQ> {
-  const faq = await prisma.fAQ.update({
+  const faq = await db.fAQ.update({
     where: { id },
     data: faqData,
   });
@@ -103,7 +109,7 @@ export async function updateFAQ(
 
 // Delete FAQ
 export async function deleteFAQ(id: string): Promise<void> {
-  await prisma.fAQ.delete({
+  await db.fAQ.delete({
     where: { id },
   });
 }
@@ -113,9 +119,9 @@ export async function reorderFAQs(
   reorderedFAQs: { id: string; order: number }[]
 ): Promise<void> {
   // Create a transaction to update all FAQs at once
-  await prisma.$transaction(
+  await db.$transaction(
     reorderedFAQs.map(({ id, order }) =>
-      prisma.fAQ.update({
+      db.fAQ.update({
         where: { id },
         data: { order },
       })

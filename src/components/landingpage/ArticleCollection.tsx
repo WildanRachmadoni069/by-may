@@ -4,57 +4,27 @@ import { ArticleCard } from "@/components/general/ArticleCard";
 import { ArticleEmptyState } from "@/components/article/ArticleEmptyState";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
-import { getArticles } from "@/lib/api/articles";
-import { ArticleData } from "@/types/article";
+import { useArticles } from "@/hooks/useArticles";
 
 export default function ArticleCollection() {
-  const [articles, setArticles] = useState<ArticleData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use SWR hook to fetch articles
+  const {
+    data: articles,
+    isLoading,
+    error,
+  } = useArticles(
+    {
+      status: "published",
+      limit: 3,
+      sort: "desc", // Show newest first
+    },
+    {
+      // Disable automatic revalidation for better performance
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+    }
+  );
 
-  useEffect(() => {
-    // Memulai pengambilan data setelah komponen dimount
-    let isMounted = true;
-    const controller = new AbortController();
-
-    const fetchArticles = async () => {
-      try {
-        // Gunakan AbortController untuk membatalkan request jika komponen di-unmount
-        const response = await getArticles(
-          {
-            status: "published",
-            limit: 3,
-          },
-          controller.signal
-        );
-
-        // Hanya update state jika komponen masih mounted
-        if (isMounted) {
-          setArticles(response.data);
-        }
-      } catch (error: any) {
-        // Ignore abort errors which happen when the component is unmounted
-        if (error.name !== "AbortError" && isMounted) {
-          console.error("Error fetching articles:", error);
-          setError("Failed to load articles");
-          setArticles([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchArticles();
-
-    // Cleanup function untuk mencegah memory leak
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, []);
   // Show loading state
   if (isLoading) {
     return (
@@ -68,6 +38,7 @@ export default function ArticleCollection() {
       </div>
     );
   }
+
   // Show error state
   if (error) {
     return (
@@ -81,10 +52,12 @@ export default function ArticleCollection() {
       </div>
     );
   }
+
   // If there are no articles, show the empty state
   if (articles.length === 0) {
     return <ArticleEmptyState showHomeButton={false} />;
   }
+
   return (
     <section
       className="py-16 bg-gray-50"

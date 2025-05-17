@@ -2,20 +2,17 @@ import { NextResponse, NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth/auth";
 
-interface Params {
-  params: {
-    pageId: string;
-  };
-}
-
 /**
  * GET /api/seo/[pageId]
  *
  * Mendapatkan pengaturan SEO untuk halaman tertentu
  */
-export async function GET(_: NextRequest, { params }: Params) {
+export async function GET(
+  _: NextRequest,
+  { params }: { params: Promise<{ pageId: string }> }
+) {
   try {
-    const { pageId } = params;
+    const { pageId } = await params;
 
     if (!pageId) {
       return NextResponse.json(
@@ -49,20 +46,22 @@ export async function GET(_: NextRequest, { params }: Params) {
  *
  * Memperbarui pengaturan SEO untuk halaman tertentu
  */
-export async function PUT(req: NextRequest, { params }: Params) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ pageId: string }> }
+) {
   try {
     // Verifikasi autentikasi pengguna
     const token = req.cookies.get("authToken")?.value;
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     const user = verifyToken(token);
     if (!user || user.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { pageId } = params;
+    const { pageId } = await params;
     const data = await req.json();
 
     if (!pageId) {
@@ -112,20 +111,22 @@ export async function PUT(req: NextRequest, { params }: Params) {
  *
  * Menghapus pengaturan SEO untuk halaman tertentu
  */
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ pageId: string }> }
+) {
   try {
     // Verifikasi autentikasi pengguna
     const token = req.cookies.get("authToken")?.value;
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     const user = verifyToken(token);
     if (!user || user.role !== "admin") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { pageId } = params;
+    const { pageId } = await params;
 
     if (!pageId) {
       return NextResponse.json(
