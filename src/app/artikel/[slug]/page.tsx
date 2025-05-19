@@ -152,7 +152,9 @@ export default async function ArticleDetailPage({
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{article.title}</BreadcrumbPage>
+                <BreadcrumbPage className="max-w-[10rem] md:max-w-full line-clamp-1">
+                  {article.title}
+                </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

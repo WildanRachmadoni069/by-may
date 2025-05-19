@@ -68,12 +68,17 @@ export default function Footer() {
                 itemType="https://schema.org/PostalAddress"
               >
                 <MapPin className="w-4 h-4 mr-2 mt-1 flex-shrink-0" />
-                <span itemProp="addressLocality">Bogor</span>,{" "}
-                <span itemProp="addressRegion">Jawa Barat</span>,{" "}
-                <span itemProp="addressCountry">Indonesia</span>
+                <div className="flex flex-wrap">
+                  <span itemProp="addressLocality">Surabaya</span>,&nbsp;
+                  <span itemProp="addressRegion" className="text-nowrap">
+                    Jawa Timur
+                  </span>
+                  ,&nbsp;
+                  <span itemProp="addressCountry">Indonesia</span>
+                </div>
               </div>
             </div>
-          </div>{" "}
+          </div>
           {/* Products Column */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Produk Kami</h3>
