@@ -51,7 +51,6 @@
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #374151;
   line-height: 1.8;
-  padding: 1rem;
   min-height: 300px;
   outline: none;
   tab-size: 4;
@@ -69,6 +68,7 @@
 .quill-editor-container .ql-editor.ql-blank::before {
   font-style: normal;
   color: hsl(var(--muted-foreground));
+  /* padding-top: 1.28rem; */
 }
 
 /**
@@ -556,8 +556,7 @@
 
 /* Paragraphs */
 .quill-editor-container .ql-editor p {
-  margin-top: 1.5em;
-  margin-bottom: 1.5em;
+  margin-bottom: 1em;
   line-height: 1.8;
   font-size: 1rem;
 }
