@@ -68,7 +68,6 @@
 .quill-editor-container .ql-editor.ql-blank::before {
   font-style: normal;
   color: hsl(var(--muted-foreground));
-  /* padding-top: 1.28rem; */
 }
 
 /**
