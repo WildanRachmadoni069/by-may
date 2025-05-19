@@ -253,7 +253,7 @@ export default async function ArticleDetailPage({
               <ArticleAuthorCard
                 name={article.author?.name || "Admin"}
                 role="Penulis"
-                bio="Bekerja di By May Scarf, gemar menulis artikel seputar tips, inspirasi, dan pengetahuan tentang hijab dan fashion islami."
+                bio="Bekerja di By May Scarf, gemar menulis artikel seputar tips, inspirasi, dan pengetahuan tentang alquran dan fashion islami."
               />
             </footer>
           </div>

@@ -346,7 +346,6 @@ export default function ArticleForm({ article }: ArticleFormProps) {
                 </p>
               )}
             </div>
-
             <div className="space-y-2">
               <LabelWithTooltip
                 htmlFor="content"
@@ -356,8 +355,9 @@ export default function ArticleForm({ article }: ArticleFormProps) {
               <div>
                 <MyEditorArticle
                   ref={quillRef}
-                  defaultValue={formik.values.content}
+                  defaultValue={isEditMode ? formik.initialValues.content : ""}
                   onTextChange={(delta, oldDelta, source) => {
+                    // Hanya ubah nilai Formik jika perubahan berasal dari pengguna
                     if (source === "user" && quillRef.current) {
                       const content = quillRef.current.root.innerHTML;
                       formik.setFieldValue("content", content);

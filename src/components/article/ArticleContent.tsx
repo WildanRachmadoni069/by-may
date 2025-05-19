@@ -9,7 +9,10 @@ interface ArticleContentProps {
 export function ArticleContent({ content, className }: ArticleContentProps) {
   return (
     <div
-      className={cn("prose prose-slate max-w-none lg:prose-lg", className)}
+      className={cn(
+        "prose prose-zinc prose-a:text-primary hover:prose-a:text-primary/80 max-w-none lg:prose-lg",
+        className
+      )}
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );

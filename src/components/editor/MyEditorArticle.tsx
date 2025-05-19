@@ -98,7 +98,23 @@ const MyEditorArticle = forwardRef<Quill, MyEditorArticleProps>(
       if (quillRef.current) {
         quillRef.current.enable(!readOnly);
       }
-    }, [readOnly]);
+    }, [readOnly]); // Mengatur konten editor hanya saat komponen dimount atau setelah quill diinisialisasi
+    useEffect(() => {
+      if (
+        quillRef.current &&
+        defaultValue &&
+        typeof defaultValue === "string"
+      ) {
+        // Pastikan editor sudah diinisialisasi dan defaultValue adalah string
+        if (defaultValue.trim() !== "") {
+          // Hanya atur konten jika defaultValue tidak kosong
+          quillRef.current.root.innerHTML = defaultValue;
+        }
+      }
+      // Hapus defaultValue dari dependensi agar tidak dijalankan setiap kali defaultValue berubah
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     /**
      * Menangani proses penghapusan gambar dari editor
      */
@@ -242,9 +258,7 @@ const MyEditorArticle = forwardRef<Quill, MyEditorArticleProps>(
           quillRef.current?.setSelection(index, 1);
         }, 10);
       }
-    };
-
-    // Inisialisasi editor dan handler-nya
+    }; // Inisialisasi editor dan handler-nya
     useEffect(() => {
       const container = containerRef.current;
       if (!container) return;
@@ -291,14 +305,16 @@ const MyEditorArticle = forwardRef<Quill, MyEditorArticleProps>(
           },
         },
         placeholder: "Mulai menulis konten Anda di sini...",
-      });
-
-      // Store Quill instance
+      }); // Store Quill instance
       quillRef.current = quill;
 
-      // Set initial content
-      if (defaultValueRef.current) {
-        quill.setContents(defaultValueRef.current);
+      // Set initial content if available
+      if (
+        defaultValueRef.current &&
+        typeof defaultValueRef.current === "string" &&
+        defaultValueRef.current.trim() !== ""
+      ) {
+        quill.root.innerHTML = defaultValueRef.current;
       }
 
       // Forward ref
