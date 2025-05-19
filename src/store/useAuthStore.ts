@@ -143,11 +143,11 @@ const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const data = await response.json();
-
       set({
         currentUser: data.user,
         isAdmin: data.user.role === "admin",
         loading: false,
+        initialized: true,
       });
     } catch (error) {
       set({ loading: false });

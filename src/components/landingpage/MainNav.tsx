@@ -25,6 +25,7 @@ import {
 import { LogOut } from "lucide-react";
 import { useLogoutDialog } from "@/components/dashboard/LogoutDialog";
 import useAuthStore from "@/store/useAuthStore";
+import { cn } from "@/lib/utils";
 
 // Dynamically import CartButton with no SSR
 const CartButton = dynamic(() => import("./CartButton"), { ssr: false });
@@ -70,55 +71,61 @@ function MainNav() {
             <nav aria-label="Global">
               <NavigationMenu>
                 <NavigationMenuList>
+                  {" "}
                   <NavigationMenuItem>
-                    <Link href="/" legacyBehavior passHref>
-                      <NavigationMenuLink
-                        active={pathName == "/"}
-                        className={navigationMenuTriggerStyle()}
-                      >
-                        Beranda
-                      </NavigationMenuLink>
-                    </Link>
+                    <NavigationMenuLink
+                      asChild
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        pathName === "/" && "bg-accent font-bold"
+                      )}
+                    >
+                      <Link href="/">Beranda</Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="/produk" legacyBehavior passHref>
-                      <NavigationMenuLink
-                        active={pathName == "/produk"}
-                        className={navigationMenuTriggerStyle()}
-                      >
-                        Produk
-                      </NavigationMenuLink>
-                    </Link>
+                    <NavigationMenuLink
+                      asChild
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        pathName === "/produk" && "bg-accent font-bold"
+                      )}
+                    >
+                      <Link href="/produk">Produk</Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="/artikel" legacyBehavior passHref>
-                      <NavigationMenuLink
-                        active={pathName.includes("/artikel")}
-                        className={navigationMenuTriggerStyle()}
-                      >
-                        Artikel
-                      </NavigationMenuLink>
-                    </Link>
+                    <NavigationMenuLink
+                      asChild
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        pathName.includes("/artikel") && "bg-accent font-bold"
+                      )}
+                    >
+                      <Link href="/artikel">Artikel</Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="/tentang-kami" legacyBehavior passHref>
-                      <NavigationMenuLink
-                        active={pathName == "/tentang-kami"}
-                        className={navigationMenuTriggerStyle()}
-                      >
-                        Tentang Kami
-                      </NavigationMenuLink>
-                    </Link>
+                    <NavigationMenuLink
+                      asChild
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        pathName === "/tentang-kami" && "bg-accent font-bold"
+                      )}
+                    >
+                      <Link href="/tentang-kami">Tentang Kami</Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
-                    <Link href="/faq" legacyBehavior passHref>
-                      <NavigationMenuLink
-                        active={pathName == "/faq"}
-                        className={navigationMenuTriggerStyle()}
-                      >
-                        FAQ
-                      </NavigationMenuLink>
-                    </Link>
+                    <NavigationMenuLink
+                      asChild
+                      className={cn(
+                        navigationMenuTriggerStyle(),
+                        pathName === "/faq" && "bg-accent font-bold"
+                      )}
+                    >
+                      <Link href="/faq">FAQ</Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                 </NavigationMenuList>
               </NavigationMenu>

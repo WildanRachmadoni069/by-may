@@ -50,14 +50,18 @@ export function LoginForm({
           password: values.password,
         });
 
+        // Make sure our auth state is fully updated
+        const checkAuth = useAuthStore.getState().checkAuth;
+        await checkAuth();
+
         toast({
           title: "Login berhasil",
           description: "Selamat datang kembali!",
         });
 
         // Redirect to the requested page or homepage
-        router.push(redirectPath);
-        router.refresh();
+        // Use replace instead of push for cleaner history
+        router.replace(redirectPath);
       } catch (error) {
         console.error("Error signing in:", error);
 
