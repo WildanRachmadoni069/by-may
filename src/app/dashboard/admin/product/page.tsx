@@ -131,8 +131,6 @@ function AdminProductList() {
 
   // Handle search button click
   const handleSearch = () => {
-    console.log(`Executing search for: "${searchQuery}"`);
-
     // If search is empty but there's a previous search filter, reset
     if (searchQuery === "" && filters.searchQuery) {
       handleResetSearch();
@@ -150,7 +148,6 @@ function AdminProductList() {
 
   // Reset search filter
   const handleResetSearch = () => {
-    console.log("Clearing search filter");
     setSearchQuery("");
 
     // Keep other filters, just remove the search query

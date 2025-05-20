@@ -57,14 +57,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Log untuk debugging
-      console.log(`[API] Deleting image from Cloudinary with ID: ${imageId}`);
-
       // Hapus dari Cloudinary
       const result = await cloudinary.uploader.destroy(imageId!);
-
-      console.log(`[API] Cloudinary delete result:`, result);
-
       return NextResponse.json({
         success: true,
         result,

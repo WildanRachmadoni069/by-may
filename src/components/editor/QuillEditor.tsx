@@ -159,7 +159,6 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
 
               // Only need the secure_url for embedding the image
               if (data.secure_url) {
-                console.log("Image uploaded successfully:", data);
                 toast({
                   title: "Gambar berhasil diupload",
                   variant: "default",
@@ -316,8 +315,6 @@ const QuillEditor = forwardRef<Quill, QuillEditorProps>(
                   description: "Gambar telah dihapus dari artikel",
                   variant: "default",
                 });
-
-                console.log("Image deleted:", imgSrc);
               }
             });
           });

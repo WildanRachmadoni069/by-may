@@ -214,32 +214,23 @@ export default function ProductDetail() {
         setCurrentPrice(priceVariant.price);
         setCurrentStock(priceVariant.stock);
         setSelectedPriceVariant(priceVariant);
-        console.log("Found price variant:", priceVariant);
       } else {
         // Reset to show price range if no matching price variant found
         setCurrentPrice(null);
         setCurrentStock(null);
         setSelectedPriceVariant(null);
-        console.log(
-          "No matching price variant found for options:",
-          selectedOpts
-        );
       }
     } else {
       // If not all variations are selected, show price range
       setCurrentPrice(null);
       setCurrentStock(null);
       setSelectedPriceVariant(null);
-      console.log("Not all variations selected:", selectedOpts);
     }
   };
 
   // Update price and stock when selected options change
   useEffect(() => {
     updatePriceAndStock(selectedOptions);
-    // Debug logs
-    console.log("Selected Options:", selectedOptions);
-    console.log("Current Price:", currentPrice);
   }, [selectedOptions]);
 
   // Handle option selection

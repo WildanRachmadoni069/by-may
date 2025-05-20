@@ -136,7 +136,6 @@ export const ProductService = {
     // Perbaikan implementasi pencarian
     if (search && search.trim() !== "") {
       const searchTerm = search.trim();
-      console.log(`Processing search term: "${searchTerm}"`);
 
       where.OR = [
         { name: { contains: searchTerm, mode: "insensitive" } },
@@ -158,9 +157,6 @@ export const ProductService = {
     if (specialLabel && specialLabel !== "all") {
       where.specialLabel = specialLabel;
     }
-
-    // Log filter lengkap untuk debugging
-    console.log("Database filter query:", JSON.stringify(where, null, 2));
 
     // Tentukan pengurutan default
     const orderBy: any = {};
@@ -254,20 +250,6 @@ export const ProductService = {
           }
         });
       }
-
-      // Log hasil pencarian
-      if (search) {
-        console.log(
-          `Database query found ${products.length} products matching "${search}"`
-        );
-        if (products.length > 0) {
-          console.log(
-            "Product names found:",
-            products.map((p) => p.name)
-          );
-        }
-      }
-
       // Dapatkan jumlah total untuk paginasi
       const total = await db.product.count({ where });
 
@@ -584,12 +566,6 @@ export const ProductService = {
     }
 
     try {
-      // Log data untuk debugging
-      console.log(
-        "Updating product with data:",
-        JSON.stringify(updateData, null, 2)
-      );
-
       // Perbarui produk dasar dalam transaksi
       // Gunakan transaksi untuk memastikan semua perubahan berhasil atau gagal bersama-sama
       const updatedProduct = await db.$transaction(async (tx) => {

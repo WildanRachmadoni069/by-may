@@ -20,18 +20,6 @@ export async function GET(req: NextRequest) {
     // Tambahkan parameter untuk mengambil priceVariants
     const includePriceVariants =
       searchParams.get("includePriceVariants") === "true";
-
-    // Log untuk debugging
-    console.log("API - Search Parameters:", {
-      search,
-      categoryId,
-      collectionId,
-      specialLabel,
-      page,
-      limit,
-      sortBy,
-    });
-
     const options = {
       page,
       limit,
@@ -40,17 +28,10 @@ export async function GET(req: NextRequest) {
       collectionId,
       specialLabel,
       sortBy,
-      includePriceVariants, // Tambahkan parameter ini
+      includePriceVariants,
     };
 
     const products = await ProductService.getProducts(options);
-
-    // Log hasil pencarian untuk debugging
-    console.log(
-      `API - Found ${products.data.length || 0} products out of ${
-        products.pagination.total || 0
-      } total with search: "${search || ""}"`
-    );
 
     return NextResponse.json(products);
   } catch (error) {

@@ -43,11 +43,7 @@ export function useEditorImageDelete() {
   const deleteImageByUrl = async (imageUrl: string) => {
     try {
       setIsDeleting(true);
-      console.log("[useEditorImageDelete] Deleting image by URL:", imageUrl);
-
       const result = await trigger({ imageUrl });
-      console.log("[useEditorImageDelete] Delete result:", result);
-
       return result;
     } catch (error) {
       console.error(

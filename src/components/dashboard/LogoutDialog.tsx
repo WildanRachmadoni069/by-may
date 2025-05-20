@@ -43,7 +43,6 @@ export function LogoutDialog() {
       setOpen(false);
 
       // Force a complete page reload to clear all state and ensure clean logout
-      console.log("Logout successful, redirecting to home");
       window.location.href = "/";
     } catch (error) {
       console.error("Error logging out:", error);

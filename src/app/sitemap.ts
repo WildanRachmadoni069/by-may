@@ -1,16 +1,24 @@
 import { MetadataRoute } from "next";
 import { Product } from "@/types/product";
+import { ArticleData } from "@/types/article";
+import { ProductService } from "@/lib/services/product-service";
+import { ArticleService } from "@/lib/services/article-service";
 
 // Get dynamic routes for products
 async function getProductRoutes() {
-  // Replace with your actual data fetching logic
-  // This is a placeholder implementation
   try {
-    // If you have a service to fetch products, use it here
-    // const products = await fetchProducts();
-    const products: Product[] = [];
+    // Gunakan ProductService langsung alih-alih API layer
+    const result = await ProductService.getProducts({
+      limit: 100, // Ambil lebih banyak produk untuk sitemap
+      includePriceVariants: false, // Tidak perlu data harga untuk sitemap
+    });
+
+    const products: Product[] = result.data;
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com"; // Fallback
+
     return products.map((product) => ({
-      url: `https://bymayscarf.com/produk/${product.slug}`,
+      url: `${siteUrl}/produk/${product.slug}`,
       lastModified: product.updatedAt || new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.8,
@@ -23,18 +31,19 @@ async function getProductRoutes() {
 
 // Get dynamic routes for articles
 async function getArticleRoutes() {
-  // Replace with your actual data fetching logic
-  // This is a placeholder implementation
   try {
-    // If you have a service to fetch articles, use it here
-    // const articles = await fetchArticles();
-    const articles: {
-      slug: string;
-      updatedAt?: string;
-      publishedAt?: string;
-    }[] = [];
+    // Gunakan ArticleService langsung alih-alih API layer
+    const result = await ArticleService.getArticles({
+      limit: 100, // Ambil lebih banyak artikel untuk sitemap
+      status: "published", // Hanya artikel yang dipublish yang perlu disertakan
+    });
+
+    const articles: ArticleData[] = result.data;
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com"; // Fallback
+
     return articles.map((article) => ({
-      url: `https://bymayscarf.com/artikel/${article.slug}`,
+      url: `${siteUrl}/artikel/${article.slug}`,
       lastModified: article.updatedAt || article.publishedAt || new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.7,
@@ -46,33 +55,34 @@ async function getArticleRoutes() {
 }
 
 // Define static routes
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com"; // Fallback
 const staticRoutes: MetadataRoute.Sitemap = [
   {
-    url: "https://bymayscarf.com",
+    url: `${siteUrl}`,
     lastModified: new Date(),
     changeFrequency: "daily",
     priority: 1.0,
   },
   {
-    url: "https://bymayscarf.com/tentang-kami",
+    url: `${siteUrl}/tentang-kami`,
     lastModified: new Date(),
     changeFrequency: "monthly",
     priority: 0.5,
   },
   {
-    url: "https://bymayscarf.com/produk",
+    url: `${siteUrl}/produk`,
     lastModified: new Date(),
     changeFrequency: "daily",
     priority: 0.9,
   },
   {
-    url: "https://bymayscarf.com/artikel",
+    url: `${siteUrl}/artikel`,
     lastModified: new Date(),
     changeFrequency: "weekly",
     priority: 0.7,
   },
   {
-    url: "https://bymayscarf.com/faq",
+    url: `${siteUrl}/faq`,
     lastModified: new Date(),
     changeFrequency: "monthly",
     priority: 0.6,
