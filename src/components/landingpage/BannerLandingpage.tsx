@@ -56,7 +56,7 @@ function BannerLandingpage() {
   if (activeBanners.length === 0) return null;
   return (
     <section
-      className="w-full py-6"
+      className="w-full py-1"
       aria-labelledby="promotion-banners"
       itemScope
       itemType="https://schema.org/WebPageElement"
@@ -65,7 +65,7 @@ function BannerLandingpage() {
       <h2 className="sr-only" id="promotion-banners">
         Promosi dan Penawaran Spesial
       </h2>
-      <div className="container mx-auto">
+      <div className="container mx-auto px-4 lg:px-8">
         <Carousel
           opts={{
             align: "center",

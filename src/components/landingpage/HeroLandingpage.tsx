@@ -6,7 +6,7 @@ import { Button } from "../ui/button";
 function HeroLandingpage() {
   return (
     <section
-      className="bg-neutral-lighter py-12 lg:py-16 min-h-[70vh] flex items-center"
+      className="bg-neutral-lighter py-12 lg:py-16 min-h-[100vh] flex items-center"
       aria-label="Pengenalan produk"
       itemScope
       itemType="https://schema.org/WebPageElement"

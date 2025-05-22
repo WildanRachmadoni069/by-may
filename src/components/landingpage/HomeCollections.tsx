@@ -31,7 +31,7 @@ export default function HomeCollections({
       {/* Section produk unggulan */}
       <section
         aria-labelledby="featured-products"
-        className="py-12"
+        className="py-4"
         itemScope
         itemType="https://schema.org/CollectionPage"
       >
@@ -39,13 +39,12 @@ export default function HomeCollections({
           title={featuredProductsTitle}
           specialLabel="best"
           viewAllLink={featuredProductsLink}
-        />
+        />{" "}
       </section>
-
       {/* Section produk terbaru */}
       <section
         aria-labelledby="new-products"
-        className="py-12"
+        className="py-4"
         itemScope
         itemType="https://schema.org/CollectionPage"
       >
@@ -53,11 +52,10 @@ export default function HomeCollections({
           title={newProductsTitle}
           specialLabel="new"
           viewAllLink={newProductsLink}
-        />
+        />{" "}
       </section>
-
       {/* Section artikel terbaru */}
-      <section aria-labelledby="latest-articles" className="py-12">
+      <section aria-labelledby="latest-articles" className="py-4">
         <ArticleCollection />
       </section>
     </>

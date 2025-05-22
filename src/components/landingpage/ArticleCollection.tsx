@@ -23,28 +23,25 @@ export default function ArticleCollection() {
       revalidateOnFocus: false,
       revalidateIfStale: false,
     }
-  );
-
-  // Show loading state
+  ); // Show loading state
   if (isLoading) {
     return (
-      <div className="py-16 bg-gray-50">
+      <div className="py-6 bg-gray-50">
         <div className="container px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mx-auto text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Artikel Terbaru</h2>
+          <div className="max-w-2xl mx-auto text-center mb-6">
+            <h2 className="text-3xl font-bold mb-3">Artikel Terbaru</h2>
             <p className="text-gray-600">Memuat artikel...</p>
           </div>
         </div>
       </div>
     );
   }
-
   // Show error state
   if (error) {
     return (
-      <div className="py-16 bg-gray-50">
+      <div className="py-6 bg-gray-50">
         <div className="container px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mx-auto text-center mb-12">
+          <div className="max-w-2xl mx-auto text-center mb-6">
             <h2 className="text-3xl font-bold mb-4">Artikel Terbaru</h2>
             <p className="text-red-500">Gagal memuat artikel</p>
           </div>
@@ -57,16 +54,16 @@ export default function ArticleCollection() {
   if (articles.length === 0) {
     return <ArticleEmptyState showHomeButton={false} />;
   }
-
   return (
     <section
-      className="py-16 bg-gray-50"
+      className="py-6 bg-gray-50"
       aria-labelledby="latest-articles"
       itemScope
       itemType="https://schema.org/Collection"
     >
+      {" "}
       <div className="container px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto text-center mb-12">
+        <div className="max-w-2xl mx-auto text-center mb-6">
           <h2
             id="latest-articles"
             className="text-3xl font-bold mb-4"
@@ -78,10 +75,9 @@ export default function ArticleCollection() {
             Jelajahi artikel-artikel inspiratif seputar Al-Qur'an dan kehidupan
             islami
           </p>
-        </div>
-
+        </div>{" "}
         <div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-8"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6"
           itemProp="hasPart"
           itemScope
           itemType="https://schema.org/ItemList"
@@ -108,7 +104,6 @@ export default function ArticleCollection() {
             </div>
           ))}
         </div>
-
         <div className="text-center">
           <Link href="/artikel" aria-label="Lihat semua artikel blog">
             <Button variant="outline" size="lg">

@@ -70,16 +70,15 @@ function ProductCollections({
     specialLabel === "new" && (!products || products.length === 0)
       ? newestProducts
       : products;
-
   // Show loading skeletons when fetching data
   if (
     (isLoading || (specialLabel === "new" && isLoadingNewest)) &&
     (!displayProducts || displayProducts.length === 0)
   ) {
     return (
-      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <header className="flex items-center justify-between border-b-2 mb-4">
-          <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
+      <section className="container px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <header className="flex items-center justify-between border-b-2 mb-3">
+          <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-3 -mb-1">
             {title}
           </h2>
         </header>
@@ -97,13 +96,12 @@ function ProductCollections({
       </section>
     );
   }
-
   // Show error message if fetching failed
   if (error) {
     return (
-      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <header className="border-b-2 mb-4">
-          <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
+      <section className="container px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <header className="border-b-2 mb-3">
+          <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-3 -mb-1">
             {title}
           </h2>
         </header>
@@ -121,13 +119,12 @@ function ProductCollections({
       </section>
     );
   }
-
   // If no products found
   if (!displayProducts || displayProducts.length === 0) {
     return (
-      <section className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <header className="flex items-center justify-between border-b-2 mb-4">
-          <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1">
+      <section className="container px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+        <header className="flex items-center justify-between border-b-2 mb-3">
+          <h2 className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-3 -mb-1">
             {title}
           </h2>
         </header>
@@ -146,23 +143,22 @@ function ProductCollections({
       </section>
     );
   }
-
   return (
     <section
-      className="container px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
+      className="container px-4 py-4 sm:px-6 sm:py-6 lg:px-8"
       aria-labelledby={title.toLowerCase().replace(/\s+/g, "-")}
       itemScope
       itemType="https://schema.org/ItemList"
     >
-      <header className="flex items-center justify-between border-b-2 mb-4">
+      <header className="flex items-center justify-between border-b-2 mb-3">
         <h2
           id={title.toLowerCase().replace(/\s+/g, "-")}
-          className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-4 -mb-1"
+          className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-3 -mb-1"
           itemProp="name"
         >
-          {title}
+          {title}{" "}
         </h2>
-        <div className="flex items-center gap-2 pb-4">
+        <div className="flex items-center gap-2 pb-3">
           <Button
             variant="primary"
             className="rounded-full hidden sm:flex"

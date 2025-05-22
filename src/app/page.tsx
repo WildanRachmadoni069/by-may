@@ -28,24 +28,25 @@ export const revalidate = 86400; // 24 hours
 export default async function Home() {
   // Use lightweight structured data that doesn't depend on fetched products
   const lightStructuredData = generateLightHomeStructuredData();
-
   // Halaman home dengan metadata dan structured data optimasi SEO
   return (
     <MainLayout>
       {/* Use lightweight structured data component */}
-      <SimpleStructuredData data={lightStructuredData} />
-
+      <SimpleStructuredData data={lightStructuredData} />{" "}
       {/* Main hero section dengan properti semantik yang tepat */}
-      <HeroLandingpage />
-      <BannerLandingpage />
-
+      <div>
+        <HeroLandingpage />
+        <BannerLandingpage />
+      </div>
       {/* Use the client component wrapper for collections */}
-      <HomeCollections
-        featuredProductsTitle="Produk Unggulan"
-        featuredProductsLink="/produk?specialLabel=best"
-        newProductsTitle="Produk Terbaru"
-        newProductsLink="/produk?specialLabel=new"
-      />
+      <div className="mt-0">
+        <HomeCollections
+          featuredProductsTitle="Produk Unggulan"
+          featuredProductsLink="/produk?specialLabel=best"
+          newProductsTitle="Produk Terbaru"
+          newProductsLink="/produk?specialLabel=new"
+        />
+      </div>
     </MainLayout>
   );
 }
