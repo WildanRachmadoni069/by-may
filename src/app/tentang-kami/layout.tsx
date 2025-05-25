@@ -15,7 +15,8 @@ import React from "react";
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const seoData = await getSeoData("about");
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://bymay.id";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
     const canonicalUrl = `${baseUrl}/tentang-kami`;
 
     // Organization structured data
@@ -23,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
       "@context": "https://schema.org",
       "@type": "Organization",
       name: "CV Faza Mega Berlian",
-      alternateName: "By May Scarf",
+      alternateName: "bymayscarf",
       url: baseUrl,
       logo: `${baseUrl}/img/Logo.jpg`,
       description:
@@ -36,8 +37,8 @@ export async function generateMetadata(): Promise<Metadata> {
       },
       foundingDate: "2019",
       sameAs: [
-        "https://instagram.com/bymay.id",
-        "https://facebook.com/bymay.id",
+        "https://instagram.com/by.mayofficial",
+        "https://facebook.com/by.mayofficial",
       ],
     };
 
@@ -65,12 +66,12 @@ export async function generateMetadata(): Promise<Metadata> {
     const articleStructuredData = {
       "@context": "https://schema.org",
       "@type": "Article",
-      headline: "Tentang CV Faza Mega Berlian (By May Scarf)",
+      headline: "Tentang CV Faza Mega Berlian (bymayscarf)",
       description:
         "Sejak 2019, CV Faza Mega Berlian telah menjadi pionir dalam menyediakan Al-Qur'an custom cover dan perlengkapan ibadah berkualitas dengan harga terjangkau di Surabaya.",
       publisher: {
         "@type": "Organization",
-        name: "By May Scarf",
+        name: "bymayscarf",
         logo: {
           "@type": "ImageObject",
           url: `${baseUrl}/img/Logo.jpg`,
@@ -93,19 +94,19 @@ export async function generateMetadata(): Promise<Metadata> {
             url: seoData.ogImage,
             width: 1200,
             height: 630,
-            alt: "CV Faza Mega Berlian (By May Scarf)",
+            alt: "CV Faza Mega Berlian (bymayscarf)",
           },
         ]
       : undefined;
 
     return {
-      title: seoData?.title || "Tentang Kami | By May Scarf",
+      title: seoData?.title || "Tentang Kami | bymayscarf",
       description:
         seoData?.description ||
-        "CV Faza Mega Berlian (By May Scarf) adalah pionir dalam menyediakan Al-Quran custom cover dan perlengkapan ibadah berkualitas di Surabaya sejak 2019. Ketahui lebih lanjut tentang visi, misi, dan komitmen kami.",
+        "CV Faza Mega Berlian (bymayscarf) adalah pionir dalam menyediakan Al-Quran custom cover dan perlengkapan ibadah berkualitas di Surabaya sejak 2021. Ketahui lebih lanjut tentang visi, misi, dan komitmen kami.",
       keywords:
         seoData?.keywords ||
-        "CV Faza Mega Berlian, By May Scarf, tentang kami, Al-Quran custom cover Surabaya, perlengkapan ibadah, visi misi perusahaan",
+        "CV Faza Mega Berlian, bymayscarf, tentang kami, Al-Quran custom cover Surabaya, perlengkapan ibadah, visi misi perusahaan",
       alternates: {
         canonical: canonicalUrl,
       },
@@ -118,13 +119,13 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       },
       openGraph: {
-        title: seoData?.title || "Tentang CV Faza Mega Berlian | By May Scarf",
+        title: seoData?.title || "Tentang CV Faza Mega Berlian | bymayscarf",
         description:
           seoData?.description ||
           "Pionir Al-Quran custom cover dan perlengkapan ibadah berkualitas di Surabaya sejak 2019",
         type: "website",
         url: canonicalUrl,
-        siteName: "By May Scarf",
+        siteName: "bymayscarf",
         locale: "id_ID",
         images: ogImage,
       },
@@ -135,9 +136,9 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
-      title: "Tentang Kami | By May Scarf",
+      title: "Tentang Kami | bymayscarf",
       description:
-        "By May Scarf adalah spesialis Al-Quran custom nama dan perlengkapan ibadah berkualitas di Surabaya. Ketahui lebih lanjut tentang kami.",
+        "bymayscarf adalah spesialis Al-Quran custom nama dan perlengkapan ibadah berkualitas di Surabaya. Ketahui lebih lanjut tentang kami.",
     };
   }
 }

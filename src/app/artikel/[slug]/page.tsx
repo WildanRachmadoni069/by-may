@@ -72,22 +72,20 @@ export async function generateMetadata(
         article.meta?.description ||
         article.excerpt ||
         `Baca artikel ${article.title} di By May Scarf`,
-      keywords: ["artikel islami", "by may scarf", article.title],
+      keywords: ["artikel islami", "bymayscarf", article.title],
       authors: article.author
         ? [{ name: article.author.name }]
-        : [{ name: "By May Scarf" }],
+        : [{ name: "bymayscarf" }],
       openGraph: {
         title: article.meta?.title || article.title,
         description:
           article.meta?.description ||
           article.excerpt ||
-          `Baca artikel ${article.title} di By May Scarf`,
+          `Baca artikel ${article.title} di bymayscarf`,
         type: "article",
         publishedTime: publishDate?.toString(),
         modifiedTime: modifyDate?.toString(),
-        authors: article.author?.name
-          ? [article.author.name]
-          : ["By May Scarf"],
+        authors: article.author?.name ? [article.author.name] : ["bymayscarf"],
         images: [
           {
             url: imageUrl,
@@ -105,7 +103,7 @@ export async function generateMetadata(
           article.excerpt ||
           `Baca artikel ${article.title} di By May Scarf`,
         images: [imageUrl],
-        creator: "@bymay_id",
+        creator: "@by.mayofficial",
       },
       alternates: {
         canonical: `${baseUrl}/artikel/${article.slug}`,

@@ -3,7 +3,8 @@ import { BsInstagram, BsWhatsapp, BsTiktok } from "react-icons/bs";
 import Image from "next/image";
 
 export default function Footer() {
-  return (    <footer
+  return (
+    <footer
       className="bg-background border-t border-border relative"
       itemScope
       itemType="https://schema.org/WPFooter"
@@ -11,12 +12,16 @@ export default function Footer() {
       <div className="container px-4 py-16 mx-auto">
         <div className="grid grid-cols-1 gap-12 md:gap-16 md:grid-cols-4">
           {/* Brand Column */}
-          <div itemScope itemType="https://schema.org/Organization" className="md:pr-8">
+          <div
+            itemScope
+            itemType="https://schema.org/Organization"
+            className="md:pr-8"
+          >
             <div className="mb-6">
               <Link href="/" itemProp="url" className="inline-block">
                 <Image
                   src="/img/Logo.webp"
-                  alt="By May Scarf"
+                  alt="bymayscarf"
                   width={150}
                   height={50}
                   className="h-auto w-36"
@@ -26,7 +31,10 @@ export default function Footer() {
                 />
               </Link>
             </div>
-            <p className="text-muted-foreground/90 text-sm leading-relaxed" itemProp="description">
+            <p
+              className="text-muted-foreground/90 text-sm leading-relaxed"
+              itemProp="description"
+            >
               Spesialis Al-Qur&apos;an custom cover dan perlengkapan ibadah
               berkualitas. Mewujudkan keindahan dalam beribadah dengan sentuhan
               personal.
@@ -35,7 +43,8 @@ export default function Footer() {
 
           {/* Contact Column */}
           <div itemScope itemType="https://schema.org/ContactPoint">
-            <h3 className="text-lg font-medium mb-6">Kontak & Sosial Media</h3>            <div className="space-y-4">
+            <h3 className="text-lg font-medium mb-6">Kontak & Sosial Media</h3>
+            <div className="space-y-4">
               <a
                 href="https://wa.me/6285161790424"
                 target="_blank"
@@ -70,7 +79,8 @@ export default function Footer() {
                 </span>
                 @by.mayofficial
               </a>
-            </div><h3 className="text-lg font-medium mb-6 mt-8">Marketplace</h3>
+            </div>
+            <h3 className="text-lg font-medium mb-6 mt-8">Marketplace</h3>
             <div className="flex items-center gap-6">
               <a
                 href="https://shopee.co.id/by.may"
@@ -218,8 +228,9 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-border mt-12 pt-8 text-center text-muted-foreground">
+          {" "}
           <p>
-            &copy; {new Date().getFullYear()} By May Scarf. All rights reserved.
+            &copy; {new Date().getFullYear()} bymayscarf. All rights reserved.
           </p>
         </div>
       </div>

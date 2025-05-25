@@ -16,7 +16,8 @@ import { db } from "@/lib/db";
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const seoData = await getSeoData("faq");
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://bymay.id";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
     const canonicalUrl = `${baseUrl}/faq`;
 
     // Get FAQs for structured data
@@ -62,9 +63,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
     // Combine structured data
     const structuredData = [faqStructuredData, breadcrumbStructuredData];
-
     return {
-      title: seoData?.title || "FAQ | By May Scarf",
+      title: seoData?.title || "FAQ | bymayscarf",
       description:
         seoData?.description ||
         "Temukan jawaban atas pertanyaan umum seputar produk Al-Qur'an custom cover, perlengkapan ibadah, dan layanan By May. Kami berkomitmen untuk memberikan informasi yang jelas.",
@@ -83,13 +83,13 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       },
       openGraph: {
-        title: seoData?.title || "FAQ | By May Scarf",
+        title: seoData?.title || "FAQ | bymayscarf",
         description:
           seoData?.description ||
-          "Temukan jawaban atas pertanyaan umum seputar produk By May",
+          "Temukan jawaban atas pertanyaan umum seputar produk bymayscarf",
         type: "website",
         url: canonicalUrl,
-        siteName: "By May Scarf",
+        siteName: "bymayscarf",
         locale: "id_ID",
         images: seoData?.ogImage
           ? [
@@ -109,8 +109,8 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
-      title: "FAQ | By May Scarf",
-      description: "Frequently Asked Questions about By May Scarf products",
+      title: "FAQ | bymayscarf",
+      description: "Frequently Asked Questions about bymayscarf products",
     };
   }
 }

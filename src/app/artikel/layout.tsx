@@ -41,7 +41,9 @@ export const metadata: Metadata = {
       "Koleksi artikel islami untuk memperkaya pemahaman dan meningkatkan kualitas ibadah Anda.",
   },
   alternates: {
-    canonical: "https://bymay.com/artikel",
+    canonical: `${
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+    }/artikel`,
   },
 };
 
@@ -63,7 +65,9 @@ export default async function ArticleLayout({
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "@id": "https://bymay.com/artikel",
+    "@id": `${
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+    }/artikel`,
     name: "Artikel Islami By May Scarf",
     description:
       "Koleksi artikel tentang Al-Qur'an, perlengkapan ibadah, dan kehidupan islami",
@@ -72,7 +76,9 @@ export default async function ArticleLayout({
       name: "By May Scarf",
       logo: {
         "@type": "ImageObject",
-        url: "https://bymay.com/img/Logo.jpg",
+        url: `${
+          process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+        }/img/Logo.webp`,
       },
     },
     mainEntity: {
@@ -80,7 +86,9 @@ export default async function ArticleLayout({
       itemListElement: articles.data.map((article, index) => ({
         "@type": "ListItem",
         position: index + 1,
-        url: `https://bymay.com/artikel/${article.slug}`,
+        url: `${
+          process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+        }/artikel/${article.slug}`,
       })),
     },
   };

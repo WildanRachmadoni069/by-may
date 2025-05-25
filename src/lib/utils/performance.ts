@@ -18,8 +18,10 @@ export const defaultStructuredData = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "By May Scarf",
-  url: "https://bymayscarf.com",
-  logo: "https://bymayscarf.com/img/Logo.jpg",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop",
+  logo: `${
+    process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+  }/img/Logo.jpg`,
   description:
     "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna.",
   contactPoint: {
@@ -37,6 +39,9 @@ export const defaultStructuredData = {
  */
 export function generateProductStructuredData(product: any) {
   const basePrice = product.priceVariants?.[0]?.price || product.price;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
+  const oneYearFromNow = new Date();
+  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
   return {
     "@context": "https://schema.org",
@@ -48,18 +53,14 @@ export function generateProductStructuredData(product: any) {
     mpn: product.id,
     brand: {
       "@type": "Brand",
-      name: "By May Scarf",
+      name: "bymayscarf",
     },
     offers: {
       "@type": "Offer",
-      url: `https://bymayscarf.com/produk/${product.slug}`,
+      url: `${baseUrl}/produk/${product.slug}`,
       priceCurrency: "IDR",
       price: basePrice,
-      priceValidUntil: new Date(
-        new Date().setFullYear(new Date().getFullYear() + 1)
-      )
-        .toISOString()
-        .split("T")[0],
+      priceValidUntil: oneYearFromNow.toISOString().split("T")[0],
       availability:
         product.stock > 0
           ? "https://schema.org/InStock"
@@ -78,7 +79,7 @@ export function generateProductStructuredData(product: any) {
  * @returns Article structured data object
  */
 export function generateArticleStructuredData(article: any) {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymay.com";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
   const articleUrl = `${baseUrl}/artikel/${article.slug}`;
 
   return {
@@ -187,14 +188,16 @@ export function generateFAQStructuredData(
  * @returns LocalBusiness structured data for the business
  */
 export function generateLocalBusinessStructuredData() {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
+
   return {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
-    "@id": "https://bymayscarf.com/#localbusiness",
+    "@id": `${baseUrl}/#localbusiness`,
     name: "By May Scarf",
-    image: "https://bymayscarf.com/img/Logo.jpg",
-    url: "https://bymayscarf.com",
-    telephone: "+62-XXX-XXX-XXXX",
+    image: `${baseUrl}/img/Logo.jpg`,
+    url: baseUrl,
+    telephone: "+62 851-6179-0424",
     address: {
       "@type": "PostalAddress",
       streetAddress: "Jalan Example No. 123",
@@ -225,18 +228,16 @@ export function generateLocalBusinessStructuredData() {
   };
 }
 
-/**
- * Generate Shopping Center structured data
- * @returns Shopping Center structured data
- */
 export function generateShoppingCenterStructuredData(products: any[] = []) {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
+
   return {
     "@context": "https://schema.org",
     "@type": "Store",
     name: "By May Scarf Online Store",
-    image: "https://bymayscarf.com/img/Logo.jpg",
-    url: "https://bymayscarf.com/produk",
-    telephone: "+62-XXX-XXX-XXXX",
+    image: `${baseUrl}/img/Logo.jpg`,
+    url: `${baseUrl}/produk`,
+    telephone: "+62 851-6179-0424",
     address: {
       "@type": "PostalAddress",
       streetAddress: "Online Store",
@@ -249,14 +250,14 @@ export function generateShoppingCenterStructuredData(products: any[] = []) {
         name: product.name,
         description: product.description || "",
         image: product.images?.[0]?.url || "",
-        url: `https://bymayscarf.com/produk/${product.slug}`,
+        url: `${baseUrl}/produk/${product.slug}`,
       },
     })),
     potentialAction: {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: "https://bymayscarf.com/produk?q={search_term_string}",
+        urlTemplate: `${baseUrl}/produk?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },
@@ -272,6 +273,8 @@ export function generateHomeStructuredData(
   newProducts: any[] = [],
   testimonials: any[] = []
 ) {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
+
   // Base website and organization structured data
   const baseStructuredData = {
     "@context": "https://schema.org",
@@ -279,21 +282,20 @@ export function generateHomeStructuredData(
       // Website information
       {
         "@type": "WebSite",
-        "@id": "https://bymayscarf.com/#website",
-        url: "https://bymayscarf.com/",
+        "@id": `${baseUrl}/#website`,
+        url: baseUrl,
         name: "By May Scarf",
         description:
           "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna.",
         publisher: {
-          "@id": "https://bymayscarf.com/#organization",
+          "@id": `${baseUrl}/#organization`,
         },
         potentialAction: [
           {
             "@type": "SearchAction",
             target: {
               "@type": "EntryPoint",
-              urlTemplate:
-                "https://bymayscarf.com/produk?q={search_term_string}",
+              urlTemplate: `${baseUrl}/produk?q={search_term_string}`,
             },
             "query-input": "required name=search_term_string",
           },
@@ -302,23 +304,26 @@ export function generateHomeStructuredData(
       // Organization information
       {
         "@type": "Organization",
-        "@id": "https://bymayscarf.com/#organization",
+        "@id": `${baseUrl}/#organization`,
         name: "By May Scarf",
-        url: "https://bymayscarf.com/",
+        url: baseUrl,
         logo: {
           "@type": "ImageObject",
-          url: "https://bymayscarf.com/img/Logo.jpg",
+          url: `${baseUrl}/img/Logo.webp`,
           width: 180,
           height: 60,
         },
         sameAs: [
-          "https://instagram.com/bymayscarf",
-          "https://facebook.com/bymayscarf",
+          "https://www.instagram.com/by.mayofficial/",
+          "https://www.tiktok.com/@by.mayofficial",
+          "https://shopee.co.id/by.may",
+          "https://www.lazada.co.id/shop/by-may/",
+          "https://www.tokopedia.com/by-mayscarf/",
         ],
         contactPoint: [
           {
             "@type": "ContactPoint",
-            telephone: "+62-XXX-XXX-XXXX",
+            telephone: "+62 851-6179-0424",
             contactType: "customer service",
             availableLanguage: ["Indonesian"],
           },
@@ -327,18 +332,18 @@ export function generateHomeStructuredData(
       // WebPage information
       {
         "@type": "WebPage",
-        "@id": "https://bymayscarf.com/#webpage",
-        url: "https://bymayscarf.com/",
+        "@id": `${baseUrl}/#webpage`,
+        url: baseUrl,
         name: "By May Scarf - Al-Quran Custom Cover",
         isPartOf: {
-          "@id": "https://bymayscarf.com/#website",
+          "@id": `${baseUrl}/#website`,
         },
         about: {
-          "@id": "https://bymayscarf.com/#organization",
+          "@id": `${baseUrl}/#organization`,
         },
         primaryImageOfPage: {
           "@type": "ImageObject",
-          url: "https://bymayscarf.com/img/Landing-Page/header-image.webp",
+          url: `${baseUrl}/img/Landing-Page/header-image.webp`,
         },
         datePublished: "2023-01-01T08:00:00+08:00",
         dateModified: new Date().toISOString(),
@@ -346,20 +351,20 @@ export function generateHomeStructuredData(
         potentialAction: [
           {
             "@type": "ReadAction",
-            target: ["https://bymayscarf.com/"],
+            target: [baseUrl],
           },
         ],
       },
       // BreadcrumbList for homepage
       {
         "@type": "BreadcrumbList",
-        "@id": "https://bymayscarf.com/#breadcrumb",
+        "@id": `${baseUrl}/#breadcrumb`,
         itemListElement: [
           {
             "@type": "ListItem",
             position: 1,
             name: "Beranda",
-            item: "https://bymayscarf.com/",
+            item: baseUrl,
           },
         ],
       },
@@ -370,7 +375,7 @@ export function generateHomeStructuredData(
   if (featuredProducts && featuredProducts.length > 0) {
     baseStructuredData["@graph"].push({
       "@type": "ItemList",
-      "@id": "https://bymayscarf.com/#featuredproducts",
+      "@id": `${baseUrl}/#featuredproducts`,
       name: "Produk Unggulan",
       numberOfItems: featuredProducts.length,
       itemListElement: featuredProducts
@@ -381,7 +386,7 @@ export function generateHomeStructuredData(
           item: {
             "@type": "Product",
             name: product.name,
-            url: `https://bymayscarf.com/produk/${product.slug}`,
+            url: `${baseUrl}/produk/${product.slug}`,
             image: product.images?.[0]?.url || "",
             description: product.description || "",
             offers: {
@@ -402,7 +407,7 @@ export function generateHomeStructuredData(
   if (newProducts && newProducts.length > 0) {
     baseStructuredData["@graph"].push({
       "@type": "ItemList",
-      "@id": "https://bymayscarf.com/#newproducts",
+      "@id": `${baseUrl}/#newproducts`,
       name: "Produk Terbaru",
       numberOfItems: newProducts.length,
       itemListElement: newProducts
@@ -413,7 +418,7 @@ export function generateHomeStructuredData(
           item: {
             "@type": "Product",
             name: product.name,
-            url: `https://bymayscarf.com/produk/${product.slug}`,
+            url: `${baseUrl}/produk/${product.slug}`,
             image: product.images?.[0]?.url || "",
             description: product.description || "",
             offers: {
@@ -434,7 +439,7 @@ export function generateHomeStructuredData(
   if (testimonials && testimonials.length > 0) {
     baseStructuredData["@graph"].push({
       "@type": "ItemList",
-      "@id": "https://bymayscarf.com/#testimonials",
+      "@id": `${baseUrl}/#testimonials`,
       name: "Testimonial Pelanggan",
       numberOfItems: testimonials.length,
       itemListElement: testimonials
@@ -451,7 +456,7 @@ export function generateHomeStructuredData(
             },
             author: {
               "@type": "Person",
-              name: testimonial.name || "Pelanggan By May Scarf",
+              name: testimonial.name || "Pelanggan bymayscarf",
             },
             reviewBody: testimonial.content || "",
           },

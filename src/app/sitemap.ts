@@ -15,7 +15,7 @@ async function getProductRoutes() {
 
     const products: Product[] = result.data;
     const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com"; // Fallback
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"; // Fallback
 
     return products.map((product) => ({
       url: `${siteUrl}/produk/${product.slug}`,
@@ -40,7 +40,7 @@ async function getArticleRoutes() {
 
     const articles: ArticleData[] = result.data;
     const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com"; // Fallback
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"; // Fallback
 
     return articles.map((article) => ({
       url: `${siteUrl}/artikel/${article.slug}`,
@@ -55,7 +55,7 @@ async function getArticleRoutes() {
 }
 
 // Define static routes
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com"; // Fallback
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"; // Fallback
 const staticRoutes: MetadataRoute.Sitemap = [
   {
     url: `${siteUrl}`,

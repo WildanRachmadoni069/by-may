@@ -29,7 +29,8 @@ import {
 import Footer from "@/components/landingpage/Footer";
 import { useFAQs } from "@/hooks/useFAQs";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Instagram } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 export default function FAQPage() {
   // Gunakan hook SWR untuk FAQ, limit banyak karena FAQ biasanya tidak banyak
@@ -110,17 +111,16 @@ export default function FAQPage() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-
         <h1 className="text-4xl font-bold mb-4 text-center">
           Pertanyaan yang Sering Diajukan (FAQ)
         </h1>
         <p className="text-gray-600 mb-8 text-center max-w-2xl mx-auto">
           Temukan jawaban atas pertanyaan umum seputar produk Al-Qur'an custom
-          cover, perlengkapan ibadah, dan layanan Bymay. Kami berkomitmen untuk
-          memberikan informasi yang jelas dan membantu Anda mendapatkan produk
-          berkualitas dengan harga terjangkau di Surabaya dan seluruh Indonesia.
+          cover, perlengkapan ibadah, dan layanan bymayscarf. Kami berkomitmen
+          untuk memberikan informasi yang jelas dan membantu Anda mendapatkan
+          produk berkualitas dengan harga termurah di Surabaya dan seluruh
+          Indonesia.
         </p>
-
         <Accordion
           type="single"
           collapsible
@@ -139,17 +139,33 @@ export default function FAQPage() {
             ))
           )}
         </Accordion>
-
         <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">
-            Masih punya pertanyaan? Jangan ragu untuk menghubungi kami.
+          <h2 className="text-2xl font-semibold mb-6">
+            Masih punya pertanyaan?
+          </h2>
+          <p className="text-gray-600 mb-8">
+            Jangan ragu untuk menghubungi kami melalui:
           </p>
-          <a
-            href="mailto:info@bymay.com"
-            className="text-blue-600 hover:underline"
-          >
-            info@bymay.com
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="https://wa.me/6285161790424"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 bg-white text-green-600 rounded-lg shadow-md hover:shadow-lg transition-all border border-green-200 hover:border-green-300 w-full sm:w-auto justify-center"
+            >
+              <FaWhatsapp className="w-5 h-5" />
+              <span>Chat WhatsApp</span>
+            </a>
+            <a
+              href="https://instagram.com/by.mayofficial"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 bg-white text-pink-600 rounded-lg shadow-md hover:shadow-lg transition-all border border-pink-200 hover:border-pink-300 w-full sm:w-auto justify-center"
+            >
+              <Instagram className="w-5 h-5" />
+              <span>Follow Instagram</span>
+            </a>
+          </div>
         </div>
       </main>
       <Footer />

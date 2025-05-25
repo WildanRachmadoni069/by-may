@@ -1,7 +1,7 @@
 /**
  * Get the base URL for the application
  * In development: http://localhost:3000
- * In production: https://bymayscarf.com (or whatever the domain is)
+ * In production: https://bymayscarf.shop (or whatever the domain is)
  */
 export function getBaseUrl(): string {
   if (typeof window !== "undefined") {

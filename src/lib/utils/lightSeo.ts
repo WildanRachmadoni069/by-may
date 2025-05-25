@@ -7,6 +7,9 @@
  * Focus only on essential SEO data without including product details during build
  */
 export function generateLightHomeStructuredData() {
+  // Get base URL from environment variable
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
+
   // Base website and organization structured data
   return {
     "@context": "https://schema.org",
@@ -14,21 +17,20 @@ export function generateLightHomeStructuredData() {
       // Website information
       {
         "@type": "WebSite",
-        "@id": "https://bymayscarf.com/#website",
-        url: "https://bymayscarf.com/",
-        name: "By May Scarf",
+        "@id": `${baseUrl}/#website`,
+        url: baseUrl,
+        name: "bymayscarf",
         description:
           "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna.",
         publisher: {
-          "@id": "https://bymayscarf.com/#organization",
+          "@id": `${baseUrl}/#organization`,
         },
         potentialAction: [
           {
             "@type": "SearchAction",
             target: {
               "@type": "EntryPoint",
-              urlTemplate:
-                "https://bymayscarf.com/produk?q={search_term_string}",
+              urlTemplate: `${baseUrl}/produk?q={search_term_string}`,
             },
             "query-input": "required name=search_term_string",
           },
@@ -37,23 +39,26 @@ export function generateLightHomeStructuredData() {
       // Organization information
       {
         "@type": "Organization",
-        "@id": "https://bymayscarf.com/#organization",
-        name: "By May Scarf",
-        url: "https://bymayscarf.com/",
+        "@id": `${baseUrl}/#organization`,
+        name: "bymayscarf",
+        url: baseUrl,
         logo: {
           "@type": "ImageObject",
-          url: "https://bymayscarf.com/img/Logo.jpg",
+          url: `${baseUrl}/img/Logo.webp`,
           width: 180,
           height: 60,
         },
         sameAs: [
-          "https://instagram.com/bymayscarf",
-          "https://facebook.com/bymayscarf",
+          "https://www.instagram.com/by.mayofficial/",
+          "https://www.tiktok.com/@by.mayofficial",
+          "https://shopee.co.id/by.may",
+          "https://www.lazada.co.id/shop/by-may/",
+          "https://www.tokopedia.com/by-mayscarf/",
         ],
         contactPoint: [
           {
             "@type": "ContactPoint",
-            telephone: "+62-XXX-XXX-XXXX",
+            telephone: "+62 851-6179-0424",
             contactType: "customer service",
             availableLanguage: ["Indonesian"],
           },
@@ -62,18 +67,18 @@ export function generateLightHomeStructuredData() {
       // WebPage information
       {
         "@type": "WebPage",
-        "@id": "https://bymayscarf.com/#webpage",
-        url: "https://bymayscarf.com/",
-        name: "By May Scarf - Al-Quran Custom Cover",
+        "@id": `${baseUrl}/#webpage`,
+        url: baseUrl,
+        name: "bymayscarf - Al-Quran Custom Cover",
         isPartOf: {
-          "@id": "https://bymayscarf.com/#website",
+          "@id": `${baseUrl}/#website`,
         },
         about: {
-          "@id": "https://bymayscarf.com/#organization",
+          "@id": `${baseUrl}/#organization`,
         },
         primaryImageOfPage: {
           "@type": "ImageObject",
-          url: "https://bymayscarf.com/img/Landing-Page/header-image.webp",
+          url: `${baseUrl}/img/Landing-Page/header-image.webp`,
         },
         datePublished: "2023-01-01T08:00:00+08:00",
         dateModified: new Date().toISOString(),
@@ -82,13 +87,13 @@ export function generateLightHomeStructuredData() {
       // BreadcrumbList for homepage
       {
         "@type": "BreadcrumbList",
-        "@id": "https://bymayscarf.com/#breadcrumb",
+        "@id": `${baseUrl}/#breadcrumb`,
         itemListElement: [
           {
             "@type": "ListItem",
             position: 1,
             name: "Beranda",
-            item: "https://bymayscarf.com/",
+            item: baseUrl,
           },
         ],
       },

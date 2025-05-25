@@ -46,7 +46,8 @@ export async function generateMetadata({
       meta.description || createExcerptFromHtml(product.description || "");
     const title = meta.title || product.name;
     const ogImage = meta.ogImage || product.featuredImage?.url;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://bymay.id";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
     const canonicalUrl = `${baseUrl}/produk/${slug}`;
 
     // Get min and max prices for price range
@@ -69,7 +70,7 @@ export async function generateMetadata({
       category: product.category?.name || "Al-Quran Custom Cover",
       brand: {
         "@type": "Brand",
-        name: "By May",
+        name: "bymayscarf",
       },
       offers: {
         "@type": "AggregateOffer",
@@ -83,20 +84,14 @@ export async function generateMetadata({
             : "https://schema.org/OutOfStock",
       },
     };
-
-    const keywordList = [
-      product.name,
-      "By May",
-      "Al-Quran Custom Cover",
-      "Scarf",
-    ];
+    const keywordList = [product.name, "bymayscarf", "Al-Quran Custom Cover"];
 
     if (product.category?.name) {
       keywordList.push(product.category.name);
     }
 
     return {
-      title: `${title} | By May Scarf`,
+      title: `${title} | bymayscarf`,
       description: description,
       keywords: keywordList,
       alternates: {

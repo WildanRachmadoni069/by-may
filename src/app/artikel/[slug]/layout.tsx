@@ -15,7 +15,9 @@ export const metadata: Metadata = {
   },
   description: "Artikel islami dan inspiratif dari By May Scarf",
   alternates: {
-    canonical: "https://bymay.id/artikel",
+    canonical: `${
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+    }/artikel`,
   },
   openGraph: {
     type: "article",
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "@bymay_id",
+    site: "@by.mayofficial",
   },
   robots: {
     index: true,

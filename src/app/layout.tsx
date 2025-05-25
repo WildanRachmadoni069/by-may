@@ -31,13 +31,13 @@ const jakartaSans = Plus_Jakarta_Sans({
 
 export async function generateMetadata(): Promise<Metadata> {
   const seoData = await getSeoData("homepage");
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.com";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
 
   return {
     metadataBase: new URL(baseUrl),
     title: {
-      default: seoData?.title || "Al-Quran Custom Cover | By May Scarf",
-      template: "%s | By May Scarf",
+      default: seoData?.title || "Al-Quran Custom Cover Murah | bymayscarf",
+      template: "%s | bymayscarf",
     },
     description:
       seoData?.description ||
@@ -45,12 +45,12 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords:
       seoData?.keywords ||
       "al-quran custom, al-quran custom nama, al-quran custom cover, jual al-quran custom, al-quran custom murah",
-    authors: [{ name: "By May Scarf" }],
+    authors: [{ name: "bymayscarf" }],
     generator: "Next.js",
-    applicationName: "By May Scarf",
+    applicationName: "bymayscarf",
     referrer: "origin-when-cross-origin",
-    creator: "By May Scarf",
-    publisher: "By May Scarf",
+    creator: "bymayscarf",
+    publisher: "bymayscarf",
     formatDetection: {
       email: true,
       address: true,
@@ -73,8 +73,8 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       locale: "id_ID",
       url: baseUrl,
-      siteName: "By May Scarf",
-      title: seoData?.title || "Al-Quran Custom Cover | By May Scarf",
+      siteName: "bymayscarf",
+      title: seoData?.title || "Al-Quran Custom Cover | bymayscarf",
       description:
         seoData?.description ||
         "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",

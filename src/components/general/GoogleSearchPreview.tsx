@@ -7,12 +7,11 @@ const GoogleSearchPreview = ({
   description: string;
   slug: string;
 }) => {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://by-may-scarf.com";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
 
   const truncateTitle = (text: string) => {
     // Add the template suffix
-    const fullTitle = `${text} | By May Scarf`;
+    const fullTitle = `${text} | bymayscarf`;
 
     if (fullTitle.length > 60) {
       return `${fullTitle.substring(0, 57)}...`;

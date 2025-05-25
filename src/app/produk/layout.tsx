@@ -15,9 +15,9 @@ import SimpleStructuredData from "@/components/seo/SimpleStructuredData";
 
 // SEO metadata untuk halaman produk
 export const metadata: Metadata = {
-  title: "Produk Al-Quran Custom Cover | By May Scarf",
+  title: "Produk Al-Quran Custom Cover | bymayscarf",
   description:
-    "Temukan koleksi lengkap produk Bymay, dari Al-Qur'an custom cover hingga perlengkapan ibadah berkualitas di Surabaya.",
+    "Temukan koleksi lengkap produk bymayscarf, dari Al-Qur'an custom cover hingga perlengkapan ibadah berkualitas di Surabaya.",
   keywords: [
     "al-quran custom",
     "produk islami",
@@ -27,24 +27,30 @@ export const metadata: Metadata = {
     "quran custom nama",
   ],
   openGraph: {
-    title: "Produk Al-Quran Custom Cover | By May Scarf",
+    title: "Produk Al-Quran Custom Cover | bymayscarf",
     description:
-      "Temukan koleksi lengkap produk Bymay, dari Al-Qur'an custom cover hingga perlengkapan ibadah berkualitas di Surabaya.",
+      "Temukan koleksi lengkap produk bymayscarf, dari Al-Qur'an custom cover hingga perlengkapan ibadah berkualitas di Surabaya.",
     type: "website",
-    url: "https://bymayscarf.com/produk",
-    siteName: "By May Scarf",
+    url: `${
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+    }/produk`,
+    siteName: "bymayscarf",
     locale: "id_ID",
     images: [
       {
-        url: "https://bymayscarf.com/img/Landing-Page/header-image.webp",
+        url: `${
+          process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+        }/img/Landing-Page/header-image.webp`,
         width: 1200,
         height: 630,
-        alt: "Koleksi Produk By May Scarf",
+        alt: "Koleksi Produk bymayscarf",
       },
     ],
   },
   alternates: {
-    canonical: "https://bymayscarf.com/produk",
+    canonical: `${
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+    }/produk`,
   },
 };
 
@@ -69,14 +75,18 @@ async function ProductPageLayout({ children }: { children: React.ReactNode }) {
       position: index + 1,
       item: {
         "@type": "Product",
-        "@id": `https://bymayscarf.com/produk/${product.slug}#product`,
+        "@id": `${
+          process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+        }/produk/${product.slug}#product`,
         name: product.name,
         description: product.description || product.name,
         image: [
           product.featuredImage?.url || "",
           ...(product.additionalImages?.map((img) => img.url) || []),
         ],
-        url: `https://bymayscarf.com/produk/${product.slug}`,
+        url: `${
+          process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+        }/produk/${product.slug}`,
         sku: product.priceVariants?.[0]?.sku || `BYMAY-${product.id}`,
         brand: {
           "@type": "Brand",
@@ -110,7 +120,9 @@ async function ProductPageLayout({ children }: { children: React.ReactNode }) {
             ),
           offerCount:
             (product.priceVariants?.length ?? 0) + (product.basePrice ? 1 : 0),
-          url: `https://bymayscarf.com/produk/${product.slug}`,
+          url: `${
+            process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+          }/produk/${product.slug}`,
           seller: {
             "@type": "Organization",
             name: "By May Scarf",
@@ -129,13 +141,15 @@ async function ProductPageLayout({ children }: { children: React.ReactNode }) {
         "@type": "ListItem",
         position: 1,
         name: "Beranda",
-        item: "https://bymayscarf.com",
+        item: process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop",
       },
       {
         "@type": "ListItem",
         position: 2,
         name: "Produk",
-        item: "https://bymayscarf.com/produk",
+        item: `${
+          process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+        }/produk`,
       },
     ],
   };

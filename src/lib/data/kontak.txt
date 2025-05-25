@@ -1,0 +1,28 @@
+Kontak, sosial media, serta toko di berbagar platform ecommerce
+
+1. Emal: {
+    message: "tidak ada email yang digunakan, tidak perlu email di website"
+}
+2. Whatsapp: {
+    nomor: "+62 851-6179-0424"
+}
+3. Instagram: {
+    username: "by.mayofficial",
+    url:"https://www.instagram.com/by.mayofficial/"
+}
+4. Tik Tok: {
+    username: "by.mayofficial",
+    url: https://www.tiktok.com/@by.mayofficial
+}
+5. Shopee : {
+    username: "by.may official"
+    url: https://shopee.co.id/by.may
+}
+6. Lazada : {
+    username: "by.may"
+    url: https://www.lazada.co.id/shop/by-may/
+}
+7. Tokopedia : {
+    username : "BY MAYSCARF"
+    url: https://www.tokopedia.com/by-mayscarf/
+}

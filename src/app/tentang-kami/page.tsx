@@ -47,7 +47,7 @@ export default function TentangKami() {
               CV Faza Mega Berlian
             </h2>
             <p className="text-gray-600 mb-4">
-              Sejak 2019, CV Faza Mega Berlian telah menjadi pionir dalam
+              Sejak 2021, CV Faza Mega Berlian telah menjadi pionir dalam
               menyediakan Al-Qur'an custom cover dan perlengkapan ibadah
               berkualitas dengan harga terjangkau di Surabaya. Kami memahami
               pentingnya memiliki Al-Qur'an yang tidak hanya indah secara
