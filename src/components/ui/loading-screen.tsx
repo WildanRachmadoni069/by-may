@@ -31,7 +31,7 @@ export function LoadingScreen({ className }: LoadingScreenProps) {
         {/* Logo Animation */}
         <div className="w-40 h-40 relative mb-6 animate-float">
           <Image
-            src="/img/Logo.jpg"
+            src="/img/Logo.webp"
             alt="By May Scarf Logo"
             fill
             className="object-contain"

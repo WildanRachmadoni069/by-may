@@ -132,7 +132,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="h-screen flex flex-col items-center justify-center text-center px-4">
         <div className="mb-6 text-amber-500">
           <NextImage
-            src="/img/Logo.jpg"
+            src="/img/Logo.webp"
             alt="Logo"
             width={80}
             height={80}
@@ -162,7 +162,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="h-screen flex flex-col items-center justify-center text-center px-4">
         <div className="mb-6 text-amber-500">
           <NextImage
-            src="/img/Logo.jpg"
+            src="/img/Logo.webp"
             alt="Logo"
             width={80}
             height={80}
@@ -195,7 +195,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <NextImage
-                src={"/img/Logo.jpg"}
+                src={"/img/Logo.webp"}
                 alt="Bymay Logo"
                 width={36}
                 height={36}

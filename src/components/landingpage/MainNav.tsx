@@ -56,11 +56,12 @@ function MainNav() {
               className="block text-primary"
               href="/"
               aria-label="ByMay Scarf - Kembali ke Beranda"
-            >              <span className="sr-only">Home</span>{" "}
+            >
+              <span className="sr-only">Home</span>
               <Image
-                src={"/img/Logo.jpg"}
+                src={"/img/Logo.webp"}
                 alt="Logo Bymayscarf"
-                width={64} 
+                width={64}
                 height={64}
                 priority
                 fetchPriority="high"
@@ -78,7 +79,6 @@ function MainNav() {
             <nav aria-label="Global">
               <NavigationMenu>
                 <NavigationMenuList>
-                  {" "}
                   <NavigationMenuItem>
                     <NavigationMenuLink
                       asChild
