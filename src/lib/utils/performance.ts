@@ -78,39 +78,84 @@ export function generateProductStructuredData(product: any) {
  * @returns Article structured data object
  */
 export function generateArticleStructuredData(article: any) {
-  const publishDate =
-    article.publishedAt || article.createdAt || new Date().toISOString();
-  const modifiedDate = article.updatedAt || publishDate;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymay.com";
+  const articleUrl = `${baseUrl}/artikel/${article.slug}`;
 
   return {
     "@context": "https://schema.org",
     "@type": "Article",
+    "@id": articleUrl,
     headline: article.title,
-    image: article.featuredImage?.url || "",
+    name: article.title,
+    description: article.excerpt || "",
     datePublished:
-      typeof publishDate === "object"
-        ? publishDate.toISOString()
-        : String(publishDate),
+      article.publishedAt?.toString() || article.createdAt?.toString(),
     dateModified:
-      typeof modifiedDate === "object"
-        ? modifiedDate.toISOString()
-        : String(modifiedDate),
+      article.updatedAt?.toString() || article.createdAt?.toString(),
+    wordCount: article.content
+      ? article.content.replace(/<[^>]*>/g, "").split(/\s+/).length
+      : undefined,
+    articleBody: article.content ? article.content.replace(/<[^>]*>/g, "") : "",
     author: {
       "@type": "Person",
       name: article.author?.name || "By May Scarf",
+      url: baseUrl,
     },
     publisher: {
       "@type": "Organization",
       name: "By May Scarf",
       logo: {
         "@type": "ImageObject",
-        url: "https://bymayscarf.com/img/Logo.jpg",
+        url: `${baseUrl}/img/Logo.jpg`,
       },
     },
-    description: article.excerpt || "",
+    image: article.featuredImage && {
+      "@type": "ImageObject",
+      url: article.featuredImage.url,
+      width: 1200,
+      height: 630,
+      caption: article.featuredImage.alt || article.title,
+    },
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": `https://bymayscarf.com/artikel/${article.slug}`,
+      "@id": articleUrl,
+    },
+    isAccessibleForFree: true,
+    isPartOf: {
+      "@type": "WebSite",
+      "@id": baseUrl,
+      name: "By May Scarf",
+      description:
+        "Menjual Al-Quran custom cover dan perlengkapan sholat berkualitas",
+    },
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          item: {
+            "@id": baseUrl,
+            name: "Beranda",
+          },
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          item: {
+            "@id": `${baseUrl}/artikel`,
+            name: "Artikel",
+          },
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          item: {
+            "@id": articleUrl,
+            name: article.title,
+          },
+        },
+      ],
     },
   };
 }

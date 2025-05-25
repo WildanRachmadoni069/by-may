@@ -15,6 +15,7 @@ export default function Footer() {
           <div itemScope itemType="https://schema.org/Organization">
             <div>
               <Link href="/" itemProp="url">
+                {" "}
                 <Image
                   src="/img/Logo.jpg"
                   alt="By May Scarf"
@@ -22,6 +23,7 @@ export default function Footer() {
                   height={50}
                   className="h-auto"
                   itemProp="logo"
+                  sizes="150px"
                 />
               </Link>
             </div>

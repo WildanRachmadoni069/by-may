@@ -1,3 +1,10 @@
+/**
+ * Komponen Bagian Berbagi Artikel
+ * @module ArticleShare
+ * @description Menyediakan tombol untuk berbagi artikel ke media sosial dan menyalin link.
+ * Termasuk fitur berbagi ke Facebook, Twitter, dan menyalin URL artikel.
+ * Menggunakan Client Component untuk interaksi dengan Web Share API dan clipboard.
+ */
 "use client";
 
 import React from "react";
@@ -12,21 +19,35 @@ import { Facebook, Twitter, Link as LinkIcon, Share } from "lucide-react";
 import { getBaseUrl } from "@/lib/utils/url";
 import { toast } from "@/hooks/use-toast";
 
+/**
+ * Props untuk komponen ArticleShare
+ */
 interface ArticleShareProps {
+  /** Judul artikel untuk dibagikan */
   title: string;
+  /** Slug artikel untuk membuat URL */
   slug: string;
 }
 
+/**
+ * Komponen untuk berbagi artikel ke media sosial
+ * @param props - Props komponen
+ * @returns Komponen berbagi artikel dengan tombol media sosial
+ */
 export function ArticleShare({ title, slug }: ArticleShareProps) {
   const url = `${getBaseUrl()}/artikel/${slug}`;
-
+  /**
+   * Membuka dialog berbagi ke Facebook
+   */
   const shareOnFacebook = () => {
     window.open(
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       "_blank"
     );
   };
-
+  /**
+   * Membuka dialog berbagi ke Twitter
+   */
   const shareOnTwitter = () => {
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(
@@ -35,7 +56,9 @@ export function ArticleShare({ title, slug }: ArticleShareProps) {
       "_blank"
     );
   };
-
+  /**
+   * Menyalin URL artikel ke clipboard dan menampilkan notifikasi
+   */
   const copyLink = () => {
     navigator.clipboard.writeText(url).then(() => {
       toast({

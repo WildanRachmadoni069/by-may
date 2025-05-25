@@ -1,9 +1,9 @@
 /**
- * Halaman Detail Artikel
- *
- * Menampilkan konten lengkap dari sebuah artikel beserta metadata, gambar featured,
- * informasi penulis, dan artikel terkait. Halaman ini mengoptimalkan SEO dengan
- * struktur HTML semantik dan metadata yang lengkap.
+ * Komponen Halaman Detail Artikel
+ * @module ArticleDetailPage
+ * @description Menampilkan halaman detail artikel dengan optimasi SEO, data terstruktur,
+ * dan HTML semantik. Fitur meliputi informasi penulis, waktu baca, berbagi sosial,
+ * dan artikel terkait.
  */
 import React from "react";
 import { notFound } from "next/navigation";
@@ -33,109 +33,146 @@ import { ArticleContent } from "@/components/article/ArticleContent";
 import { ArticleShare } from "@/components/article/ArticleShare";
 import { ArticleAuthorCard } from "@/components/article/ArticleAuthorCard";
 import { RelatedArticlesSection } from "@/components/article/RelatedArticlesSection";
-// Structured data component
 import StructuredData from "@/components/seo/StructuredData";
 
-// Menghasilkan metadata dinamis untuk setiap artikel
+/**
+ * Menghasilkan metadata dinamis untuk artikel
+ * @param {Object} params - Parameter routing halaman
+ * @param {ResolvingMetadata} parent - Metadata induk dari layout
+ * @returns {Promise<Metadata>} Metadata yang dioptimasi untuk SEO
+ */
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  // Awaiting params untuk Next.js 15
-  const { slug } = await params;
+  try {
+    const { slug } = await params;
+    const article = await getArticleAction(slug);
 
-  // Fetch data artikel
-  const article = await getArticleAction(slug);
+    if (!article || article.status !== "published") {
+      return {};
+    }
 
-  if (!article) {
+    const previousImages = (await parent).openGraph?.images || [];
+    const baseUrl = getBaseUrl();
+    const fallbackImage = "/og-image.jpg";
+    let metaImage =
+      article.featuredImage?.url || article.meta?.ogImage || fallbackImage;
+    const imageUrl = metaImage.startsWith("http")
+      ? metaImage
+      : `${baseUrl}${metaImage}`;
+
+    // Format dates
+    const publishDate = article.publishedAt || article.createdAt;
+    const modifyDate = article.updatedAt || publishDate;
+
     return {
-      title: "Artikel Tidak Ditemukan",
-      description: "Artikel yang diminta tidak dapat ditemukan.",
-    };
-  }
-
-  // Gunakan metadata dari artikel atau fallback ke default
-  const baseUrl = getBaseUrl();
-
-  return {
-    title: article.meta?.title || article.title,
-    description: article.meta?.description || article.excerpt || undefined,
-    openGraph: {
-      type: "article",
-      url: `${baseUrl}/artikel/${slug}`,
       title: article.meta?.title || article.title,
-      description: article.meta?.description || article.excerpt || undefined,
-      images: article.featuredImage?.url
-        ? [
-            {
-              url: article.featuredImage.url,
-              width: 1200,
-              height: 630,
-              alt: article.featuredImage.alt || article.title,
-            },
-          ]
-        : undefined,
-      publishedTime: article.publishedAt?.toString(),
-      modifiedTime: article.updatedAt?.toString(),
-      authors: article.author?.name ? [`${article.author.name}`] : undefined,
-    },
-    alternates: {
-      canonical: `${baseUrl}/artikel/${slug}`,
-    },
-  };
+      description:
+        article.meta?.description ||
+        article.excerpt ||
+        `Baca artikel ${article.title} di By May Scarf`,
+      keywords: ["artikel islami", "by may scarf", article.title],
+      authors: article.author
+        ? [{ name: article.author.name }]
+        : [{ name: "By May Scarf" }],
+      openGraph: {
+        title: article.meta?.title || article.title,
+        description:
+          article.meta?.description ||
+          article.excerpt ||
+          `Baca artikel ${article.title} di By May Scarf`,
+        type: "article",
+        publishedTime: publishDate?.toString(),
+        modifiedTime: modifyDate?.toString(),
+        authors: article.author?.name
+          ? [article.author.name]
+          : ["By May Scarf"],
+        images: [
+          {
+            url: imageUrl,
+            width: 1200,
+            height: 630,
+            alt: article.title,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: article.meta?.title || article.title,
+        description:
+          article.meta?.description ||
+          article.excerpt ||
+          `Baca artikel ${article.title} di By May Scarf`,
+        images: [imageUrl],
+        creator: "@bymay_id",
+      },
+      alternates: {
+        canonical: `${baseUrl}/artikel/${article.slug}`,
+      },
+      robots: {
+        index: true,
+        follow: true,
+        nocache: false,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-image-preview": "large",
+          "max-video-preview": "-1",
+          "max-snippet": -1,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return {};
+  }
 }
 
+/**
+ * Parameter untuk halaman detail artikel
+ * @interface ArticleDetailParams
+ */
+interface ArticleDetailParams {
+  params: Promise<{ slug: string }>;
+}
+
+/**
+ * Komponen utama halaman detail artikel
+ * @param {ArticleDetailParams} props - Parameter halaman
+ * @returns {Promise<JSX.Element>} Komponen halaman detail artikel
+ */
 export default async function ArticleDetailPage({
   params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  // Awaiting params untuk Next.js 15
+}: ArticleDetailParams) {
   const { slug } = await params;
-
-  // Fetch data artikel
   const article = await getArticleAction(slug);
-
-  // Jika artikel tidak ditemukan atau tidak dipublikasikan, tampilkan 404
   if (!article || article.status !== "published") {
     notFound();
   }
-
-  // Fetch artikel terkait (artikel terbaru kecuali artikel saat ini)
   const relatedArticlesResult = await getArticlesAction({
     status: "published",
     limit: 3,
   });
-
-  // Filter artikel saat ini
   const relatedArticles = relatedArticlesResult.data
-    .filter((a) => a.slug !== article.slug)
+    .filter((a) => a.slug !== slug)
     .slice(0, 3);
-
-  // Format tanggal publikasi
   const publishedDate = article.publishedAt || article.createdAt;
   const formattedDate = formatDate(publishedDate);
-
-  // Estimasi waktu baca
   const wordCount = article.content.replace(/<[^>]*>/g, "").split(/\s+/).length;
-  const readingMinutes = Math.ceil(wordCount / 250); // Asumsi kecepatan baca rata-rata 250 kata per menit
-
-  // Penanganan gambar featured
+  const readingMinutes = Math.ceil(wordCount / 250);
   const hasValidImage =
     article.featuredImage?.url && article.featuredImage.url.trim() !== "";
   const placeholderImage = "/img/placeholder.png";
 
   return (
     <main className="min-h-screen">
-      {" "}
-      {/* Client component for JSON-LD structured data */}
       <StructuredData data={generateArticleStructuredData(article)} />
       <article
         itemScope
         itemType="https://schema.org/Article"
         className="container mx-auto px-4 py-8 max-w-4xl"
       >
-        {/* Breadcrumb - penting untuk SEO */}
         <nav aria-label="breadcrumb" className="mb-6">
           <Breadcrumb>
             <BreadcrumbList>
@@ -161,32 +198,25 @@ export default async function ArticleDetailPage({
         </nav>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          {/* Gambar featured dengan atribut meta yang tepat */}
           <figure className="relative w-full aspect-[16/9]">
-            {hasValidImage ? (
-              <Image
-                src={article.featuredImage!.url}
-                alt={article.featuredImage!.alt || article.title}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1200px"
-                priority
-                className="object-cover"
-                itemProp="image"
-              />
-            ) : (
-              <Image
-                src={placeholderImage}
-                alt={article.title}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1200px"
-                priority
-                className="object-cover"
-              />
-            )}
+            <Image
+              src={
+                hasValidImage ? article.featuredImage!.url : placeholderImage
+              }
+              alt={
+                hasValidImage
+                  ? article.featuredImage!.alt || article.title
+                  : article.title
+              }
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1200px"
+              priority
+              className="object-cover"
+              itemProp="image"
+            />
           </figure>
 
           <div className="p-6 md:p-8">
-            {/* Header artikel dengan hierarki header yang tepat */}
             <header className="mb-6">
               <h1
                 itemProp="headline"
@@ -196,7 +226,6 @@ export default async function ArticleDetailPage({
               </h1>
 
               <div className="flex flex-wrap justify-between items-center text-sm text-gray-500 gap-4">
-                {/* Info penulis dan tanggal dengan atribut structured data */}
                 <div className="flex items-center gap-4">
                   <div
                     className="flex items-center"
@@ -210,7 +239,7 @@ export default async function ArticleDetailPage({
                         alt={article.author?.name || "Admin"}
                       />
                       <AvatarFallback>
-                        {article.author?.name?.charAt(0) || "A"}
+                        {article.author?.name?.[0] || "A"}
                       </AvatarFallback>
                     </Avatar>
                     <span itemProp="name">
@@ -219,15 +248,12 @@ export default async function ArticleDetailPage({
                   </div>
 
                   <div className="flex items-center">
-                    <CalendarIcon className="mr-1 h-4 w-4" />{" "}
+                    <CalendarIcon className="mr-1 h-4 w-4" />
                     <time
                       itemProp="datePublished"
-                      dateTime={
-                        typeof publishedDate === "object" &&
-                        publishedDate !== null
-                          ? (publishedDate as Date).toISOString()
-                          : new Date(String(publishedDate || "")).toISOString()
-                      }
+                      dateTime={new Date(
+                        publishedDate || new Date()
+                      ).toISOString()}
                     >
                       {formattedDate}
                     </time>
@@ -238,19 +264,16 @@ export default async function ArticleDetailPage({
                   </div>
                 </div>
 
-                {/* Tombol berbagi */}
                 <ArticleShare title={article.title} slug={article.slug} />
               </div>
 
               <Separator className="my-6" />
             </header>
 
-            {/* Konten artikel dengan HTML semantik */}
             <div itemProp="articleBody">
               <ArticleContent content={article.content} />
             </div>
 
-            {/* Kartu penulis */}
             <footer className="mt-10">
               <ArticleAuthorCard
                 name={article.author?.name || "Admin"}
@@ -261,7 +284,6 @@ export default async function ArticleDetailPage({
           </div>
         </div>
 
-        {/* Artikel terkait dengan pengelompokan semantik */}
         {relatedArticles.length > 0 && (
           <section aria-labelledby="related-articles-heading" className="mt-12">
             <h2

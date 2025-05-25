@@ -1,8 +1,12 @@
 /**
- * Halaman Daftar Artikel (Public)
- *
- * Halaman ini menampilkan daftar artikel yang telah dipublikasikan untuk pengunjung website.
- * Termasuk fitur pencarian dan paginasi server-side untuk performa optimal.
+ * Halaman Daftar Artikel
+ * @description Menampilkan daftar artikel publik dengan fitur:
+ * - Pencarian artikel
+ * - Paginasi server-side
+ * - Optimasi SEO
+ * - Tata letak responsif
+ * - Loading state
+ * @module ArticlePage
  */
 import { Metadata } from "next";
 import { ArticleCard } from "@/components/general/ArticleCard";
@@ -22,10 +26,11 @@ import { ArticlePagination } from "@/components/article/ArticlePagination";
 import { ArticleEmptyState } from "@/components/article/ArticleEmptyState";
 import { Suspense } from "react";
 import { ArticleSkeletons } from "@/components/article/ArticleSkeletons";
-// Import from types/article instead of lib/api/articles
 import { ArticleData } from "@/types/article";
 
-// Metadata untuk SEO halaman
+/**
+ * Metadata statis untuk SEO halaman artikel
+ */
 export const metadata: Metadata = {
   title: "Artikel",
   description:
@@ -46,6 +51,10 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Props untuk halaman artikel
+ * @interface ArticlePageProps
+ */
 interface ArticlePageProps {
   searchParams: Promise<{
     page?: string;
@@ -53,6 +62,11 @@ interface ArticlePageProps {
   }>;
 }
 
+/**
+ * Komponen utama halaman daftar artikel
+ * @param {ArticlePageProps} props - Parameter halaman
+ * @returns {Promise<JSX.Element>} Halaman daftar artikel
+ */
 export default async function ArticlePage({ searchParams }: ArticlePageProps) {
   // searchParams perlu di-await di Next.js 15
   const params = await searchParams;

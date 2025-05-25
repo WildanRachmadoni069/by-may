@@ -1,3 +1,13 @@
+/**
+ * Halaman Tentang Kami
+ * @module AboutPage
+ * @description Menampilkan halaman tentang kami dengan:
+ * - Profil dan sejarah perusahaan
+ * - Visi dan misi
+ * - Informasi lokasi dan kontak
+ * - Gambar dan media pendukung
+ * - Breadcrumb navigation
+ */
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -83,7 +93,8 @@ export default function TentangKami() {
               masyarakat
             </li>
             <li>
-              Menciptakan lapangan kerja dan memberdayakan pengrajin lokal
+              Menciptakan lapangan kerja siapapun dan memberdayakan stakeholder
+              lokal
             </li>
           </ul>
         </section>

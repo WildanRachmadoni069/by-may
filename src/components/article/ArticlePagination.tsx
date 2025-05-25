@@ -1,3 +1,13 @@
+/**
+ * Komponen Paginasi Artikel
+ * @module ArticlePagination
+ * @description Menampilkan navigasi halaman untuk daftar artikel dengan fitur:
+ * - Tombol Sebelumnya/Selanjutnya
+ * - Indikator halaman aktif
+ * - Elipsis untuk rentang halaman panjang
+ * - Mendukung parameter pencarian
+ * Menggunakan Client Component untuk interaksi dinamis.
+ */
 "use client";
 
 import Link from "next/link";
@@ -11,9 +21,15 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
+/**
+ * Props untuk komponen ArticlePagination
+ */
 interface ArticlePaginationProps {
+  /** Halaman yang sedang aktif */
   currentPage: number;
+  /** Total jumlah halaman */
   totalPages: number;
+  /** Query pencarian aktif (opsional) */
   search?: string;
 }
 

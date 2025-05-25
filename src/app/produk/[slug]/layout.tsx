@@ -1,3 +1,12 @@
+/**
+ * Layout Halaman Detail Produk
+ * @module ProductDetailLayout
+ * @description Layout untuk halaman detail produk dengan:
+ * - Dynamic metadata berdasarkan data produk
+ * - Schema.org Product markup
+ * - OpenGraph dan Twitter Cards
+ * - Title, meta description dan canonical URL
+ */
 import React from "react";
 import { Metadata } from "next";
 import { ProductService } from "@/lib/services/product-service";
@@ -32,21 +41,80 @@ export async function generateMetadata({
       };
     }
 
-    // Type assertion to ensure meta is of the correct type
     const meta = (product.meta as ProductMeta) || {};
     const description =
       meta.description || createExcerptFromHtml(product.description || "");
     const title = meta.title || product.name;
     const ogImage = meta.ogImage || product.featuredImage?.url;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://bymay.id";
+    const canonicalUrl = `${baseUrl}/produk/${slug}`;
+
+    // Get min and max prices for price range
+    const prices = product.priceVariants.map((v) => v.price);
+    const minPrice = Math.min(
+      ...(prices.length ? prices : [product.basePrice || 0])
+    );
+    const maxPrice = Math.max(
+      ...(prices.length ? prices : [product.basePrice || 0])
+    );
+
+    // Create JSON-LD structured data
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      description: description,
+      image: product.featuredImage?.url || [],
+      sku: product.id,
+      category: product.category?.name || "Al-Quran Custom Cover",
+      brand: {
+        "@type": "Brand",
+        name: "By May",
+      },
+      offers: {
+        "@type": "AggregateOffer",
+        priceCurrency: "IDR",
+        lowPrice: minPrice,
+        highPrice: maxPrice,
+        offerCount: product.priceVariants.length || 1,
+        availability:
+          product.baseStock || product.priceVariants.some((v) => v.stock > 0)
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+      },
+    };
+
+    const keywordList = [
+      product.name,
+      "By May",
+      "Al-Quran Custom Cover",
+      "Scarf",
+    ];
+
+    if (product.category?.name) {
+      keywordList.push(product.category.name);
+    }
 
     return {
-      title: title,
+      title: `${title} | By May Scarf`,
       description: description,
+      keywords: keywordList,
+      alternates: {
+        canonical: canonicalUrl,
+      },
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+        },
+      },
       openGraph: {
         title: title,
         description: description,
-        // Fix the OpenGraph type to match allowed values in Next.js Metadata
-        type: "website", // Changed from "product" to "website" which is supported by Next.js
+        type: "website",
+        url: canonicalUrl,
         images: ogImage
           ? [
               {
@@ -57,6 +125,15 @@ export async function generateMetadata({
               },
             ]
           : [],
+      },
+      other: {
+        "og:product:availability":
+          product.baseStock || product.priceVariants.some((v) => v.stock > 0)
+            ? "instock"
+            : "out of stock",
+        "og:product:price:amount": minPrice.toString(),
+        "og:product:price:currency": "IDR",
+        "script:ld+json": JSON.stringify(structuredData),
       },
     };
   } catch (error) {
@@ -69,11 +146,7 @@ export async function generateMetadata({
 }
 
 function ProductDetailLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <main>{children}</main>
-    </>
-  );
+  return <>{children}</>;
 }
 
 export default ProductDetailLayout;

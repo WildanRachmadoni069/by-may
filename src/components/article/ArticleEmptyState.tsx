@@ -1,7 +1,17 @@
+/**
+ * Komponen State Kosong untuk Artikel
+ * @module ArticleEmptyState
+ * @description Menampilkan pesan saat tidak ada artikel yang dapat ditampilkan,
+ * baik karena belum ada artikel atau hasil pencarian tidak ditemukan.
+ * Menyediakan tombol navigasi untuk kemudahan pengguna.
+ */
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FileText, Search, Home } from "lucide-react";
 
+/**
+ * Props untuk komponen ArticleEmptyState
+ */
 interface ArticleEmptyStateProps {
   search?: string;
   showHomeButton?: boolean;

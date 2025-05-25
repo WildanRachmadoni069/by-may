@@ -35,8 +35,10 @@ export function LoadingScreen({ className }: LoadingScreenProps) {
             alt="By May Scarf Logo"
             fill
             className="object-contain"
+            sizes="160px" // Based on parent div size of w-40 (160px)
+            priority
+            fetchPriority="high"
           />
-
           {/* Animated rings around logo */}
           <div className="absolute -inset-4 border-2 border-primary/20 rounded-full animate-ping-slow"></div>
           <div className="absolute -inset-8 border border-primary/10 rounded-full animate-ping-slower"></div>

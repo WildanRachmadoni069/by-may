@@ -1,9 +1,19 @@
+/**
+ * Komponen Bagian Artikel Terkait
+ * @module RelatedArticlesSection
+ * @description Menampilkan daftar artikel terkait di bagian bawah halaman detail artikel.
+ * Menggunakan layout grid responsif dan menampilkan maksimal 3 artikel terkait.
+ */
 import React from "react";
 import Link from "next/link";
 import { ArticleData } from "@/types/article";
 import { ArticleCard } from "@/components/general/ArticleCard";
 
+/**
+ * Props untuk komponen RelatedArticlesSection
+ */
 interface RelatedArticlesSectionProps {
+  /** Daftar artikel terkait untuk ditampilkan */
   articles: ArticleData[];
 }
 

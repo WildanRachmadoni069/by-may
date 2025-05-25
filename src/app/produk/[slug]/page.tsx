@@ -1,3 +1,15 @@
+/**
+ * Halaman Detail Produk
+ * @module ProductDetailPage
+ * @description Menampilkan halaman detail produk dengan fitur:
+ * - Galeri gambar produk dengan thumbnail
+ * - Pilihan variasi produk (jika ada)
+ * - Pengaturan jumlah produk
+ * - Tombol tambah ke keranjang
+ * - Deskripsi produk yang dapat diperluas
+ * - Produk terkait
+ * - Structured data dan optimasi SEO
+ */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -169,8 +181,11 @@ export default function ProductDetail() {
     if (!selectedOptionId) return "";
     return `${selectedVariation.id}-${selectedOptionId}`;
   };
-
-  // Find the correct price variant based on selected options
+  /**
+   * Mencari variant harga berdasarkan kombinasi opsi yang dipilih
+   * @param selectedOpts - Object berisi ID variasi dan opsi yang dipilih
+   * @returns PriceVariant yang sesuai atau null jika tidak ditemukan
+   */
   const findPriceVariant = (selectedOpts: Record<string, string>) => {
     if (!product || !product.priceVariants.length) return null;
 
@@ -232,8 +247,17 @@ export default function ProductDetail() {
   useEffect(() => {
     updatePriceAndStock(selectedOptions);
   }, [selectedOptions]);
-
-  // Handle option selection
+  /**
+   * Menangani pemilihan opsi variasi produk
+   * @param variationId - ID variasi yang dipilih (warna, ukuran, dll)
+   * @param optionId - ID opsi yang dipilih dalam variasi tersebut
+   *
+   * Fitur:
+   * - Toggle pilihan jika opsi yang sama dipilih
+   * - Update tampilan gambar jika opsi memiliki gambar
+   * - Sinkronisasi dengan carousel gambar
+   * - Update harga dan stok berdasarkan kombinasi variasi
+   */
   const handleOptionSelect = (variationId: string, optionId: string) => {
     const newSelectedOptions = { ...selectedOptions };
 
@@ -257,15 +281,34 @@ export default function ProductDetail() {
 
     setSelectedOptions(newSelectedOptions);
   };
-
-  // Handle quantity change
+  /**
+   * Mengubah jumlah produk yang akan dibeli
+   * @param value - Jumlah produk baru
+   *
+   * Validasi:
+   * - Minimal 1 produk
+   * - Tidak melebihi stok yang tersedia
+   * - Update UI secara responsif
+   */
   const handleQuantityChange = (value: number) => {
     if (value >= 1 && (currentStock === null || value <= currentStock)) {
       setQuantity(value);
     }
   };
-
-  // Handle add to cart
+  /**
+   * Menangani penambahan produk ke keranjang
+   *
+   * Validasi:
+   * 1. Status login pengguna
+   * 2. Ketersediaan produk
+   * 3. Pemilihan variasi lengkap
+   * 4. Stok mencukupi
+   *
+   * Fitur:
+   * - Feedback visual melalui toast notification
+   * - Validasi stok realtime
+   * - Penanganan error
+   */
   const handleAddToCart = async () => {
     try {
       // Check if user is logged in

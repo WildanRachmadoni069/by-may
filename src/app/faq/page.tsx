@@ -1,3 +1,13 @@
+/**
+ * Halaman FAQ (Frequently Asked Questions)
+ * @module FAQPage
+ * @description Menampilkan halaman FAQ dengan fitur:
+ * - Daftar pertanyaan yang sering diajukan
+ * - Accordion untuk mempermudah navigasi
+ * - Tombol hubungi admin untuk pertanyaan lebih lanjut
+ * - Breadcrumb navigation
+ * - Loading states & error handling
+ */
 "use client";
 
 import {

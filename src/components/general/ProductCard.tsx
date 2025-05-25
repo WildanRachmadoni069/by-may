@@ -1,3 +1,14 @@
+/**
+ * Komponen Kartu Produk
+ * @module ProductCard
+ * @description Menampilkan preview produk dalam bentuk kartu dengan:
+ * - Gambar utama produk
+ * - Label khusus (New/Best Seller/Sale)
+ * - Status stok
+ * - Harga dengan format yang tepat
+ * - Kategori produk
+ * - Data terstruktur schema.org
+ */
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -6,8 +17,13 @@ import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/product";
 import { getProductPriceDisplay, isProductInStock } from "@/utils/product";
 
+/**
+ * Props untuk komponen ProductCard
+ */
 interface ProductCardProps {
+  /** Data produk yang akan ditampilkan */
   product: Product;
+  /** Class tambahan untuk styling kustom */
   className?: string;
 }
 

@@ -56,13 +56,20 @@ function MainNav() {
               className="block text-primary"
               href="/"
               aria-label="ByMay Scarf - Kembali ke Beranda"
-            >
-              <span className="sr-only">Home</span>
+            >              <span className="sr-only">Home</span>{" "}
               <Image
                 src={"/img/Logo.jpg"}
                 alt="Logo Bymayscarf"
-                width={64}
+                width={64} 
                 height={64}
+                priority
+                fetchPriority="high"
+                loading="eager"
+                sizes="64px"
+                className="w-16 h-16"
+                style={{
+                  objectFit: "contain",
+                }}
               />
             </Link>
           </div>

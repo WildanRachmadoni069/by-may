@@ -1,3 +1,15 @@
+/**
+ * Halaman Daftar Produk
+ * @module ProductListPage
+ * @description Menampilkan daftar produk dengan fitur:
+ * - Filter berdasarkan kategori dan koleksi
+ * - Pencarian produk
+ * - Pengurutan (sorting)
+ * - Paginasi
+ * - Filter mobile-responsive
+ * - Breadcrumb navigation
+ * - Loading states & error handling
+ */
 "use client";
 import React, { useEffect, useState } from "react";
 import ProductCard from "@/components/general/ProductCard";
@@ -134,8 +146,13 @@ function ProductPage() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
-
-  // Handle search submission
+  /**
+   * Menangani pengiriman pencarian produk
+   * Fitur:
+   * - Set loading state
+   * - Update filter state dengan query baru
+   * - Reset halaman ke 1
+   */
   const handleSearchSubmit = () => {
     setIsSearching(true);
 
@@ -147,8 +164,13 @@ function ProductPage() {
 
     setIsSearching(false);
   };
-
-  // Handle search reset - clicking the X button in search or filter badge
+  /**
+   * Menangani reset pencarian
+   * Aksi:
+   * - Mengosongkan input pencarian
+   * - Menghapus filter pencarian
+   * - Reset halaman ke 1
+   */
   const handleResetSearch = () => {
     // Clear the search input
     setSearchQuery("");
@@ -159,8 +181,15 @@ function ProductPage() {
       page: 1,
     });
   };
-
-  // Handle filter reset - resets all filters
+  /**
+   * Menangani reset semua filter
+   * Reset:
+   * - Query pencarian
+   * - Filter kategori
+   * - Filter koleksi
+   * - Pengurutan ke default
+   * - Halaman ke 1
+   */
   const handleResetFilters = () => {
     setSearchQuery("");
     setFilters({
@@ -260,7 +289,14 @@ function ProductPage() {
     return items;
   };
 
-  // Product card skeleton loader for loading state
+  /** Product card skeleton loader for loading state
+   * Render loading skeleton untuk produk
+   * @returns Array of skeleton items untuk menampilkan loading state
+   * Menampilkan:
+   * - Gambar placeholder
+   * - Teks placeholder untuk judul
+   * - Teks placeholder untuk harga
+   */
   const renderProductSkeletons = () => {
     return Array(8)
       .fill(null)
@@ -274,7 +310,6 @@ function ProductPage() {
       ));
   };
 
-  // Better error handling
   if (error) {
     return (
       <div className="min-h-screen bg-background">

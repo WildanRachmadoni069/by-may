@@ -1,8 +1,18 @@
+/**
+ * Komponen Card Artikel
+ * @module ArticleCard
+ * @description Menampilkan preview artikel dalam bentuk card dengan gambar, judul,
+ * ringkasan, dan tanggal publikasi. Digunakan di halaman daftar artikel
+ * dan bagian artikel terkait.
+ */
 import Link from "next/link";
 import Image from "next/image";
 import { CalendarIcon } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
+/**
+ * Props untuk komponen ArticleCard
+ */
 interface ArticleCardProps {
   title: string;
   slug: string;
