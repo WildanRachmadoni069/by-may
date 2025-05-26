@@ -13,11 +13,11 @@ import { Metadata } from "next";
 import React from "react";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
+  const canonicalUrl = `${baseUrl}/tentang-kami`;
+
   try {
     const seoData = await getSeoData("about");
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
-    const canonicalUrl = `${baseUrl}/tentang-kami`;
 
     // Organization structured data
     const organizationStructuredData = {
@@ -26,16 +26,22 @@ export async function generateMetadata(): Promise<Metadata> {
       name: "CV Faza Mega Berlian",
       alternateName: "bymayscarf",
       url: baseUrl,
-      logo: `${baseUrl}/img/Logo.jpg`,
+      logo: {
+        "@type": "ImageObject",
+        url: `${baseUrl}/img/Logo.webp`,
+        width: "500",
+        height: "500",
+      },
       description:
-        "Spesialis Al-Quran custom nama dan perlengkapan ibadah berkualitas di Surabaya",
+        "Spesialis Al-Quran custom nama dan perlengkapan ibadah berkualitas premium dengan harga terjangkau di Surabaya",
       address: {
         "@type": "PostalAddress",
         addressLocality: "Surabaya",
         addressRegion: "Jawa Timur",
         addressCountry: "ID",
+        streetAddress: "Jl. Ketintang Madya III",
       },
-      foundingDate: "2019",
+      foundingDate: "2021",
       sameAs: [
         "https://instagram.com/by.mayofficial",
         "https://facebook.com/by.mayofficial",
@@ -68,17 +74,34 @@ export async function generateMetadata(): Promise<Metadata> {
       "@type": "Article",
       headline: "Tentang CV Faza Mega Berlian (bymayscarf)",
       description:
-        "Sejak 2019, CV Faza Mega Berlian telah menjadi pionir dalam menyediakan Al-Qur'an custom cover dan perlengkapan ibadah berkualitas dengan harga terjangkau di Surabaya.",
+        "Sejak 2021, CV Faza Mega Berlian telah menjadi pionir dalam menyediakan Al-Qur'an custom cover berkualitas premium dengan harga terjangkau. Kami hadir di berbagai marketplace seperti Shopee, Tokopedia, Lazada, dan TikTok Shop.",
       publisher: {
         "@type": "Organization",
         name: "bymayscarf",
         logo: {
           "@type": "ImageObject",
-          url: `${baseUrl}/img/Logo.jpg`,
+          url: `${baseUrl}/img/Logo.webp`,
+          width: "500",
+          height: "500",
         },
       },
-      datePublished: "2019-01-01T00:00:00+07:00",
+      author: {
+        "@type": "Organization",
+        name: "CV Faza Mega Berlian",
+        url: baseUrl,
+      },
+      datePublished: "2021-01-01T00:00:00+07:00",
       dateModified: new Date().toISOString(),
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": canonicalUrl,
+      },
+      image: {
+        "@type": "ImageObject",
+        url: `${baseUrl}/img/Logo.webp`,
+        width: "500",
+        height: "500",
+      },
     };
 
     // Combine all structured data
@@ -98,15 +121,17 @@ export async function generateMetadata(): Promise<Metadata> {
           },
         ]
       : undefined;
-
     return {
-      title: seoData?.title || "Tentang Kami | bymayscarf",
+      metadataBase: new URL(baseUrl),
+      title:
+        seoData?.title ||
+        "Tentang CV Faza Mega Berlian | Produsen Al-Quran Custom Cover Premium | bymayscarf",
       description:
         seoData?.description ||
-        "CV Faza Mega Berlian (bymayscarf) adalah pionir dalam menyediakan Al-Quran custom cover dan perlengkapan ibadah berkualitas di Surabaya sejak 2021. Ketahui lebih lanjut tentang visi, misi, dan komitmen kami.",
+        "CV Faza Mega Berlian (bymayscarf) adalah pionir dalam menyediakan Al-Quran custom cover berkualitas premium dengan harga terjangkau sejak 2021. Hadir di Shopee, Tokopedia, Lazada, dan TikTok Shop dengan 100+ varian produk Al-Quran custom, sajadah, dan perlengkapan ibadah.",
       keywords:
         seoData?.keywords ||
-        "CV Faza Mega Berlian, bymayscarf, tentang kami, Al-Quran custom cover Surabaya, perlengkapan ibadah, visi misi perusahaan",
+        "CV Faza Mega Berlian, bymayscarf, Al-Quran custom cover Surabaya, Al-Quran custom nama, sajadah custom, perlengkapan ibadah premium, hampers islami, custom Al-Quran murah berkualitas",
       alternates: {
         canonical: canonicalUrl,
       },
@@ -119,15 +144,24 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       },
       openGraph: {
-        title: seoData?.title || "Tentang CV Faza Mega Berlian | bymayscarf",
+        title:
+          seoData?.title ||
+          "CV Faza Mega Berlian | Produsen Al-Quran Custom Cover Premium | bymayscarf",
         description:
           seoData?.description ||
-          "Pionir Al-Quran custom cover dan perlengkapan ibadah berkualitas di Surabaya sejak 2019",
+          "Penyedia Al-Quran custom cover berkualitas premium dengan harga terjangkau. Tersedia di Shopee, Tokopedia, Lazada, dan TikTok Shop dengan 100+ varian produk.",
         type: "website",
         url: canonicalUrl,
         siteName: "bymayscarf",
         locale: "id_ID",
-        images: ogImage,
+        images: ogImage || [
+          {
+            url: `${baseUrl}/img/Logo.webp`,
+            width: 500,
+            height: 500,
+            alt: "CV Faza Mega Berlian Logo",
+          },
+        ],
       },
       other: {
         "script:ld+json": JSON.stringify(structuredData),

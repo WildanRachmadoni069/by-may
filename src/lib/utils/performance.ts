@@ -21,7 +21,7 @@ export const defaultStructuredData = {
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop",
   logo: `${
     process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
-  }/img/Logo.jpg`,
+  }/img/Logo.webp`,
   description:
     "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna.",
   contactPoint: {
@@ -107,7 +107,7 @@ export function generateArticleStructuredData(article: any) {
       name: "By May Scarf",
       logo: {
         "@type": "ImageObject",
-        url: `${baseUrl}/img/Logo.jpg`,
+        url: `${baseUrl}/img/Logo.webp`,
       },
     },
     image: article.featuredImage && {
@@ -195,7 +195,7 @@ export function generateLocalBusinessStructuredData() {
     "@type": "LocalBusiness",
     "@id": `${baseUrl}/#localbusiness`,
     name: "By May Scarf",
-    image: `${baseUrl}/img/Logo.jpg`,
+    image: `${baseUrl}/img/Logo.webp`,
     url: baseUrl,
     telephone: "+62 851-6179-0424",
     address: {
@@ -235,7 +235,7 @@ export function generateShoppingCenterStructuredData(products: any[] = []) {
     "@context": "https://schema.org",
     "@type": "Store",
     name: "By May Scarf Online Store",
-    image: `${baseUrl}/img/Logo.jpg`,
+    image: `${baseUrl}/img/Logo.webp`,
     url: `${baseUrl}/produk`,
     telephone: "+62 851-6179-0424",
     address: {
