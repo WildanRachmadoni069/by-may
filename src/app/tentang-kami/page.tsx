@@ -32,8 +32,9 @@ export default function TentangKami() {
             <div className="absolute right-0 w-1/3 h-full bg-[linear-gradient(to_left,transparent_0%,white_100%)]" />
           </div>
 
-          <div className="relative py-12 lg:py-20">
-            <Breadcrumb className="container px-4 mb-6">
+          {/* Breadcrumb */}
+          <div className="container px-4 py-4">
+            <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
@@ -46,67 +47,68 @@ export default function TentangKami() {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
 
-            <div className="container px-4">
-              <div className="max-w-xl mx-auto text-center mb-12">
-                <h1 className="text-4xl md:text-6xl font-bold mb-6 text-primary">
-                  Tentang Kami
-                </h1>
+          {/* Content */}
+          <div className="container px-4 py-8 lg:py-16">
+            <div className="max-w-xl mx-auto text-center mb-12">
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 text-primary">
+                Tentang Kami
+              </h1>
+            </div>
+
+            <section className="relative grid md:grid-cols-2 gap-12 items-center mb-16">
+              <div className="relative z-10">
+                {/* Company story */}
+                <div className="space-y-6">
+                  <h2 className="text-3xl font-bold mb-6 text-primary">
+                    CV Faza Mega Berlian
+                  </h2>
+                  <div className="space-y-6">
+                    <p className="text-gray-700 leading-relaxed">
+                      Berawal dari sebuah pertemanan di bangku perkuliahan dan
+                      kesamaan minat dalam dunia investasi melalui organisasi
+                      mahasiswa, kami memulai perjalanan bisnis kami pada
+                      tahun 2021. Setelah mencoba berbagai bidang usaha mulai
+                      dari F&B hingga fashion scarf (yang menginspirasi nama
+                      brand ByMayScarf), kami menemukan peluang unik di
+                      industri percetakan Al-Qur'an custom.
+                    </p>
+                    <p className="text-gray-700 leading-relaxed">
+                      Kami menyadari bahwa produk custom umumnya diidentikkan
+                      dengan harga premium. Namun, melalui inovasi
+                      operasional, kami berhasil menciptakan produk Al-Qur'an
+                      custom yang terjangkau namun tetap berkualitas premium.
+                      Bermula dari Shopee, kini kami hadir di empat
+                      marketplace besar Indonesia: Shopee, TikTokShop, Lazada,
+                      dan Tokopedia.
+                    </p>
+                    <p className="text-gray-700 leading-relaxed">
+                      Pada tahun 2022, kami resmi mendirikan CV Faza Mega
+                      Berlian dan memperluas lini produk kami. Tidak hanya
+                      Al-Qur'an custom dengan berbagai varian ukuran dan
+                      desain, kami juga mengembangkan produk packaging,
+                      hardbox, softbox, serta perlengkapan ibadah lainnya
+                      seperti sajadah custom, tasbih, dan hampers untuk
+                      berbagai kesempatan seperti lebaran dan pernikahan.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <section className="relative grid md:grid-cols-2 gap-12 items-center mb-16">
-                <div className="relative z-10">
-                  {/* Company story */}
-                  <div className="space-y-6">
-                    <h2 className="text-3xl font-bold mb-6 text-primary">
-                      CV Faza Mega Berlian
-                    </h2>
-                    <div className="space-y-6">
-                      <p className="text-gray-700 leading-relaxed">
-                        Berawal dari sebuah pertemanan di bangku perkuliahan dan
-                        kesamaan minat dalam dunia investasi melalui organisasi
-                        mahasiswa, kami memulai perjalanan bisnis kami pada
-                        tahun 2021. Setelah mencoba berbagai bidang usaha mulai
-                        dari F&B hingga fashion scarf (yang menginspirasi nama
-                        brand ByMayScarf), kami menemukan peluang unik di
-                        industri percetakan Al-Qur'an custom.
-                      </p>
-                      <p className="text-gray-700 leading-relaxed">
-                        Kami menyadari bahwa produk custom umumnya diidentikkan
-                        dengan harga premium. Namun, melalui inovasi
-                        operasional, kami berhasil menciptakan produk Al-Qur'an
-                        custom yang terjangkau namun tetap berkualitas premium.
-                        Bermula dari Shopee, kini kami hadir di empat
-                        marketplace besar Indonesia: Shopee, TikTokShop, Lazada,
-                        dan Tokopedia.
-                      </p>
-                      <p className="text-gray-700 leading-relaxed">
-                        Pada tahun 2022, kami resmi mendirikan CV Faza Mega
-                        Berlian dan memperluas lini produk kami. Tidak hanya
-                        Al-Qur'an custom dengan berbagai varian ukuran dan
-                        desain, kami juga mengembangkan produk packaging,
-                        hardbox, softbox, serta perlengkapan ibadah lainnya
-                        seperti sajadah custom, tasbih, dan hampers untuk
-                        berbagai kesempatan seperti lebaran dan pernikahan.
-                      </p>
-                    </div>
-                  </div>
+              <div className="relative">
+                <div className="relative rounded-xl overflow-hidden shadow-xl border-2 border-primary/20 group">
+                  <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <Image
+                    src="/img/about-us/about-us.webp"
+                    alt="Kantor CV Faza Mega Berlian"
+                    width={800}
+                    height={800}
+                    className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
+                  />
                 </div>
-
-                <div className="relative">
-                  <div className="relative rounded-xl overflow-hidden shadow-xl border-2 border-primary/20 group">
-                    <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <Image
-                      src="/img/about-us/about-us.webp"
-                      alt="Kantor CV Faza Mega Berlian"
-                      width={800}
-                      height={800}
-                      className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                </div>
-              </section>
-            </div>
+              </div>
+            </section>
           </div>
         </div>
         {/* Timeline Section */}
