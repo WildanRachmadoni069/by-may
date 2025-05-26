@@ -160,7 +160,7 @@ export function LoginForm({
           </form>
           <div className="relative h-full hidden bg-muted md:block">
             <Image
-              src="https://placehold.co/300x500"
+              src="/img/auth-image/login-bg.webp"
               alt="Login Image"
               className="inset-0 object-cover dark:brightness-[0.2] dark:grayscale"
               fill

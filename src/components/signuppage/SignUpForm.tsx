@@ -203,12 +203,13 @@ export function SignUpForm({
               </div>
             </div>
           </form>
-          <div className="relative h-full hidden bg-muted md:block">
+          <div className="relative h-full hidden bg-muted md:flex md:items-center md:justify-center">
             <Image
-              src="https://placehold.co/300x500"
+              src="/img/auth-image/sign-up-bg.webp"
               alt="Sign Up Image"
-              className="inset-0 object-cover dark:brightness-[0.2] dark:grayscale"
-              fill
+              className=" object-cover dark:brightness-[0.2] dark:grayscale"
+              width={300}
+              height={300}
             />
           </div>
         </CardContent>
