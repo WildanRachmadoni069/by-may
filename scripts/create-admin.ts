@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/generated/prisma/client";
 import { hash } from "bcryptjs";
 
 // Initialize Prisma Client
@@ -10,10 +10,10 @@ async function main() {
     const adminEmail = "admin@bymay.com";
     const adminPassword = "Admin123!"; // Change this to a secure password
     const adminName = "Admin Bymay";
-    
+
     // Check if admin already exists
     const existingAdmin = await prisma.user.findUnique({
-      where: { email: adminEmail }
+      where: { email: adminEmail },
     });
 
     if (existingAdmin) {
@@ -30,8 +30,8 @@ async function main() {
         email: adminEmail,
         fullName: adminName,
         passwordHash: hashedPassword,
-        role: "admin" // Set role as admin
-      }
+        role: "admin", // Set role as admin
+      },
     });
 
     console.log("Admin created successfully:", admin);

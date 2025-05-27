@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/auth/auth";
-import { Prisma } from "@prisma/client"; // Import Prisma namespace
-
+import { Prisma } from "@/generated/prisma/client";
 /**
  * GET /api/faqs
  * Mengambil daftar FAQ dengan paginasi dan pencarian

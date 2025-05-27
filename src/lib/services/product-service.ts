@@ -7,7 +7,7 @@
  */
 
 import { db } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { CloudinaryService } from "./cloudinary-service";
 import {
   CreateProductInput,

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/generated/prisma/client";
 import { hash } from "bcryptjs";
 import { parseArgs } from "node:util";
 

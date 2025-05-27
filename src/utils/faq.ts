@@ -1,6 +1,6 @@
 // SERVER-SIDE ONLY - do not import in client components
 import { db } from "@/lib/db";
-import { Prisma } from "@prisma/client"; // Import Prisma namespace
+import { Prisma } from "@/generated/prisma/client"; // Import Prisma namespace
 import type {
   FAQ,
   FAQFormValues,
