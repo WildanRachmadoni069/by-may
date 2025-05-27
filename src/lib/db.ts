@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@/generated/prisma/client";
 
 // Check if we're in a browser environment
 const isBrowser = typeof window !== "undefined";
