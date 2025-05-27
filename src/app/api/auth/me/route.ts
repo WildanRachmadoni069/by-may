@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/auth";
 import { db } from "@/lib/db";
+import { logError } from "@/lib/debug";
 
 /**
  * GET /api/auth/me
@@ -15,16 +16,14 @@ export async function GET(req: NextRequest) {
   try {
     // Get token from cookies
     const token = req.cookies.get("authToken")?.value;
-
     if (!token) {
-      return NextResponse.json({ user: null }, { status: 401 });
+      return NextResponse.json({ user: null }, { status: 200 });
     }
 
     // Verify token
     const payload = verifyToken(token);
-
     if (!payload || !payload.id) {
-      return NextResponse.json({ user: null }, { status: 401 });
+      return NextResponse.json({ user: null }, { status: 200 });
     }
 
     // Verify user still exists and get fresh data
@@ -38,9 +37,9 @@ export async function GET(req: NextRequest) {
           role: true,
         },
       });
-
       if (!user) {
-        return NextResponse.json({ user: null }, { status: 401 });
+        // Return 200 if user not found since we'll just treat it as no auth
+        return NextResponse.json({ user: null }, { status: 200 });
       }
 
       // Return user with explicit role field
@@ -53,12 +52,11 @@ export async function GET(req: NextRequest) {
         },
       });
     } catch (dbError) {
-      return NextResponse.json(
-        { user: null, error: "Database error" },
-        { status: 500 }
-      );
+      logError("auth/me/db", dbError);
+      return NextResponse.json({ user: null }, { status: 500 });
     }
   } catch (error) {
-    return NextResponse.json({ user: null }, { status: 401 });
+    logError("auth/me", error);
+    return NextResponse.json({ user: null }, { status: 200 });
   }
 }

@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { logError } from "./debug";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -148,7 +149,7 @@ export function formatDate(
       year: "numeric",
     });
   } catch (error) {
-    console.error("Error formatting date:", error);
+    logError("date/format", error);
     return "Error";
   }
 }

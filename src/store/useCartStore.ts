@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { logError } from "@/lib/debug";
 import {
   CartItem,
   CartSummary,
@@ -60,7 +61,7 @@ export const useCartStore = create<CartState>()(
           const summary = calculateCartSummary(items);
           set({ items, summary, isLoading: false, isInitialized: true });
         } catch (error) {
-          console.error("Failed to fetch cart:", error);
+          logError("cart/fetch", error);
           set({
             error:
               error instanceof Error ? error.message : "Failed to fetch cart",
@@ -106,7 +107,7 @@ export const useCartStore = create<CartState>()(
 
           return newItem;
         } catch (error) {
-          console.error("Failed to add item to cart:", error);
+          logError("cart/add", error);
           set({
             error:
               error instanceof Error
@@ -141,7 +142,7 @@ export const useCartStore = create<CartState>()(
 
           return updatedItem;
         } catch (error) {
-          console.error("Failed to update item quantity:", error);
+          logError("cart/update", error);
           set({
             error:
               error instanceof Error
@@ -171,7 +172,7 @@ export const useCartStore = create<CartState>()(
           const summary = calculateCartSummary(updatedItems);
           set({ items: updatedItems, summary, isLoading: false });
         } catch (error) {
-          console.error("Failed to remove item from cart:", error);
+          logError("cart/remove", error);
           set({
             error:
               error instanceof Error

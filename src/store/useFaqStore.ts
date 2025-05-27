@@ -9,6 +9,7 @@ import {
   reorderFAQs,
 } from "@/utils/faq";
 import { FAQ, FAQFormValues, GetFAQsOptions } from "@/types/faq";
+import { logError } from "@/lib/debug";
 
 interface FAQState {
   faqs: FAQ[];
@@ -52,7 +53,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       set({ faqs: faqsData, error: null });
     } catch (error) {
       set({ error: "Failed to fetch FAQs" });
-      console.error("Error fetching FAQs:", error);
+      logError("faq/fetch", error);
     } finally {
       set({ loading: false });
     }
@@ -68,7 +69,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       });
     } catch (error) {
       set({ error: "Failed to fetch FAQs" });
-      console.error("Error fetching FAQs:", error);
+      logError("faq/fetch-filtered", error);
     } finally {
       set({ loading: false });
     }
@@ -94,7 +95,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: "Failed to fetch more FAQs" });
-      console.error("Error fetching more FAQs:", error);
+      logError("faq/fetch-more", error);
     } finally {
       set({ loading: false });
     }
@@ -109,7 +110,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       }
     } catch (error) {
       set({ error: "Failed to fetch FAQ" });
-      console.error("Error fetching FAQ:", error);
+      logError("faq/fetch-single", error);
     } finally {
       set({ loading: false });
     }
@@ -122,7 +123,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       set((state) => ({ faqs: [...state.faqs, newFAQ], error: null }));
     } catch (error) {
       set({ error: "Failed to add FAQ" });
-      console.error("Error adding FAQ:", error);
+      logError("faq/add", error);
     } finally {
       set({ loading: false });
     }
@@ -138,7 +139,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: "Failed to update FAQ" });
-      console.error("Error updating FAQ:", error);
+      logError("faq/update", error);
     } finally {
       set({ loading: false });
     }
@@ -154,7 +155,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       }));
     } catch (error) {
       set({ error: "Failed to delete FAQ" });
-      console.error("Error deleting FAQ:", error);
+      logError("faq/delete", error);
     } finally {
       set({ loading: false });
     }
@@ -185,7 +186,7 @@ export const useFaqStore = create<FAQState>((set, get) => ({
       });
     } catch (error) {
       set({ error: "Failed to update FAQ order" });
-      console.error("Error updating FAQ order:", error);
+      logError("faq/reorder", error);
     } finally {
       set({ loading: false });
     }

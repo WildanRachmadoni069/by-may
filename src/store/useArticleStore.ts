@@ -7,6 +7,7 @@
  */
 
 import { create } from "zustand";
+import { logError } from "@/lib/debug";
 import {
   deleteArticle as deleteArticleApi,
   createArticle as createArticleApi,
@@ -110,8 +111,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
       return true;
     } catch (error) {
-      console.error("Failed to delete article:", error);
-      setError("Failed to delete article");
+      set({ error: "Failed to delete article" });
+      logError("article/delete", error);
       return false;
     } finally {
       setLoading(false);
@@ -134,8 +135,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
       return article;
     } catch (error) {
-      console.error("Failed to create article:", error);
-      setError("Failed to create article");
+      set({ error: "Failed to create article" });
+      logError("article/create", error);
       return null;
     } finally {
       setLoading(false);
@@ -160,8 +161,8 @@ export const useArticleStore = create<ArticleState>((set, get) => ({
 
       return article;
     } catch (error) {
-      console.error("Failed to update article:", error);
-      setError("Failed to update article");
+      set({ error: "Failed to update article" });
+      logError("article/update", error);
       return null;
     } finally {
       setLoading(false);

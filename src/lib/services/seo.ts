@@ -3,6 +3,7 @@
  */
 
 import { db } from "@/lib/db";
+import { logError } from "@/lib/debug";
 import type { SEOSetting } from "@/types/seo";
 
 /**
@@ -19,7 +20,7 @@ export async function getSeoData(pageId: string): Promise<SEOSetting | null> {
 
     return seoSetting;
   } catch (error) {
-    console.error(`Error fetching SEO data for page ${pageId}:`, error);
+    logError(`seo/fetch/${pageId}`, error);
     return null;
   }
 }
@@ -36,7 +37,7 @@ export async function getAllSeoData(): Promise<SEOSetting[]> {
 
     return seoSettings;
   } catch (error) {
-    console.error("Error fetching all SEO data:", error);
+    logError("seo/fetch-all", error);
     return [];
   }
 }
