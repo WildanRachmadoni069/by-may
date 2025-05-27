@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { BannerService } from "@/lib/services/banner-service";
 import { verifyToken } from "@/lib/auth/auth";
+import { logError } from "@/lib/debug";
+import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api";
 
 /**
  * GET /api/banners
@@ -8,14 +10,18 @@ import { verifyToken } from "@/lib/auth/auth";
  */
 export async function GET() {
   try {
-    const banners = await BannerService.getBanners();
-    return NextResponse.json(banners);
+    const result = await BannerService.getBanners();
+
+    if (!result.success) {
+      return createErrorResponse(
+        result.message || "Gagal mengambil data banner"
+      );
+    }
+
+    return createSuccessResponse(result.data);
   } catch (error) {
-    console.error("Error fetching banners:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch banners" },
-      { status: 500 }
-    );
+    logError("GET /api/banners", error);
+    return createErrorResponse("Gagal mengambil data banner");
   }
 }
 
@@ -27,27 +33,28 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication and admin role using JWT
     const token = request.cookies.get("authToken")?.value;
-
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse(
+        "Unauthorized - Silakan login terlebih dahulu",
+        401
+      );
     }
 
-    // Verify token
     const payload = verifyToken(token);
-
     if (!payload || !payload.id || payload.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse("Forbidden - Hanya admin yang diizinkan", 403);
     }
 
     const data = await request.json();
-    const banner = await BannerService.createBanner(data);
+    const result = await BannerService.createBanner(data);
 
-    return NextResponse.json(banner, { status: 201 });
+    if (!result.success) {
+      return createErrorResponse(result.message || "Gagal membuat banner");
+    }
+
+    return createSuccessResponse(result.data, result.message);
   } catch (error) {
-    console.error("Error creating banner:", error);
-    return NextResponse.json(
-      { error: "Failed to create banner" },
-      { status: 500 }
-    );
+    logError("POST /api/banners", error);
+    return createErrorResponse("Gagal membuat banner");
   }
 }

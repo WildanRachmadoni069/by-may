@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Upload, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { CloudinaryService } from "@/lib/services/cloudinary-service";
 
 /**
  * Props untuk komponen BannerImageUpload
@@ -55,18 +56,6 @@ export default function BannerImageUpload({
   }, []);
 
   /**
-   * Ekstrak publicId dari URL Cloudinary untuk pembaruan gambar
-   * @param url URL gambar Cloudinary
-   * @returns PublicId gambar
-   */
-  const extractPublicId = (url: string) => {
-    const parts = url.split("/");
-    const filenameWithExt = parts.pop() || "";
-    const publicId = filenameWithExt.split(".")[0];
-    return publicId;
-  };
-
-  /**
    * Menangani perubahan file yang dipilih
    * @param e Event perubahan input file
    */
@@ -114,10 +103,12 @@ export default function BannerImageUpload({
     try {
       const formData = new FormData();
       let response;
-
       if (value.url) {
         // Update gambar yang sudah ada
-        const publicId = extractPublicId(value.url);
+        const publicId = CloudinaryService.extractPublicIdFromUrl(value.url);
+        if (!publicId) {
+          throw new Error("Gagal mendapatkan publicId dari URL gambar");
+        }
         formData.append("image", file);
         formData.append("publicId", publicId);
 

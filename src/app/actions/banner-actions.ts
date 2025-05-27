@@ -51,10 +51,14 @@ export async function createBannerAction(
   // Verifikasi autentikasi admin
   await checkAdminAuth();
 
-  const banner = await BannerService.createBanner(data);
+  const result = await BannerService.createBanner(data);
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "Gagal membuat banner");
+  }
+
   revalidatePath("/");
   revalidatePath("/dashboard/admin/banner");
-  return banner;
+  return result.data;
 }
 
 /**
@@ -70,10 +74,14 @@ export async function updateBannerAction(
   // Verifikasi autentikasi admin
   await checkAdminAuth();
 
-  const banner = await BannerService.updateBanner(id, data);
+  const result = await BannerService.updateBanner(id, data);
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "Gagal memperbarui banner");
+  }
+
   revalidatePath("/");
   revalidatePath("/dashboard/admin/banner");
-  return banner;
+  return result.data;
 }
 
 /**
@@ -84,7 +92,11 @@ export async function deleteBannerAction(id: string): Promise<void> {
   // Verifikasi autentikasi admin
   await checkAdminAuth();
 
-  await BannerService.deleteBanner(id);
+  const result = await BannerService.deleteBanner(id);
+  if (!result.success) {
+    throw new Error(result.message || "Gagal menghapus banner");
+  }
+
   revalidatePath("/");
   revalidatePath("/dashboard/admin/banner");
 }
@@ -94,7 +106,11 @@ export async function deleteBannerAction(id: string): Promise<void> {
  * @returns Array banner
  */
 export async function getBannersAction(): Promise<BannerData[]> {
-  return await BannerService.getBanners();
+  const result = await BannerService.getBanners();
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "Gagal mengambil data banner");
+  }
+  return result.data;
 }
 
 /**
@@ -105,7 +121,11 @@ export async function getBannersAction(): Promise<BannerData[]> {
 export async function getBannerByIdAction(
   id: string
 ): Promise<BannerData | null> {
-  return await BannerService.getBannerById(id);
+  const result = await BannerService.getBannerById(id);
+  if (!result.success) {
+    throw new Error(result.message || "Gagal mengambil data banner");
+  }
+  return result.data || null;
 }
 
 /**
@@ -113,5 +133,9 @@ export async function getBannerByIdAction(
  * @returns Array banner yang aktif
  */
 export async function getActiveBannersAction(): Promise<BannerData[]> {
-  return await BannerService.getActiveBanners();
+  const result = await BannerService.getBanners();
+  if (!result.success || !result.data) {
+    throw new Error(result.message || "Gagal mengambil data banner");
+  }
+  return result.data.filter((banner) => banner.active);
 }

@@ -9,6 +9,7 @@ import {
   BannerCreateInput,
   BannerUpdateInput,
 } from "@/types/banner";
+import { ApiResponse } from "@/types/common";
 
 /**
  * Mengambil semua banner
@@ -24,7 +25,12 @@ export async function getBanners(): Promise<BannerData[]> {
     throw new Error(error || "Gagal mengambil banner");
   }
 
-  return res.json();
+  const response: ApiResponse<BannerData[]> = await res.json();
+  if (!response.success || !response.data) {
+    throw new Error(response.message || "Gagal mengambil banner");
+  }
+
+  return response.data;
 }
 
 /**
@@ -42,7 +48,12 @@ export async function getBannerById(id: string): Promise<BannerData> {
     throw new Error(error || "Gagal mengambil banner");
   }
 
-  return res.json();
+  const response: ApiResponse<BannerData> = await res.json();
+  if (!response.success || !response.data) {
+    throw new Error(response.message || "Gagal mengambil banner");
+  }
+
+  return response.data;
 }
 
 /**
@@ -66,7 +77,12 @@ export async function createBanner(
     throw new Error(error || "Gagal membuat banner");
   }
 
-  return res.json();
+  const response: ApiResponse<BannerData> = await res.json();
+  if (!response.success || !response.data) {
+    throw new Error(response.message || "Gagal membuat banner");
+  }
+
+  return response.data;
 }
 
 /**
@@ -92,7 +108,12 @@ export async function updateBanner(
     throw new Error(error || "Gagal memperbarui banner");
   }
 
-  return res.json();
+  const response: ApiResponse<BannerData> = await res.json();
+  if (!response.success || !response.data) {
+    throw new Error(response.message || "Gagal memperbarui banner");
+  }
+
+  return response.data;
 }
 
 /**
@@ -107,5 +128,10 @@ export async function deleteBanner(id: string): Promise<void> {
   if (!res.ok) {
     const error = await res.text();
     throw new Error(error || "Gagal menghapus banner");
+  }
+
+  const response: ApiResponse<void> = await res.json();
+  if (!response.success) {
+    throw new Error(response.message || "Gagal menghapus banner");
   }
 }

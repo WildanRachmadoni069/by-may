@@ -7,6 +7,8 @@
 
 import { db } from "@/lib/db";
 import { CloudinaryService } from "./cloudinary-service";
+import { ApiResponse } from "@/types/common";
+import { logError } from "@/lib/debug";
 import {
   BannerData,
   BannerCreateInput,
@@ -16,108 +18,178 @@ import {
 export const BannerService = {
   /**
    * Mengambil semua banner
-   * @returns Promise yang menyelesaikan ke array banner
    */
-  async getBanners(): Promise<BannerData[]> {
-    return db.banner.findMany({
-      orderBy: { createdAt: "desc" },
-    }) as unknown as BannerData[];
+  async getBanners(): Promise<ApiResponse<BannerData[]>> {
+    try {
+      const banners = await db.banner.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+
+      const formattedBanners = banners.map((banner) => ({
+        ...banner,
+        createdAt: banner.createdAt.toISOString(),
+        updatedAt: banner.updatedAt.toISOString(),
+      }));
+
+      return {
+        success: true,
+        data: formattedBanners,
+      };
+    } catch (error) {
+      logError("BannerService.getBanners", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Failed to fetch banners",
+      };
+    }
   },
 
   /**
    * Mengambil banner berdasarkan ID
-   * @param id ID banner yang dicari
-   * @returns Banner yang ditemukan atau null
    */
-  async getBannerById(id: string): Promise<BannerData | null> {
-    const banner = await db.banner.findUnique({
-      where: { id },
-    });
+  async getBannerById(id: string): Promise<ApiResponse<BannerData | null>> {
+    try {
+      const banner = await db.banner.findUnique({
+        where: { id },
+      });
 
-    return banner as unknown as BannerData | null;
+      if (!banner) {
+        return {
+          success: false,
+          message: "Banner tidak ditemukan",
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          ...banner,
+          createdAt: banner.createdAt.toISOString(),
+          updatedAt: banner.updatedAt.toISOString(),
+        },
+      };
+    } catch (error) {
+      logError("BannerService.getBannerById", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Failed to fetch banner",
+      };
+    }
   },
 
   /**
    * Membuat banner baru
-   * @param data Data banner yang akan dibuat
-   * @returns Banner yang dibuat
    */
-  async createBanner(data: BannerCreateInput): Promise<BannerData> {
-    return db.banner.create({
-      data: {
-        title: data.title,
-        imageUrl: data.imageUrl,
-        url: data.url || null,
-        active: data.active,
-      },
-    }) as unknown as BannerData;
+  async createBanner(
+    data: BannerCreateInput
+  ): Promise<ApiResponse<BannerData>> {
+    try {
+      const banner = await db.banner.create({
+        data,
+      });
+
+      return {
+        success: true,
+        data: {
+          ...banner,
+          createdAt: banner.createdAt.toISOString(),
+          updatedAt: banner.updatedAt.toISOString(),
+        },
+        message: "Banner berhasil dibuat",
+      };
+    } catch (error) {
+      logError("BannerService.createBanner", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Failed to create banner",
+      };
+    }
   },
 
   /**
    * Memperbarui banner yang sudah ada
-   * @param id ID banner yang akan diperbarui
-   * @param data Data banner yang diperbarui
-   * @returns Banner yang diperbarui
-   */
-  async updateBanner(id: string, data: BannerUpdateInput): Promise<BannerData> {
-    const existingBanner = await db.banner.findUnique({
-      where: { id },
-    });
-
-    if (!existingBanner) {
-      throw new Error("Banner tidak ditemukan");
-    }
-
-    // Tangani penggantian gambar jika diperlukan
-    if (data.imageUrl && data.imageUrl !== existingBanner.imageUrl) {
-      try {
-        // Hapus gambar lama
-        await CloudinaryService.deleteImageByUrl(existingBanner.imageUrl);
-      } catch (error) {
-        // Lanjutkan dengan update meskipun penghapusan gambar gagal
-      }
-    }
-
-    return db.banner.update({
-      where: { id },
-      data,
-    }) as unknown as BannerData;
-  },
-
-  /**
-   * Menghapus banner dan gambar terkait
-   * @param id ID banner yang akan dihapus
-   */
-  async deleteBanner(id: string): Promise<void> {
-    const banner = await db.banner.findUnique({
-      where: { id },
-    });
-
-    if (!banner) {
-      throw new Error("Banner tidak ditemukan");
-    }
-
-    // Hapus banner dari database
-    await db.banner.delete({
-      where: { id },
-    });
-
-    // Hapus gambar terkait dari Cloudinary
+   */ async updateBanner(
+    id: string,
+    data: BannerUpdateInput
+  ): Promise<ApiResponse<BannerData>> {
     try {
-      await CloudinaryService.deleteImageByUrl(banner.imageUrl);
+      const existingBanner = await db.banner.findUnique({
+        where: { id },
+      });
+
+      if (!existingBanner) {
+        return {
+          success: false,
+          message: "Banner tidak ditemukan",
+        };
+      }
+
+      const banner = await db.banner.update({
+        where: { id },
+        data,
+      });
+
+      return {
+        success: true,
+        data: {
+          ...banner,
+          createdAt: banner.createdAt.toISOString(),
+          updatedAt: banner.updatedAt.toISOString(),
+        },
+        message: "Banner berhasil diperbarui",
+      };
     } catch (error) {
-      // Lanjutkan meskipun penghapusan gambar gagal
+      logError("BannerService.updateBanner", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Failed to update banner",
+      };
     }
   },
 
   /**
-   * Mengambil banner yang aktif saja
-   * @returns Array banner yang aktif
-   */
-  async getActiveBanners(): Promise<BannerData[]> {
-    return db.banner.findMany({
-      where: { active: true },
-      orderBy: { createdAt: "desc" },
-    }) as unknown as BannerData[];
+   * Menghapus banner
+   */ async deleteBanner(id: string): Promise<ApiResponse<void>> {
+    try {
+      const banner = await db.banner.findUnique({
+        where: { id },
+      });
+
+      if (!banner) {
+        return {
+          success: false,
+          message: "Banner tidak ditemukan",
+        };
+      }
+
+      // Hapus banner dari database
+      await db.banner.delete({
+        where: { id },
+      });
+
+      // Hapus gambar dari Cloudinary
+      try {
+        await CloudinaryService.deleteImageByUrl(banner.imageUrl);
+      } catch (error) {
+        // Lanjutkan meskipun penghapusan gambar gagal
+        logError("BannerService.deleteBanner.deleteImage", error);
+      }
+
+      return {
+        success: true,
+        message: "Banner berhasil dihapus",
+      };
+    } catch (error) {
+      logError("BannerService.deleteBanner", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Failed to delete banner",
+      };
+    }
   },
 };

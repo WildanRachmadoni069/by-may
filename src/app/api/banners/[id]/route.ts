@@ -1,30 +1,31 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { BannerService } from "@/lib/services/banner-service";
 import { verifyToken } from "@/lib/auth/auth";
+import { logError } from "@/lib/debug";
+import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api";
+
+type Params = { params: Promise<{ id: string }> };
 
 /**
  * GET /api/banners/[id]
  * Mengambil banner berdasarkan ID
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const banner = await BannerService.getBannerById(id);
+    const result = await BannerService.getBannerById(id);
 
-    if (!banner) {
-      return NextResponse.json({ error: "Banner not found" }, { status: 404 });
+    if (!result.success) {
+      return createErrorResponse(
+        result.message || "Banner tidak ditemukan",
+        404
+      );
     }
 
-    return NextResponse.json(banner);
+    return createSuccessResponse(result.data);
   } catch (error) {
-    console.error("Error fetching banner:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch banner" },
-      { status: 500 }
-    );
+    logError("GET /api/banners/[id]", error);
+    return createErrorResponse("Gagal mengambil banner");
   }
 }
 
@@ -32,41 +33,34 @@ export async function GET(
  * PATCH /api/banners/[id]
  * Memperbarui banner berdasarkan ID (memerlukan autentikasi admin)
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: Params) {
   try {
     // Check authentication and admin role using JWT
     const token = request.cookies.get("authToken")?.value;
-
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse(
+        "Unauthorized - Silakan login terlebih dahulu",
+        401
+      );
     }
 
-    // Verify token
     const payload = verifyToken(token);
-
     if (!payload || !payload.id || payload.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse("Forbidden - Hanya admin yang diizinkan", 403);
     }
 
     const { id } = await params;
     const data = await request.json();
+    const result = await BannerService.updateBanner(id, data);
 
-    const banner = await BannerService.updateBanner(id, data);
-    return NextResponse.json(banner);
-  } catch (error) {
-    console.error("Error updating banner:", error);
-
-    if (error instanceof Error && error.message === "Banner tidak ditemukan") {
-      return NextResponse.json({ error: error.message }, { status: 404 });
+    if (!result.success) {
+      return createErrorResponse(result.message || "Gagal memperbarui banner");
     }
 
-    return NextResponse.json(
-      { error: "Failed to update banner" },
-      { status: 500 }
-    );
+    return createSuccessResponse(result.data, result.message);
+  } catch (error) {
+    logError("PATCH /api/banners/[id]", error);
+    return createErrorResponse("Gagal memperbarui banner");
   }
 }
 
@@ -74,39 +68,32 @@ export async function PATCH(
  * DELETE /api/banners/[id]
  * Menghapus banner berdasarkan ID (memerlukan autentikasi admin)
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     // Check authentication and admin role using JWT
     const token = request.cookies.get("authToken")?.value;
-
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse(
+        "Unauthorized - Silakan login terlebih dahulu",
+        401
+      );
     }
 
-    // Verify token
     const payload = verifyToken(token);
-
     if (!payload || !payload.id || payload.role !== "admin") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse("Forbidden - Hanya admin yang diizinkan", 403);
     }
 
     const { id } = await params;
-    await BannerService.deleteBanner(id);
+    const result = await BannerService.deleteBanner(id);
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error deleting banner:", error);
-
-    if (error instanceof Error && error.message === "Banner tidak ditemukan") {
-      return NextResponse.json({ error: error.message }, { status: 404 });
+    if (!result.success) {
+      return createErrorResponse(result.message || "Gagal menghapus banner");
     }
 
-    return NextResponse.json(
-      { error: "Failed to delete banner" },
-      { status: 500 }
-    );
+    return createSuccessResponse(null, result.message);
+  } catch (error) {
+    logError("DELETE /api/banners/[id]", error);
+    return createErrorResponse("Gagal menghapus banner");
   }
 }
