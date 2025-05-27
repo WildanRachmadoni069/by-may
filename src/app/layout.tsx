@@ -6,27 +6,11 @@ import { Toaster } from "@/components/ui/toaster";
 import AuthProvider from "@/components/auth-provider";
 import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
 import { getSeoData } from "@/lib/services/seo";
-// Preloading untuk font dan aset penting
-import { headers } from "next/headers";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-  display: "swap", // Use 'swap' to prevent invisible text during font loading
-  preload: true, // Preload this font
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-  display: "swap", // Use 'swap' to prevent invisible text during font loading
-  preload: false, // Not preloading since this is less critical
-});
 const jakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  display: "swap", // Use 'swap' to prevent invisible text during font loading
-  preload: true, // Preload this font
+  display: "swap",
+  preload: true,
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -117,12 +101,6 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        <link
-          rel="preload"
-          href="/img/Landing-Page/header-image.webp"
-          as="image"
-          type="image/webp"
-        />
         <link
           rel="preconnect"
           href="https://res.cloudinary.com"

@@ -94,7 +94,6 @@ export default function Footer() {
                   alt="Shopee by.may official"
                   width={32}
                   height={32}
-                  className="h-8 w-auto"
                   quality={85}
                 />
               </a>
@@ -110,7 +109,6 @@ export default function Footer() {
                   alt="Tokopedia BY MAYSCARF"
                   width={32}
                   height={32}
-                  className="h-8 w-auto"
                   quality={85}
                 />
               </a>
@@ -126,7 +124,6 @@ export default function Footer() {
                   alt="Lazada by.may"
                   width={32}
                   height={32}
-                  className="h-8 w-auto"
                   quality={85}
                 />
               </a>
@@ -228,7 +225,6 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="border-t border-border mt-12 pt-8 text-center text-muted-foreground">
-          {" "}
           <p>
             &copy; {new Date().getFullYear()} bymayscarf. All rights reserved.
           </p>
