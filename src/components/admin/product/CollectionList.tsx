@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCollectionStore } from "@/store/useCollectionStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logError, getErrorMessage } from "@/lib/debug";
 
 /**
  * Komponen untuk menampilkan dan mengelola daftar koleksi
@@ -41,9 +41,9 @@ export default function CollectionList() {
     deletingCollections,
   } = useCollectionStore();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   // Ambil data koleksi saat komponen dimount
@@ -55,8 +55,8 @@ export default function CollectionList() {
    * Menangani permintaan edit koleksi
    * @param collection Koleksi yang akan diedit
    */
-  const handleEdit = (collection: { id: string; name: string }) => {
-    setEditingId(collection.id);
+  const handleEdit = (collection: { slug: string; name: string }) => {
+    setEditingSlug(collection.slug);
     setEditName(collection.name);
   };
 
@@ -64,7 +64,7 @@ export default function CollectionList() {
    * Menangani penyimpanan perubahan koleksi
    */
   const handleSaveEdit = async () => {
-    if (!editingId) return;
+    if (!editingSlug) return;
 
     if (!editName.trim()) {
       toast({
@@ -77,17 +77,18 @@ export default function CollectionList() {
 
     try {
       setIsEditing(true);
-      await updateCollection(editingId, { name: editName });
+      await updateCollection(editingSlug, { name: editName });
       toast({
         title: "Koleksi berhasil diperbarui",
         description: "Perubahan pada koleksi telah disimpan.",
       });
-      setEditingId(null);
+      setEditingSlug(null);
       setEditName("");
     } catch (error) {
+      logError("CollectionList.handleSaveEdit", error);
       toast({
         title: "Gagal memperbarui koleksi",
-        description: "Terjadi kesalahan saat memperbarui koleksi.",
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -99,220 +100,198 @@ export default function CollectionList() {
    * Menangani penghapusan koleksi
    */
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteSlug) return;
 
     try {
-      const result = await deleteCollection(deleteId);
-
+      const result = await deleteCollection(deleteSlug);
       if (result.success) {
         toast({
           title: "Koleksi berhasil dihapus",
-          description: "Koleksi telah dihapus dari database.",
+          description: "Koleksi telah dihapus dari sistem.",
         });
       } else {
-        toast({
-          variant: "destructive",
-          title: "Gagal menghapus koleksi",
-          description:
-            result.message || "Terjadi kesalahan saat menghapus koleksi.",
-        });
+        throw new Error(result.message || "Gagal menghapus koleksi");
       }
-      setDeleteId(null);
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Terjadi kesalahan saat menghapus koleksi.";
-
+      logError("CollectionList.handleDelete", error);
       toast({
+        title: "Gagal menghapus koleksi",
+        description: getErrorMessage(error),
         variant: "destructive",
-        title: "Error",
-        description: message,
       });
+    } finally {
+      setDeleteSlug(null);
     }
   };
 
   /**
-   * Render loading skeleton
+   * Menangani pembatalan edit
    */
-  if (loading && collections.length === 0) {
+  const handleCancelEdit = () => {
+    setEditingSlug(null);
+    setEditName("");
+  };
+
+  // Jika sedang loading, tampilkan skeleton
+  if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <Skeleton className="h-6 w-40" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
-  /**
-   * Render error state
-   */
+  // Jika terjadi error, tampilkan pesan error
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Koleksi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
-            <p>Terjadi kesalahan saat memuat data: {error}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchCollections()}
-              className="mt-2"
-            >
-              Coba Lagi
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+        <p>Terjadi kesalahan saat memuat data: {error}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fetchCollections()}
+          className="mt-2"
+        >
+          Coba Lagi
+        </Button>
+      </div>
+    );
+  }
+
+  // Jika tidak ada data koleksi
+  if (!collections || collections.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+        <CircleSlashed className="h-8 w-8" />
+        <p>Belum ada koleksi</p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Daftar Koleksi</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {collections.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
-            <CircleSlashed className="h-8 w-8" />
-            <p>Belum ada koleksi</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Koleksi</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {collections.map((collection) => (
-                <TableRow key={collection.id}>
-                  <TableCell>
-                    {editingId === collection.id ? (
-                      <div className="flex flex-col md:flex-row gap-2 items-center">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !isEditing) {
-                              handleSaveEdit();
-                            }
-                          }}
-                          className="flex-grow"
-                          disabled={isEditing}
-                        />
-                        <div className="w-full flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={handleSaveEdit}
-                            disabled={isEditing}
-                          >
-                            {isEditing ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : null}
-                            {isEditing ? "Menyimpan..." : "Simpan"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingId(null)}
-                            disabled={isEditing}
-                          >
-                            Batal
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      collection.name
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
+    <div className="border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nama Koleksi</TableHead>
+            <TableHead>Slug</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {collections.map((collection) => (
+            <TableRow key={collection.id}>
+              <TableCell>
+                {editingSlug === collection.slug ? (
+                  <div className="flex flex-col md:flex-row gap-2 items-center">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !isEditing) {
+                          handleSaveEdit();
+                        }
+                      }}
+                      className="flex-grow"
+                      disabled={isEditing}
+                      placeholder="Nama koleksi..."
+                    />
+                    <div className="w-full flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveEdit}
+                        disabled={isEditing}
+                      >
+                        {isEditing ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
+                        {isEditing ? "Menyimpan..." : "Simpan"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        disabled={isEditing}
+                      >
+                        Batal
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  collection.name
+                )}
+              </TableCell>
+              <TableCell>{collection.slug}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(collection)}
+                  disabled={editingSlug !== null}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Dialog
+                  open={deleteSlug === collection.slug}
+                  onOpenChange={(open) => !open && setDeleteSlug(null)}
+                >
+                  <DialogTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleEdit(collection)}
-                      disabled={editingId !== null}
+                      className="text-red-500 hover:text-red-600"
+                      onClick={() => setDeleteSlug(collection.slug)}
+                      disabled={
+                        deleteSlug !== null ||
+                        deletingCollections[collection.slug]
+                      }
                     >
-                      <Pencil className="h-4 w-4" />
+                      {deletingCollections[collection.slug] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
-                    <Dialog
-                      open={deleteId === collection.id}
-                      onOpenChange={(open) => !open && setDeleteId(null)}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500 hover:text-red-600"
-                          onClick={() => setDeleteId(collection.id)}
-                          disabled={
-                            deleteId !== null ||
-                            deletingCollections[collection.id]
-                          }
-                        >
-                          {deletingCollections[collection.id] ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Konfirmasi Hapus</DialogTitle>
-                          <DialogDescription>
-                            Apakah Anda yakin ingin menghapus koleksi "
-                            {collection.name}"? Koleksi yang digunakan oleh
-                            produk tidak dapat dihapus.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => setDeleteId(null)}
-                            disabled={deletingCollections[collection.id]}
-                          >
-                            Batal
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={handleDelete}
-                            disabled={deletingCollections[collection.id]}
-                          >
-                            {deletingCollections[collection.id] ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Menghapus...
-                              </>
-                            ) : (
-                              "Hapus"
-                            )}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Konfirmasi Hapus</DialogTitle>
+                      <DialogDescription>
+                        Apakah Anda yakin ingin menghapus koleksi "
+                        {collection.name}"? Koleksi yang digunakan oleh produk
+                        tidak dapat dihapus.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setDeleteSlug(null)}
+                        disabled={deletingCollections[collection.slug]}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDelete}
+                        disabled={deletingCollections[collection.slug]}
+                      >
+                        {deletingCollections[collection.slug] ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Menghapus...
+                          </>
+                        ) : (
+                          "Hapus"
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

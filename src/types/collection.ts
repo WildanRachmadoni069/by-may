@@ -7,6 +7,7 @@
 export interface CollectionData {
   id: string;
   name: string;
+  slug: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -14,8 +15,9 @@ export interface CollectionData {
 export interface CollectionOption {
   id: string;
   name: string;
-  value: string; // Biasanya sama dengan ID
-  label: string; // Biasanya sama dengan nama
+  slug: string;
+  value: string; // Changed to slug for URL-friendly values
+  label: string; // Nama untuk ditampilkan
 }
 
 export interface CollectionCreateInput {
@@ -24,4 +26,9 @@ export interface CollectionCreateInput {
 
 export interface CollectionUpdateInput {
   name: string;
+}
+
+export interface CollectionDeleteResponse {
+  success: boolean;
+  message?: string;
 }

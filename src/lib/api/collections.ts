@@ -37,19 +37,22 @@ export async function getCollectionOptions(): Promise<CollectionOption[]> {
   return collections.map((collection) => ({
     id: collection.id,
     name: collection.name,
-    value: collection.id,
+    slug: collection.slug,
+    value: collection.slug, // Changed from id to slug for URL-friendly values
     label: collection.name,
   }));
 }
 
 /**
- * Mengambil koleksi berdasarkan ID
- * @param id ID koleksi yang dicari
+ * Mengambil koleksi berdasarkan slug
+ * @param slug Slug koleksi yang dicari
  * @returns Koleksi yang ditemukan
  */
-export async function getCollectionById(id: string): Promise<CollectionData> {
-  const res = await fetch(`/api/collections/${id}`, {
-    next: { tags: [`collection-${id}`] },
+export async function getCollectionBySlug(
+  slug: string
+): Promise<CollectionData> {
+  const res = await fetch(`/api/collections/${slug}`, {
+    next: { tags: [`collection-${slug}`] },
   });
 
   if (!res.ok) {
@@ -86,15 +89,15 @@ export async function createCollection(
 
 /**
  * Memperbarui koleksi yang sudah ada
- * @param id ID koleksi yang akan diperbarui
+ * @param slug Slug koleksi yang akan diperbarui
  * @param data Data koleksi yang diperbarui
  * @returns Koleksi yang diperbarui
  */
 export async function updateCollection(
-  id: string,
+  slug: string,
   data: CollectionUpdateInput
 ): Promise<CollectionData> {
-  const res = await fetch(`/api/collections/${id}`, {
+  const res = await fetch(`/api/collections/${slug}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -112,20 +115,19 @@ export async function updateCollection(
 
 /**
  * Menghapus koleksi
- * @param id ID koleksi yang akan dihapus
- * @returns Hasil operasi penghapusan
+ * @param slug Slug koleksi yang akan dihapus
+ * @returns Object yang mengindikasikan keberhasilan operasi
  */
 export async function deleteCollection(
-  id: string
-): Promise<{ success: boolean; message?: string }> {
-  const res = await fetch(`/api/collections/${id}`, {
+  slug: string
+): Promise<{ success: boolean }> {
+  const res = await fetch(`/api/collections/${slug}`, {
     method: "DELETE",
   });
-
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal menghapus koleksi");
+    const error = await res.json();
+    throw new Error(error.message || "Gagal menghapus koleksi");
   }
 
-  return res.json();
+  return { success: true };
 }

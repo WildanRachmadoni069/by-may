@@ -6,10 +6,12 @@
  */
 
 import { db } from "@/lib/db";
+import { slugify } from "@/lib/utils";
 import {
   CollectionData,
   CollectionCreateInput,
   CollectionUpdateInput,
+  CollectionDeleteResponse,
 } from "@/types/collection";
 
 export const CollectionService = {
@@ -24,13 +26,13 @@ export const CollectionService = {
   },
 
   /**
-   * Mengambil koleksi berdasarkan ID
-   * @param id ID koleksi yang dicari
+   * Mengambil koleksi berdasarkan slug
+   * @param slug Slug koleksi yang dicari
    * @returns Koleksi yang ditemukan atau null
    */
-  async getCollectionById(id: string): Promise<CollectionData | null> {
+  async getCollectionBySlug(slug: string): Promise<CollectionData | null> {
     const collection = await db.collection.findUnique({
-      where: { id },
+      where: { slug },
     });
 
     return collection as unknown as CollectionData | null;
@@ -45,64 +47,66 @@ export const CollectionService = {
     return db.collection.create({
       data: {
         name: data.name,
+        slug: slugify(data.name),
       },
     }) as unknown as CollectionData;
   },
 
   /**
-   * Memperbarui koleksi yang sudah ada
-   * @param id ID koleksi yang akan diperbarui
+   * Memperbarui koleksi
+   * @param slug Slug koleksi yang akan diperbarui
    * @param data Data koleksi yang diperbarui
    * @returns Koleksi yang diperbarui
-   * @throws Error jika koleksi tidak ditemukan
    */
   async updateCollection(
-    id: string,
+    slug: string,
     data: CollectionUpdateInput
   ): Promise<CollectionData> {
-    const existingCollection = await db.collection.findUnique({
-      where: { id },
-    });
-
-    if (!existingCollection) {
-      throw new Error("Koleksi tidak ditemukan");
-    }
-
     return db.collection.update({
-      where: { id },
+      where: { slug },
       data: {
         name: data.name,
+        slug: slugify(data.name),
       },
     }) as unknown as CollectionData;
   },
-
   /**
    * Menghapus koleksi
-   * @param id ID koleksi yang akan dihapus
-   * @throws Error jika koleksi tidak ditemukan atau digunakan oleh produk
-   */
-  async deleteCollection(id: string): Promise<void> {
+   * @param slug Slug koleksi yang akan dihapus
+   * @returns Object yang mengindikasikan keberhasilan operasi
+   * @throws Error jika koleksi masih digunakan oleh produk
+   */ async deleteCollection(slug: string): Promise<CollectionDeleteResponse> {
+    // Check if collection has products
     const collection = await db.collection.findUnique({
-      where: { id },
+      where: { slug },
+      include: {
+        products: {
+          select: {
+            id: true,
+          },
+        },
+      },
     });
 
     if (!collection) {
-      throw new Error("Koleksi tidak ditemukan");
+      return {
+        success: false,
+        message: "Koleksi tidak ditemukan",
+      };
     }
 
-    // Periksa apakah koleksi digunakan oleh produk
-    const productsCount = await db.product.count({
-      where: { collectionId: id },
-    });
-
-    if (productsCount > 0) {
-      throw new Error(
-        `Koleksi tidak dapat dihapus karena digunakan oleh ${productsCount} produk`
-      );
+    if (collection.products.length > 0) {
+      return {
+        success: false,
+        message: "Koleksi masih digunakan oleh produk dan tidak dapat dihapus",
+      };
     }
-
     await db.collection.delete({
-      where: { id },
+      where: { slug },
     });
+    return {
+      success: true,
+      message: "Koleksi berhasil dihapus",
+    };
   },
 };

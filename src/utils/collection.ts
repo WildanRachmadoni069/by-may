@@ -1,9 +1,11 @@
 // SERVER-SIDE ONLY - do not import in client components
 import { prisma } from "@/lib/db";
+import { slugify } from "@/lib/utils";
 
 interface Collection {
   id: string;
   name: string;
+  slug: string;
   value: string;
   label: string;
 }
@@ -17,21 +19,26 @@ export async function getCollections(): Promise<Collection[]> {
   return collections.map((c) => ({
     id: c.id,
     name: c.name,
-    value: c.id, // For select component
-    label: c.name, // For select component
+    slug: c.slug,
+    value: c.slug, // Changed from c.id to c.slug for URL-friendly values
+    label: c.name,
   }));
 }
 
 // Create a new collection
 export async function createCollection(name: string): Promise<Collection> {
   const collection = await prisma.collection.create({
-    data: { name },
+    data: {
+      name,
+      slug: slugify(name),
+    },
   });
 
   return {
     id: collection.id,
     name: collection.name,
-    value: collection.id,
+    slug: collection.slug,
+    value: collection.slug,
     label: collection.name,
   };
 }
@@ -43,15 +50,26 @@ export async function updateCollection(
 ): Promise<Collection> {
   const collection = await prisma.collection.update({
     where: { id },
-    data: { name },
+    data: {
+      name,
+      slug: slugify(name),
+    },
   });
 
   return {
     id: collection.id,
     name: collection.name,
-    value: collection.id,
+    slug: collection.slug,
+    value: collection.slug,
     label: collection.name,
   };
+}
+
+// Get collection by slug
+export async function getCollectionBySlug(slug: string) {
+  return prisma.collection.findUnique({
+    where: { slug },
+  });
 }
 
 // Delete a collection

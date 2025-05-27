@@ -30,3 +30,21 @@ export function debugLog(context: string, ...args: unknown[]) {
     console.log(`[${context}]:`, ...args);
   }
 }
+
+/**
+ * Mengekstrak pesan error dari berbagai format response error
+ * @param error Error yang akan diproses
+ * @returns String pesan error yang sudah diformat
+ */
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") {
+    try {
+      const errorObj = JSON.parse(error);
+      return errorObj.message || "Terjadi kesalahan yang tidak diketahui";
+    } catch {
+      return error;
+    }
+  }
+  return "Terjadi kesalahan yang tidak diketahui";
+}

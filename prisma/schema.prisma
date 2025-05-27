@@ -90,9 +90,12 @@ model Category {
 model Collection {
     id        String    @id @default(uuid())
     name      String    @unique
+    slug      String    @unique
     products  Product[]
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
+
+    @@index([slug])
 }
 
 // FAQs

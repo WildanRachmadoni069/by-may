@@ -29,7 +29,7 @@ interface CollectionState {
   loading: boolean;
   /** Pesan error */
   error: string | null;
-  /** State untuk koleksi yang sedang dihapus (ID koleksi: boolean) */
+  /** State untuk koleksi yang sedang dihapus (slug koleksi: boolean) */
   deletingCollections: Record<string, boolean>;
   /** Mengambil daftar koleksi */
   fetchCollections: () => Promise<void>;
@@ -37,15 +37,15 @@ interface CollectionState {
   createCollection: (data: CollectionCreateInput) => Promise<CollectionData>;
   /** Memperbarui koleksi */
   updateCollection: (
-    id: string,
+    slug: string,
     data: CollectionUpdateInput
   ) => Promise<CollectionData>;
   /** Menghapus koleksi */
   deleteCollection: (
-    id: string
+    slug: string
   ) => Promise<{ success: boolean; message?: string }>;
   /** Mengatur status penghapusan koleksi */
-  setDeletingCollection: (id: string, isDeleting: boolean) => void;
+  setDeletingCollection: (slug: string, isDeleting: boolean) => void;
 }
 
 /**
@@ -88,7 +88,8 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
         const newOption: CollectionOption = {
           id: newCollection.id,
           name: newCollection.name,
-          value: newCollection.id,
+          slug: newCollection.slug,
+          value: newCollection.slug,
           label: newCollection.name,
         };
         return {
@@ -108,22 +109,23 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
   },
 
   /**
-   * Memperbarui koleksi yang sudah ada
-   * @param id ID koleksi yang akan diperbarui
+   * Memperbarui koleksi
+   * @param slug Slug koleksi yang akan diperbarui
    * @param data Data koleksi yang diperbarui
    * @returns Koleksi yang diperbarui
    */
-  updateCollection: async (id: string, data: CollectionUpdateInput) => {
+  updateCollection: async (slug: string, data: CollectionUpdateInput) => {
     try {
       set({ loading: true, error: null });
-      const updatedCollection = await updateCollection(id, data);
+      const updatedCollection = await updateCollection(slug, data);
       set((state) => ({
         collections: state.collections.map((collection) =>
-          collection.id === id
+          collection.slug === slug
             ? {
                 id: updatedCollection.id,
                 name: updatedCollection.name,
-                value: updatedCollection.id,
+                slug: updatedCollection.slug,
+                value: updatedCollection.slug,
                 label: updatedCollection.name,
               }
             : collection
@@ -144,54 +146,38 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
 
   /**
    * Menghapus koleksi
-   * @param id ID koleksi yang akan dihapus
-   * @returns Status keberhasilan dan pesan
+   * @param slug Slug koleksi yang akan dihapus
    */
-  deleteCollection: async (id: string) => {
+  deleteCollection: async (slug: string) => {
     try {
+      get().setDeletingCollection(slug, true);
+      await deleteCollection(slug);
       set((state) => ({
-        deletingCollections: { ...state.deletingCollections, [id]: true },
+        collections: state.collections.filter((c) => c.slug !== slug),
+        error: null,
       }));
-
-      const result = await deleteCollection(id);
-
-      if (result.success) {
-        set((state) => ({
-          collections: state.collections.filter(
-            (collection) => collection.id !== id
-          ),
-          deletingCollections: { ...state.deletingCollections, [id]: false },
-        }));
-      } else {
-        set((state) => ({
-          error: result.message || "Gagal menghapus koleksi",
-          deletingCollections: { ...state.deletingCollections, [id]: false },
-        }));
-      }
-
-      return result;
+      get().setDeletingCollection(slug, false);
+      return { success: true };
     } catch (error) {
-      set((state) => ({
-        error:
-          error instanceof Error ? error.message : "Gagal menghapus koleksi",
-        deletingCollections: { ...state.deletingCollections, [id]: false },
-      }));
-      return {
-        success: false,
-        message:
-          error instanceof Error ? error.message : "Gagal menghapus koleksi",
-      };
+      get().setDeletingCollection(slug, false);
+      const message =
+        error instanceof Error ? error.message : "Gagal menghapus koleksi";
+      set({ error: message });
+      return { success: false, message };
     }
   },
 
   /**
    * Mengatur status penghapusan koleksi
-   * @param id ID koleksi
+   * @param slug Slug koleksi
    * @param isDeleting Status penghapusan
    */
-  setDeletingCollection: (id, isDeleting) => {
+  setDeletingCollection: (slug: string, isDeleting: boolean) => {
     set((state) => ({
-      deletingCollections: { ...state.deletingCollections, [id]: isDeleting },
+      deletingCollections: {
+        ...state.deletingCollections,
+        [slug]: isDeleting,
+      },
     }));
   },
 }));

@@ -60,18 +60,18 @@ export async function createCollectionAction(
 
 /**
  * Memperbarui koleksi yang sudah ada
- * @param id ID koleksi yang akan diperbarui
+ * @param slug Slug koleksi yang akan diperbarui
  * @param data Data koleksi yang diperbarui
  * @returns Koleksi yang diperbarui
  */
 export async function updateCollectionAction(
-  id: string,
+  slug: string,
   data: CollectionUpdateInput
 ): Promise<CollectionData> {
   // Verifikasi autentikasi admin
   await checkAdminAuth();
 
-  const collection = await CollectionService.updateCollection(id, data);
+  const collection = await CollectionService.updateCollection(slug, data);
   revalidatePath("/produk");
   revalidatePath("/dashboard/admin/product/collection");
   return collection;
@@ -79,19 +79,19 @@ export async function updateCollectionAction(
 
 /**
  * Menghapus koleksi
- * @param id ID koleksi yang akan dihapus
+ * @param slug Slug koleksi yang akan dihapus
  */
 export async function deleteCollectionAction(
-  id: string
+  slug: string
 ): Promise<{ success: boolean; message?: string }> {
   // Verifikasi autentikasi admin
   await checkAdminAuth();
 
   try {
-    await CollectionService.deleteCollection(id);
+    const result = await CollectionService.deleteCollection(slug);
     revalidatePath("/produk");
     revalidatePath("/dashboard/admin/product/collection");
-    return { success: true };
+    return result;
   } catch (error) {
     return {
       success: false,
@@ -110,14 +110,14 @@ export async function getCollectionsAction(): Promise<CollectionData[]> {
 }
 
 /**
- * Mengambil koleksi berdasarkan ID
- * @param id ID koleksi yang dicari
+ * Mengambil koleksi berdasarkan slug
+ * @param slug Slug koleksi yang dicari
  * @returns Koleksi yang ditemukan atau null
  */
-export async function getCollectionByIdAction(
-  id: string
+export async function getCollectionBySlugAction(
+  slug: string
 ): Promise<CollectionData | null> {
-  return await CollectionService.getCollectionById(id);
+  return await CollectionService.getCollectionBySlug(slug);
 }
 
 /**
@@ -131,7 +131,8 @@ export async function getCollectionOptionsAction(): Promise<
   return collections.map((collection) => ({
     id: collection.id,
     name: collection.name,
-    value: collection.id,
+    slug: collection.slug,
+    value: collection.slug, // Changed from id to slug for URL-friendly values
     label: collection.name,
   }));
 }

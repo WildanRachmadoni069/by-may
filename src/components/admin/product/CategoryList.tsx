@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logError, getErrorMessage } from "@/lib/debug";
 
 /**
  * Komponen untuk menampilkan dan mengelola daftar kategori
@@ -85,9 +85,10 @@ export default function CategoryList() {
       setEditingId(null);
       setEditName("");
     } catch (error) {
+      logError("CategoryList.handleSaveEdit", error);
       toast({
         title: "Gagal memperbarui kategori",
-        description: "Terjadi kesalahan saat memperbarui kategori.",
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -119,16 +120,14 @@ export default function CategoryList() {
       }
       setDeleteId(null);
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Terjadi kesalahan saat menghapus kategori.";
-
+      logError("CategoryList.handleDelete", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: message,
+        description: getErrorMessage(error),
       });
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -137,20 +136,9 @@ export default function CategoryList() {
    */
   if (loading && categories.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <Skeleton className="h-6 w-40" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
   }
 
@@ -159,159 +147,137 @@ export default function CategoryList() {
    */
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Kategori</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
-            <p>Terjadi kesalahan saat memuat data: {error}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchCategories()}
-              className="mt-2"
-            >
-              Coba Lagi
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+        <p>Terjadi kesalahan saat memuat data: {error}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fetchCategories()}
+          className="mt-2"
+        >
+          Coba Lagi
+        </Button>
+      </div>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+        <CircleSlashed className="h-8 w-8" />
+        <p>Belum ada kategori</p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Daftar Kategori</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {categories.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
-            <CircleSlashed className="h-8 w-8" />
-            <p>Belum ada kategori</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama Kategori</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map((category) => (
-                <TableRow key={category.id}>
-                  <TableCell>
-                    {editingId === category.id ? (
-                      <div className="flex flex-col md:flex-row gap-2 items-center">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !isEditing) {
-                              handleSaveEdit();
-                            }
-                          }}
-                          className="flex-grow"
-                          disabled={isEditing}
-                        />
-                        <div className="w-full flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={handleSaveEdit}
-                            disabled={isEditing}
-                          >
-                            {isEditing ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : null}
-                            {isEditing ? "Menyimpan..." : "Simpan"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setEditingId(null)}
-                            disabled={isEditing}
-                          >
-                            Batal
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      category.name
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(category)}
-                      disabled={editingId !== null}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Dialog
-                      open={deleteId === category.id}
-                      onOpenChange={(open) => !open && setDeleteId(null)}
-                    >
-                      <DialogTrigger asChild>
+    <div className="border rounded-md">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nama Kategori</TableHead>
+            <TableHead className="text-right">Aksi</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {categories.map((category) => (
+            <TableRow key={category.id}>
+              <TableCell>
+                {editingId === category.id ? (
+                  <div className="flex flex-col md:flex-row gap-2 items-center">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !isEditing) {
+                          handleSaveEdit();
+                        }
+                      }}
+                      className="flex-grow"
+                      disabled={isEditing}
+                    />
+                    <div className="w-full flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveEdit}
+                        disabled={isEditing}
+                      >
+                        {isEditing && (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        )}
+                        {isEditing ? "Menyimpan..." : "Simpan"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingId(null)}
+                        disabled={isEditing}
+                      >
+                        Batal
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  category.name
+                )}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(category)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Dialog open={deleteId === category.id}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeleteId(category.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-primary" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Hapus Kategori</DialogTitle>
+                        <DialogDescription>
+                          Apakah Anda yakin ingin menghapus kategori ini?
+                          Kategori yang dihapus tidak dapat dikembalikan.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
                         <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500 hover:text-red-600"
-                          onClick={() => setDeleteId(category.id)}
-                          disabled={
-                            deleteId !== null || deletingCategories[category.id]
-                          }
+                          variant="outline"
+                          onClick={() => setDeleteId(null)}
+                        >
+                          Batal
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={handleDelete}
+                          disabled={deletingCategories[category.id]}
                         >
                           {deletingCategories[category.id] ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Menghapus...
+                            </>
                           ) : (
-                            <Trash2 className="h-4 w-4" />
+                            "Hapus"
                           )}
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Konfirmasi Hapus</DialogTitle>
-                          <DialogDescription>
-                            Apakah Anda yakin ingin menghapus kategori "
-                            {category.name}"? Kategori yang digunakan oleh
-                            produk tidak dapat dihapus.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => setDeleteId(null)}
-                            disabled={deletingCategories[category.id]}
-                          >
-                            Batal
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            onClick={handleDelete}
-                            disabled={deletingCategories[category.id]}
-                          >
-                            {deletingCategories[category.id] ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Menghapus...
-                              </>
-                            ) : (
-                              "Hapus"
-                            )}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }
