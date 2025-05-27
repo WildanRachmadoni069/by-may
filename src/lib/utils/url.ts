@@ -1,19 +1,21 @@
 /**
  * Get the base URL for the application
- * In development: http://localhost:3000
- * In production: https://bymayscarf.shop (or whatever the domain is)
+ * In development: http://localhost:3000 (from NEXT_PUBLIC_APP_URL)
+ * In production: https://bymayscarf.shop (from NEXT_PUBLIC_SITE_URL)
  */
 export function getBaseUrl(): string {
+  // If we're on the client side, use the window location
   if (typeof window !== "undefined") {
-    // Client-side
     return window.location.origin;
   }
 
-  // Server-side
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+  // Server-side logic
+  // First try NEXT_PUBLIC_SITE_URL for production
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
   }
 
+  // Then try NEXT_PUBLIC_APP_URL for local development
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL;
   }

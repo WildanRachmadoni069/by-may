@@ -5,6 +5,8 @@
  * Dirancang untuk bekerja di sisi server dan browser.
  */
 
+import { getBaseUrl } from "../utils/url";
+
 export const CloudinaryService = {
   /**
    * Ekstraksi public ID dari URL Cloudinary
@@ -92,10 +94,7 @@ export const CloudinaryService = {
 
       // Saat berjalan di server, kita perlu membuat URL lengkap
       if (typeof window === "undefined") {
-        const baseUrl =
-          process.env.NEXTAUTH_URL ||
-          process.env.VERCEL_URL ||
-          "http://localhost:3000";
+        const baseUrl = getBaseUrl();
         endpoint = `${baseUrl}${endpoint}`;
       }
 

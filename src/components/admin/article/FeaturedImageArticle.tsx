@@ -14,6 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { CloudinaryService } from "@/lib/services/cloudinary-service";
 
 interface FeaturedImageArticleProps {
   onChange: (imageData: { url: string; alt: string } | null) => void;
@@ -54,17 +55,6 @@ function FeaturedImageArticle({
       }
     };
   }, []);
-
-  /**
-   * Ekstrak publicId dari URL Cloudinary untuk pembaruan gambar
-   */
-  const extractPublicId = (url: string) => {
-    const parts = url.split("/");
-    const filenameWithExt = parts.pop() || "";
-    const publicId = filenameWithExt.split(".")[0];
-    return publicId;
-  };
-
   /**
    * Menangani pemilihan file dan unggahan
    */
@@ -94,7 +84,11 @@ function FeaturedImageArticle({
       let response;
 
       if (preview) {
-        const publicId = extractPublicId(preview);
+        // Gunakan CloudinaryService untuk mendapatkan publicId
+        const publicId = CloudinaryService.extractPublicIdFromUrl(preview);
+        if (!publicId) {
+          throw new Error("Gagal mendapatkan publicId dari URL gambar");
+        }
         formData.append("publicId", publicId);
 
         response = await fetch("/api/cloudinary/update-image", {
@@ -102,7 +96,13 @@ function FeaturedImageArticle({
           body: formData,
         });
       } else {
-        response = await fetch("/api/upload/image-article", {
+        // Upload gambar baru
+        formData.append("file", file);
+        formData.append("folder", "article");
+        formData.append("upload_preset", "article_preset");
+        formData.append("tags", "article,featured");
+
+        response = await fetch("/api/cloudinary/upload", {
           method: "POST",
           body: formData,
         });
@@ -146,8 +146,7 @@ function FeaturedImageArticle({
   const handleRemoveImage = async () => {
     if (value?.url) {
       try {
-        setIsDeleting(true);
-        const response = await fetch("/api/cloudinary/delete-image", {
+        setIsDeleting(true);        const response = await fetch("/api/cloudinary/delete", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
