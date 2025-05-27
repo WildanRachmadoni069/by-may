@@ -14,8 +14,8 @@ import { PaginationInfo } from "@/types/common";
  * Tipe data untuk filter pencarian produk
  */
 interface ProductsFilter {
-  /** Kategori produk */
-  categoryId?: string;
+  /** Kategori produk menggunakan slug */
+  categorySlug?: string;
   /** Koleksi produk */
   collectionId?: string;
   /** Metode pengurutan */
@@ -60,7 +60,7 @@ export const useProductStore = create<ProductState>((set) => ({
   loading: false,
   error: null,
   filters: {
-    categoryId: undefined,
+    categorySlug: undefined,
     collectionId: undefined,
     sortBy: "newest",
     searchQuery: "",
@@ -88,7 +88,7 @@ export const useProductStore = create<ProductState>((set) => ({
   resetFilters: () => {
     set({
       filters: {
-        categoryId: undefined,
+        categorySlug: undefined,
         collectionId: undefined,
         sortBy: "newest",
         searchQuery: "",

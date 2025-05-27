@@ -31,7 +31,7 @@ function ProductSidebar({
 
   // Local state for filters that will be batched and applied together
   const [localFilters, setLocalFilters] = useState({
-    categoryId: filters.categoryId,
+    categorySlug: filters.categorySlug,
     collectionId: filters.collectionId,
     sortBy: filters.sortBy || "newest",
   });
@@ -43,7 +43,7 @@ function ProductSidebar({
       const timer = setTimeout(() => {
         initialized.current = true;
         setLocalFilters({
-          categoryId: filters.categoryId,
+          categorySlug: filters.categorySlug,
           collectionId: filters.collectionId,
           sortBy: filters.sortBy || "newest",
         });
@@ -52,18 +52,18 @@ function ProductSidebar({
       return () => clearTimeout(timer);
     } else {
       setLocalFilters({
-        categoryId: filters.categoryId,
+        categorySlug: filters.categorySlug,
         collectionId: filters.collectionId,
         sortBy: filters.sortBy || "newest",
       });
     }
-  }, [filters.categoryId, filters.collectionId, filters.sortBy]);
+  }, [filters.categorySlug, filters.collectionId, filters.sortBy]);
 
   // Handle category selection
   const handleCategoryChange = (value: string) => {
     setLocalFilters((prev) => ({
       ...prev,
-      categoryId: value === "all" ? undefined : value,
+      categorySlug: value === "all" ? undefined : value,
     }));
   };
 
@@ -98,11 +98,10 @@ function ProductSidebar({
       onFilterApplied();
     }
   };
-
   // Reset all filters
   const handleResetFilters = () => {
     const defaultFilters = {
-      categoryId: undefined,
+      categorySlug: undefined,
       collectionId: undefined,
       sortBy: "newest",
     };
@@ -122,10 +121,9 @@ function ProductSidebar({
       onFilterApplied();
     }
   };
-
   // Check if filters have changed from what's currently in the store
   const hasFilterChanges =
-    localFilters.categoryId !== filters.categoryId ||
+    localFilters.categorySlug !== filters.categorySlug ||
     localFilters.collectionId !== filters.collectionId ||
     localFilters.sortBy !== filters.sortBy;
 
@@ -157,7 +155,7 @@ function ProductSidebar({
       <div>
         <label className="text-sm font-medium pb-4">Kategori</label>
         <Select
-          value={localFilters.categoryId || "all"}
+          value={localFilters.categorySlug || "all"}
           onValueChange={handleCategoryChange}
           disabled={loading}
         >
@@ -167,7 +165,7 @@ function ProductSidebar({
           <SelectContent>
             <SelectItem value="all">Semua Kategori</SelectItem>
             {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
+              <SelectItem key={category.id} value={category.slug}>
                 {category.name}
               </SelectItem>
             ))}

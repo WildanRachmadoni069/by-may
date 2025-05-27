@@ -110,22 +110,22 @@ export const ProductService = {
       page?: number;
       limit?: number;
       search?: string;
-      categoryId?: string;
+      categorySlug?: string;
       collectionId?: string;
       specialLabel?: string;
       sortBy?: string;
-      includePriceVariants?: boolean; // Tambahkan parameter ini
+      includePriceVariants?: boolean;
     } = {}
   ): Promise<PaginatedResult<Product>> {
     const {
       page = 1,
       limit = 10,
       search,
-      categoryId,
+      categorySlug,
       collectionId,
       specialLabel,
       sortBy = "newest",
-      includePriceVariants = false, // Default false untuk performa
+      includePriceVariants = false,
     } = options;
 
     const skip = (page - 1) * limit;
@@ -141,11 +141,11 @@ export const ProductService = {
         { name: { contains: searchTerm, mode: "insensitive" } },
         { description: { contains: searchTerm, mode: "insensitive" } },
       ];
-    }
-
-    // Tambahkan filter kategori
-    if (categoryId && categoryId !== "all") {
-      where.categoryId = categoryId;
+    } // Tambahkan filter kategori berdasarkan slug
+    if (categorySlug && categorySlug !== "all") {
+      where.category = {
+        slug: categorySlug,
+      };
     }
 
     // Tambahkan filter koleksi

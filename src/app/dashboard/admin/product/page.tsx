@@ -83,7 +83,7 @@ function AdminProductList() {
   } = useProducts({
     page: filters.page || 1,
     limit: filters.limit || 10,
-    categoryId: filters.categoryId,
+    categorySlug: filters.categorySlug,
     collectionId: filters.collectionId,
     sortBy: filters.sortBy,
     searchQuery: filters.searchQuery,
@@ -161,7 +161,7 @@ function AdminProductList() {
 
   // Handle category filter change
   const handleCategoryChange = (value: string) => {
-    setFilters({ categoryId: value === "all" ? undefined : value, page: 1 });
+    setFilters({ categorySlug: value === "all" ? undefined : value, page: 1 });
   };
 
   // Handle collection filter change
@@ -451,7 +451,7 @@ function AdminProductList() {
           {/* Filter dropdown */}
           <div className="flex items-center gap-2">
             <Select
-              value={filters.categoryId || "all"}
+              value={filters.categorySlug || "all"}
               onValueChange={handleCategoryChange}
               disabled={isLoading}
             >
@@ -469,7 +469,7 @@ function AdminProductList() {
                   </SelectItem>
                 ) : (
                   categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
+                    <SelectItem key={category.id} value={category.slug}>
                       {category.name}
                     </SelectItem>
                   ))
@@ -507,28 +507,15 @@ function AdminProductList() {
         </div>
 
         {/* Active filters as badges */}
-        {(filters.categoryId ||
+        {(filters.categorySlug ||
           filters.collectionId ||
           filters.searchQuery) && (
           <div className="flex flex-wrap gap-2 mt-3 text-xs">
-            {filters.categoryId && (
+            {filters.categorySlug && (
               <Badge variant="outline" className="flex gap-1 items-center py-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-3 w-3 mr-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M7 7h10m0 0v10m-10 0h10"
-                  />
-                </svg>
-                {categories.find((c) => c.id === filters.categoryId)?.name ||
-                  "Loading..."}
+                <LayoutList className="h-3 w-3 mr-1" />
+                {categories.find((c) => c.slug === filters.categorySlug)
+                  ?.name || "Loading..."}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -540,7 +527,36 @@ function AdminProductList() {
               </Badge>
             )}
 
-            {/* ...existing filter badges... */}
+            {filters.collectionId && (
+              <Badge variant="outline" className="flex gap-1 items-center py-1">
+                <Library className="h-3 w-3 mr-1" />
+                {collections.find((c) => c.id === filters.collectionId)
+                  ?.name || "Loading..."}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 ml-1 -mr-1 rounded-full"
+                  onClick={() => handleCollectionChange("all")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )}
+
+            {filters.searchQuery && (
+              <Badge variant="outline" className="flex gap-1 items-center py-1">
+                <Search className="h-3 w-3 mr-1" />
+                {filters.searchQuery}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 ml-1 -mr-1 rounded-full"
+                  onClick={handleResetSearch}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            )}
 
             {/* Loading indicator */}
             {isLoading && (

@@ -7,7 +7,7 @@ export type ProductsFilters = {
   page?: number;
   limit?: number;
   searchQuery?: string;
-  categoryId?: string;
+  categorySlug?: string;
   collectionId?: string;
   specialLabel?: string;
   sortBy?: string;
@@ -26,7 +26,8 @@ export function useProducts(filters: ProductsFilters = {}, swrOptions = {}) {
 
   if (filters.page) queryParams.append("page", filters.page.toString());
   if (filters.limit) queryParams.append("limit", filters.limit.toString());
-  if (filters.categoryId) queryParams.append("categoryId", filters.categoryId);
+  if (filters.categorySlug)
+    queryParams.append("categorySlug", filters.categorySlug);
   if (filters.collectionId)
     queryParams.append("collectionId", filters.collectionId);
   if (filters.specialLabel)

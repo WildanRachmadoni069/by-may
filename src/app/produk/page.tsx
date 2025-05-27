@@ -75,11 +75,10 @@ function ProductPage() {
 
   // Get filter state from Zustand
   const { filters, setFilters } = useProductStore();
-
   // Set initial filters
   useEffect(() => {
     setFilters({
-      categoryId: initialCategory || undefined,
+      categorySlug: initialCategory || undefined,
       collectionId: initialCollection || undefined,
       sortBy: initialSort || "newest",
       searchQuery: initialQuery || undefined,
@@ -104,7 +103,7 @@ function ProductPage() {
   } = useProducts({
     page: filters.page,
     limit: 8,
-    categoryId: filters.categoryId,
+    categorySlug: filters.categorySlug,
     collectionId: filters.collectionId,
     sortBy: filters.sortBy,
     searchQuery: filters.searchQuery,
@@ -126,7 +125,7 @@ function ProductPage() {
     if (!isValidating) {
       const params = new URLSearchParams();
       if (filters.searchQuery) params.set("q", filters.searchQuery);
-      if (filters.categoryId) params.set("category", filters.categoryId);
+      if (filters.categorySlug) params.set("category", filters.categorySlug);
       if (filters.collectionId) params.set("collection", filters.collectionId);
       if (filters.sortBy) params.set("sortBy", filters.sortBy);
       if (filters.page && filters.page > 1)
@@ -191,9 +190,8 @@ function ProductPage() {
    * - Halaman ke 1
    */
   const handleResetFilters = () => {
-    setSearchQuery("");
-    setFilters({
-      categoryId: undefined,
+    setSearchQuery("");    setFilters({
+      categorySlug: undefined,
       collectionId: undefined,
       sortBy: "newest",
       searchQuery: undefined,
@@ -322,12 +320,11 @@ function ProductPage() {
               variant="outline"
               className="mt-4"
               onClick={() => {
-                setFilters({
-                  categoryId: undefined,
-                  collectionId: undefined,
-                  sortBy: "newest",
-                  searchQuery: undefined,
-                  page: 1,
+                setFilters({                        categorySlug: undefined,
+                        collectionId: undefined,
+                        sortBy: "newest",
+                        searchQuery: undefined,
+                        page: 1,
                 });
               }}
             >
@@ -442,7 +439,7 @@ function ProductPage() {
             </div>
 
             {/* Active filter badges */}
-            {(filters.categoryId ||
+            {(filters.categorySlug ||
               filters.collectionId ||
               filters.searchQuery) && (
               <div className="mb-6 p-3 bg-muted rounded-md flex flex-wrap gap-2 items-center">
@@ -464,10 +461,10 @@ function ProductPage() {
                   </div>
                 )}
 
-                {filters.categoryId && (
+                {filters.categorySlug && (
                   <div className="text-sm bg-background px-3 py-1 rounded-full flex items-center gap-1">
                     <span>
-                      {categories.find((c) => c.id === filters.categoryId)
+                      {categories.find((c) => c.slug === filters.categorySlug)
                         ?.name || "Kategori"}
                     </span>
                   </div>

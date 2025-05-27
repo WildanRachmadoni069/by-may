@@ -1,9 +1,11 @@
 // SERVER-SIDE ONLY - do not import in client components
 import { prisma } from "@/lib/db";
+import { slugify } from "@/lib/utils";
 
 interface Category {
   id: string;
   name: string;
+  slug: string;
   value: string;
   label: string;
 }
@@ -17,21 +19,33 @@ export async function getCategories(): Promise<Category[]> {
   return categories.map((c) => ({
     id: c.id,
     name: c.name,
-    value: c.id, // For select component
-    label: c.name, // For select component
+    slug: c.slug,
+    value: c.slug, // Changed from c.id to c.slug for URL-friendly values
+    label: c.name,
   }));
+}
+
+// Get category by slug
+export async function getCategoryBySlug(slug: string) {
+  return prisma.category.findUnique({
+    where: { slug },
+  });
 }
 
 // Create a new category
 export async function createCategory(name: string): Promise<Category> {
   const category = await prisma.category.create({
-    data: { name },
+    data: { 
+      name,
+      slug: slugify(name)
+    },
   });
 
   return {
     id: category.id,
     name: category.name,
-    value: category.id,
+    slug: category.slug,
+    value: category.slug,
     label: category.name,
   };
 }
@@ -43,13 +57,17 @@ export async function updateCategory(
 ): Promise<Category> {
   const category = await prisma.category.update({
     where: { id },
-    data: { name },
+    data: { 
+      name,
+      slug: slugify(name)
+    },
   });
 
   return {
     id: category.id,
     name: category.name,
-    value: category.id,
+    slug: category.slug,
+    value: category.slug,
     label: category.name,
   };
 }

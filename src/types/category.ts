@@ -7,8 +7,9 @@
 export interface CategoryData {
   id: string;
   name: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CategoryOption {
@@ -23,5 +24,5 @@ export interface CategoryCreateInput {
 }
 
 export interface CategoryUpdateInput {
-  name: string;
+  name?: string;
 }

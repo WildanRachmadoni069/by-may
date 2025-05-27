@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const search = searchParams.get("search") || undefined;
-    const categoryId = searchParams.get("categoryId") || undefined;
+    const categorySlug = searchParams.get("categorySlug") || undefined;
     const collectionId = searchParams.get("collectionId") || undefined;
     const specialLabel = searchParams.get("specialLabel") || undefined;
     const sortBy = searchParams.get("sortBy") || "newest";
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       search,
-      categoryId,
+      categorySlug,
       collectionId,
       specialLabel,
       sortBy,

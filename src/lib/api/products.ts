@@ -36,7 +36,7 @@ export async function getProducts(
     page?: number;
     limit?: number;
     searchQuery?: string;
-    categoryId?: string;
+    categorySlug?: string;
     collectionId?: string;
     specialLabel?: string;
     sortBy?: string;
@@ -49,7 +49,8 @@ export async function getProducts(
   if (options.page) queryParams.append("page", options.page.toString());
   if (options.limit) queryParams.append("limit", options.limit.toString());
   if (options.searchQuery) queryParams.append("search", options.searchQuery);
-  if (options.categoryId) queryParams.append("categoryId", options.categoryId);
+  if (options.categorySlug)
+    queryParams.append("categorySlug", options.categorySlug);
   if (options.collectionId)
     queryParams.append("collectionId", options.collectionId);
   if (options.specialLabel)

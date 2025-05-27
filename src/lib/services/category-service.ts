@@ -11,6 +11,7 @@ import {
   CategoryCreateInput,
   CategoryUpdateInput,
 } from "@/types/category";
+import { slugify } from "@/lib/utils";
 
 export const CategoryService = {
   /**
@@ -37,14 +38,39 @@ export const CategoryService = {
   },
 
   /**
+   * Mengambil kategori berdasarkan slug
+   * @param slug Slug kategori yang dicari
+   * @returns Kategori yang ditemukan atau null
+   */
+  async getCategoryBySlug(slug: string): Promise<CategoryData | null> {
+    const category = await db.category.findUnique({
+      where: { slug },
+    });
+
+    return category as unknown as CategoryData | null;
+  },
+
+  /**
    * Membuat kategori baru
    * @param data Data kategori yang akan dibuat
    * @returns Kategori yang dibuat
    */
   async createCategory(data: CategoryCreateInput): Promise<CategoryData> {
+    const slug = slugify(data.name);
+
+    // Cek duplikasi slug
+    const existingWithSlug = await db.category.findUnique({
+      where: { slug },
+    });
+
+    if (existingWithSlug) {
+      throw new Error("Nama kategori harus unik");
+    }
+
     return db.category.create({
       data: {
         name: data.name,
+        slug,
       },
     }) as unknown as CategoryData;
   },
@@ -54,7 +80,7 @@ export const CategoryService = {
    * @param id ID kategori yang akan diperbarui
    * @param data Data kategori yang diperbarui
    * @returns Kategori yang diperbarui
-   * @throws Error jika kategori tidak ditemukan
+   * @throws Error jika kategori tidak ditemukan atau nama duplikat
    */
   async updateCategory(
     id: string,
@@ -68,12 +94,32 @@ export const CategoryService = {
       throw new Error("Kategori tidak ditemukan");
     }
 
-    return db.category.update({
-      where: { id },
-      data: {
-        name: data.name,
-      },
-    }) as unknown as CategoryData;
+    if (data.name) {
+      const slug = slugify(data.name);
+
+      // Cek duplikasi slug, kecuali dengan diri sendiri
+      const existingWithSlug = await db.category.findFirst({
+        where: {
+          slug,
+          id: { not: id },
+        },
+      });
+
+      if (existingWithSlug) {
+        throw new Error("Nama kategori harus unik");
+      }
+
+      return db.category.update({
+        where: { id },
+        data: {
+          name: data.name,
+          slug,
+        },
+      }) as unknown as CategoryData;
+    }
+
+    // Jika tidak ada perubahan nama, kembalikan data yang ada
+    return existingCategory as unknown as CategoryData;
   },
 
   /**
