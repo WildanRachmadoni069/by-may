@@ -34,7 +34,7 @@ const ProductDescriptionEditor = forwardRef<
       modules: {
         toolbar: {
           container: [
-            [{ size: ["small", false, "large", "huge"] }], // Specify size options
+            [{ header: [1, 2, 3, false] }], // Specify size options
             [{ align: [] }],
             ["bold", "italic", "underline", "strike"],
             [{ list: "ordered" }, { list: "bullet" }],

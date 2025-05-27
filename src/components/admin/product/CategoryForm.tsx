@@ -1,82 +1,106 @@
 "use client";
 
 import { useState } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase/firebaseConfig";
-import { collection, addDoc } from "firebase/firestore";
+import { useCategoryStore } from "@/store/useCategoryStore";
 
-interface CategoryFormData {
-  name: string;
+/**
+ * Props untuk komponen CategoryForm
+ */
+interface CategoryFormProps {
+  /** Fungsi callback yang dipanggil setelah form berhasil disubmit */
+  onSuccess?: () => void;
+  /** Data awal untuk form (untuk mode edit) */
+  initialData?: {
+    id: string;
+    name: string;
+  };
 }
 
-const CategorySchema = Yup.object().shape({
-  name: Yup.string()
-    .min(2, "Nama kategori terlalu pendek")
-    .max(50, "Nama kategori terlalu panjang")
-    .required("Nama kategori wajib diisi"),
-});
-
-function CategoryForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+/**
+ * Komponen form untuk membuat atau mengupdate kategori
+ */
+export default function CategoryForm({
+  onSuccess,
+  initialData,
+}: CategoryFormProps) {
   const { toast } = useToast();
+  const { createCategory, updateCategory } = useCategoryStore();
+  const [name, setName] = useState(initialData?.name || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formik = useFormik<CategoryFormData>({
-    initialValues: {
-      name: "",
-    },
-    validationSchema: CategorySchema,
-    onSubmit: async (values, { resetForm }) => {
-      setIsSubmitting(true);
-      try {
-        await addDoc(collection(db, "categories"), {
-          name: values.name,
-          createdAt: new Date(),
-        });
+  /**
+   * Menangani submit form
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Nama kategori tidak boleh kosong",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      if (initialData?.id) {
+        // Mode edit
+        await updateCategory(initialData.id, { name });
         toast({
-          title: "Kategori berhasil ditambahkan",
-          description: "Kategori baru telah berhasil ditambahkan ke database.",
+          title: "Berhasil",
+          description: "Kategori berhasil diperbarui",
         });
-        resetForm();
-      } catch (error) {
-        console.error("Error adding category:", error);
+      } else {
+        // Mode tambah
+        await createCategory({ name });
         toast({
-          title: "Gagal menambahkan kategori",
-          description:
-            "Terjadi kesalahan saat menambahkan kategori. Silakan coba lagi.",
-          variant: "destructive",
+          title: "Berhasil",
+          description: "Kategori berhasil dibuat",
         });
-      } finally {
-        setIsSubmitting(false);
+        setName("");
       }
-    },
-  });
+
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Terjadi kesalahan saat menyimpan kategori",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Tambah Kategori Baru</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={formik.handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nama Kategori</Label>
-            <Input id="name" {...formik.getFieldProps("name")} />
-            {formik.touched.name && formik.errors.name && (
-              <p className="text-sm text-red-500 mt-1">{formik.errors.name}</p>
-            )}
-          </div>
-          <Button type="submit" disabled={isSubmitting || !formik.isValid}>
-            {isSubmitting ? "Menyimpan..." : "Simpan Kategori"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-1">
+        <Label htmlFor="name">Nama Kategori</Label>
+        <Input
+          id="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Masukkan nama kategori"
+          disabled={isSubmitting}
+          autoComplete="off"
+        />
+      </div>
+      <Button type="submit" disabled={isSubmitting} className="w-full">
+        {isSubmitting
+          ? "Menyimpan..."
+          : initialData
+          ? "Perbarui Kategori"
+          : "Tambah Kategori"}
+      </Button>
+    </form>
   );
 }
-
-export default CategoryForm;

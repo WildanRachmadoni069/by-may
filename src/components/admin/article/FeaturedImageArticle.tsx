@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash, Plus, Info } from "lucide-react";
+import { Pencil, Trash, Plus, Info, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Tooltip,
   TooltipContent,
@@ -14,6 +13,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast";
+import { CloudinaryService } from "@/lib/services/cloudinary-service";
 
 interface FeaturedImageArticleProps {
   onChange: (imageData: { url: string; alt: string } | null) => void;
@@ -21,6 +22,10 @@ interface FeaturedImageArticleProps {
   className?: string;
 }
 
+/**
+ * Komponen untuk mengelola gambar utama artikel
+ * Memungkinkan mengunggah, memperbarui, dan menghapus gambar dengan pengelolaan teks alt
+ */
 function FeaturedImageArticle({
   onChange,
   value,
@@ -29,69 +34,171 @@ function FeaturedImageArticle({
   const [preview, setPreview] = useState<string | null>(value?.url ?? null);
   const [altText, setAltText] = useState<string>(value?.alt ?? "");
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileDialogOpenRef = useRef<boolean>(false);
+  const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Perbarui state saat nilai prop berubah
   useEffect(() => {
     setPreview(value?.url ?? null);
     setAltText(value?.alt ?? "");
   }, [value]);
 
+  // Bersihkan timeout saat komponen unmount
+  useEffect(() => {
+    return () => {
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+      }
+    };
+  }, []);
+  /**
+   * Menangani pemilihan file dan unggahan
+   */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
-      try {
-        const formData = new FormData();
-        formData.append("image", file);
+    fileDialogOpenRef.current = false;
 
-        if (preview) {
-          await fetch("/api/delete", {
-            method: "POST",
-            body: JSON.stringify({ url: preview }),
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
+    if (safetyTimeoutRef.current) {
+      clearTimeout(safetyTimeoutRef.current);
+      safetyTimeoutRef.current = null;
+    }
+
+    if (!file) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsUploading(true);
+    if (preview) {
+      setIsEditing(true);
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      let response;
+
+      if (preview) {
+        // Gunakan CloudinaryService untuk mendapatkan publicId
+        const publicId = CloudinaryService.extractPublicIdFromUrl(preview);
+        if (!publicId) {
+          throw new Error("Gagal mendapatkan publicId dari URL gambar");
         }
+        formData.append("publicId", publicId);
 
-        const response = await fetch("/api/upload/image-article", {
+        response = await fetch("/api/cloudinary/update-image", {
           method: "POST",
           body: formData,
         });
-        const result = await response.json();
-        const imageUrl = result.secure_url;
-        setPreview(imageUrl);
-        onChange({ url: imageUrl, alt: altText });
-      } catch (error) {
-        console.error("Error uploading image:", error);
-      } finally {
-        setIsUploading(false);
+      } else {
+        // Upload gambar baru
+        formData.append("file", file);
+        formData.append("folder", "article");
+        formData.append("upload_preset", "article_preset");
+        formData.append("tags", "article,featured");
+
+        response = await fetch("/api/cloudinary/upload", {
+          method: "POST",
+          body: formData,
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`Gagal mengunggah: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const imageUrl = result.secure_url;
+
+      setPreview(imageUrl);
+      onChange({ url: imageUrl, alt: altText });
+
+      toast({
+        title: preview ? "Gambar diperbarui" : "Gambar diunggah",
+        description: preview
+          ? "Gambar berhasil diperbarui tanpa menghapus gambar lama"
+          : "Gambar berhasil diunggah",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Gagal mengunggah gambar. Silakan coba lagi.",
+      });
+    } finally {
+      setIsUploading(false);
+      setIsEditing(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
     }
   };
 
-  const handleRemove = async () => {
-    if (preview) {
-      await fetch("/api/delete", {
-        method: "POST",
-        body: JSON.stringify({ url: preview }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+  /**
+   * Menangani penghapusan gambar
+   */
+  const handleRemoveImage = async () => {
+    if (value?.url) {
+      try {
+        setIsDeleting(true);        const response = await fetch("/api/cloudinary/delete", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url: value.url }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Gagal menghapus gambar");
+        }
+
+        setPreview(null);
+        onChange({ url: "", alt: "" });
+        toast({
+          title: "Gambar dihapus",
+          description: "Gambar berhasil dihapus dari Cloudinary",
+        });
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Gagal menghapus gambar. Silakan coba lagi.",
+        });
+      } finally {
+        setIsDeleting(false);
+      }
     }
-    setPreview(null);
-    setAltText("");
-    onChange(null);
   };
 
+  /**
+   * Memicu dialog pemilihan file
+   */
   const handleEdit = () => {
-    setIsUploading(true);
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (e) =>
-      handleFileChange(e as unknown as React.ChangeEvent<HTMLInputElement>);
-    input.click();
+    if (isEditing || isUploading || isDeleting) return;
+
+    setIsEditing(true);
+    fileDialogOpenRef.current = true;
+
+    safetyTimeoutRef.current = setTimeout(() => {
+      if (fileDialogOpenRef.current) {
+        setIsEditing(false);
+        fileDialogOpenRef.current = false;
+      }
+    }, 1000);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileInputClick = () => {
+    fileDialogOpenRef.current = true;
   };
 
   return (
@@ -101,14 +208,23 @@ function FeaturedImageArticle({
           type="file"
           accept="image/*"
           onChange={handleFileChange}
+          onClick={handleFileInputClick}
           className="hidden"
           id="featured-image-upload"
+          ref={fileInputRef}
         />
         {preview ? (
           <div className="relative w-full h-[300px]">
-            {isUploading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-lg">
-                <Spinner size="lg" />
+            {(isUploading || isEditing || isDeleting) && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/75 rounded-lg text-white z-10">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p>
+                  {isDeleting
+                    ? "Menghapus gambar..."
+                    : isEditing
+                    ? "Mengganti gambar..."
+                    : "Mengunggah gambar..."}
+                </p>
               </div>
             )}
             <Image
@@ -124,17 +240,27 @@ function FeaturedImageArticle({
                 size="icon"
                 className="h-8 w-8 rounded-full"
                 onClick={handleEdit}
+                disabled={isUploading || isEditing || isDeleting}
               >
-                <Pencil className="h-4 w-4" />
+                {isEditing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Pencil className="h-4 w-4" />
+                )}
               </Button>
               <Button
                 type="button"
                 variant="secondary"
                 size="icon"
                 className="h-8 w-8 rounded-full"
-                onClick={handleRemove}
+                onClick={handleRemoveImage}
+                disabled={isUploading || isEditing || isDeleting}
               >
-                <Trash className="h-4 w-4" />
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
@@ -145,7 +271,10 @@ function FeaturedImageArticle({
           >
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               {isUploading ? (
-                <Spinner size="lg" />
+                <>
+                  <Loader2 className="h-8 w-8 animate-spin mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">Mengunggah Gambar...</p>
+                </>
               ) : (
                 <>
                   <Plus className="h-8 w-8 text-gray-400" />
@@ -185,6 +314,7 @@ function FeaturedImageArticle({
             }}
             placeholder="Deskripsikan gambar tersebut"
             className="w-full"
+            disabled={isUploading || isEditing || isDeleting}
           />
         </div>
       )}

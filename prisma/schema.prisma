@@ -1,0 +1,293 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+// Users
+model User {
+    id           String     @id @default(uuid())
+    email        String     @unique
+    passwordHash String? // Added for authentication
+    fullName     String?
+    phoneNumber  String?
+    address      String?
+    role         String     @default("user") // "user", "admin"
+    createdAt    DateTime   @default(now())
+    updatedAt    DateTime   @updatedAt
+    orders       Order[]
+    cart         CartItem[]
+    addresses    Address[]
+
+    @@index([email])
+    @@index([role])
+}
+
+// Products
+model Product {
+    id          String  @id @default(uuid())
+    name        String
+    slug        String  @unique
+    description String? @db.Text
+
+    // Gambar produk
+    featuredImage    Json? // {url: string, alt: string}
+    additionalImages Json[] // Array objek gambar [{url, alt}]
+
+    // Info produk dasar
+    basePrice     Float?
+    baseStock     Int?
+    hasVariations Boolean @default(false)
+    specialLabel  String? // "featured", "new", dll
+    weight        Int? // dalam gram
+    dimensions    Json? // {width, length, height} dalam cm
+
+    // SEO - Format konsisten dengan artikel
+    meta Json? // {title: string, description: string, ogImage: string}
+
+    // Relasi
+    categoryId    String?
+    category      Category?          @relation(fields: [categoryId], references: [id])
+    collectionId  String?
+    collection    Collection?        @relation(fields: [collectionId], references: [id])
+    variations    ProductVariation[]
+    priceVariants PriceVariant[]
+    cartItems     CartItem[]
+    orderItems    OrderItem[]
+
+    // Timestamps
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Indeks dasar
+    @@index([slug])
+    @@index([categoryId])
+    @@index([collectionId])
+    @@index([specialLabel])
+    @@index([name])
+    @@index([basePrice])
+}
+
+// Categories
+model Category {
+    id        String    @id @default(uuid())
+    name      String    @unique
+    products  Product[]
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+}
+
+// Collections
+model Collection {
+    id        String    @id @default(uuid())
+    name      String    @unique
+    products  Product[]
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+}
+
+// FAQs
+model FAQ {
+    id        String   @id @default(uuid())
+    question  String
+    answer    String   @db.Text
+    order     Int      @default(0)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([order])
+}
+
+// Articles
+model Article {
+    id            String    @id @default(uuid())
+    title         String
+    slug          String    @unique
+    content       String    @db.Text
+    excerpt       String?   @db.Text
+    featuredImage Json? // {url: string, alt: string} -- Perubahan dari featured_image ke camelCase
+    status        String // "draft", "published"
+    meta          Json? // {title: string, description: string, ogImage: string}
+    author        Json? // {id: string, name: string}
+    publishedAt   DateTime?
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
+
+    @@index([slug])
+    @@index([status])
+    @@index([title])
+    @@index([createdAt])
+    @@index([publishedAt])
+}
+
+// Banners
+model Banner {
+    id        String   @id @default(uuid())
+    title     String
+    imageUrl  String
+    url       String?
+    active    Boolean  @default(true)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+// SEO Settings
+model SEOSetting {
+    id          String   @id @default(uuid())
+    pageId      String   @unique // "homepage", "about", "faq", etc.
+    title       String
+    description String
+    keywords    String?
+    ogImage     String? // perubahan dari og_image ke camelCase
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+}
+
+// Cart Items
+model CartItem {
+    id             String        @id @default(uuid())
+    userId         String
+    productId      String
+    priceVariantId String? // Referensi ke varian harga untuk produk dengan variasi
+    quantity       Int
+    user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    product        Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+    priceVariant   PriceVariant? @relation(fields: [priceVariantId], references: [id])
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
+
+    @@unique([userId, productId, priceVariantId])
+    @@index([userId])
+    @@index([productId])
+    @@index([priceVariantId])
+}
+
+// Orders
+model Order {
+    id           String        @id @default(uuid())
+    userId       String
+    status       String // "pending", "processing", "shipped", "delivered", "cancelled"
+    totalAmount  Float
+    shippingInfo Json // {address, city, postalCode, etc.}
+    paymentInfo  Json? // {method, transactionId, etc.}
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt
+    user         User          @relation(fields: [userId], references: [id])
+    items        OrderItem[]
+    statusLogs   OrderStatus[]
+
+    @@index([userId])
+    @@index([status])
+    @@index([createdAt])
+}
+
+// Order Items
+model OrderItem {
+    id              String   @id @default(uuid())
+    orderId         String
+    productId       String
+    quantity        Int
+    price           Float
+    selectedOptions Json? // {variationName: optionName}
+    order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    product         Product  @relation(fields: [productId], references: [id])
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+
+    @@index([orderId])
+    @@index([productId])
+}
+
+// Model untuk variasi produk (contoh: Warna, Ukuran, dll)
+model ProductVariation {
+    id        String                   @id @default(uuid())
+    productId String
+    name      String // Contoh: "Warna", "Ukuran"
+    product   Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+    options   ProductVariationOption[]
+    createdAt DateTime                 @default(now())
+    updatedAt DateTime                 @updatedAt
+
+    @@index([productId])
+}
+
+// Model untuk opsi dari variasi (contoh: Merah, Hijau untuk Warna; S, M, L untuk Ukuran)
+model ProductVariationOption {
+    id            String                 @id @default(uuid())
+    variationId   String
+    name          String // Contoh: "Merah", "XL"
+    imageUrl      String?
+    variation     ProductVariation       @relation(fields: [variationId], references: [id], onDelete: Cascade)
+    priceVariants PriceVariantToOption[]
+    createdAt     DateTime               @default(now())
+    updatedAt     DateTime               @updatedAt
+
+    @@index([variationId])
+}
+
+// Model untuk varian harga dan stok berdasarkan kombinasi opsi
+model PriceVariant {
+    id        String                 @id @default(uuid())
+    productId String
+    product   Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+    price     Float
+    stock     Int
+    sku       String? // SKU (Stock Keeping Unit) untuk manajemen inventaris
+    options   PriceVariantToOption[]
+    createdAt DateTime               @default(now())
+    updatedAt DateTime               @updatedAt // Memperbaiki dari @default(now()) ke @updatedAt
+    CartItem  CartItem[]
+
+    @@index([productId])
+}
+
+// Tabel penghubung many-to-many antara PriceVariant dan ProductVariationOption
+model PriceVariantToOption {
+    priceVariantId String
+    optionId       String
+    priceVariant   PriceVariant           @relation(fields: [priceVariantId], references: [id], onDelete: Cascade)
+    option         ProductVariationOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+    @@id([priceVariantId, optionId])
+    @@unique([priceVariantId, optionId])
+    @@index([optionId])
+    @@index([priceVariantId])
+}
+
+// Model untuk alamat pengiriman user
+model Address {
+    id          String   @id @default(uuid())
+    userId      String
+    fullName    String
+    phoneNumber String
+    province    String
+    city        String
+    district    String
+    postalCode  String
+    addressLine String
+    isDefault   Boolean  @default(false)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+}
+
+// Model untuk tracking status pesanan
+model OrderStatus {
+    id        String   @id @default(uuid())
+    orderId   String
+    status    String
+    notes     String?
+    createdAt DateTime @default(now())
+    order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+    @@index([orderId])
+}

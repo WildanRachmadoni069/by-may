@@ -1,26 +1,52 @@
-import ProductCollections from "@/components/general/ProductCollections";
-import ArticleCollection from "@/components/landingpage/ArticleCollection";
 import BannerLandingpage from "@/components/landingpage/BannerLandingpage";
 import HeroLandingpage from "@/components/landingpage/HeroLandingpage";
-import MainNav from "@/components/landingpage/MainNav";
+import MainLayout from "@/components/layouts/MainLayout";
+import SimpleStructuredData from "@/components/seo/SimpleStructuredData";
+import { generateLightHomeStructuredData } from "@/lib/utils/lightSeo";
+import type { Metadata } from "next";
+import HomeCollections from "@/components/landingpage/HomeCollections";
 
-export default function Home() {
+/**
+ * Metadata spesifik untuk halaman beranda
+ * Metadata ini akan menggantikan metadata default dari layout.tsx
+ */
+export const metadata: Metadata = {
+  title: "Al-Quran Custom Nama di Cover | By May Scarf",
+  description:
+    "Jual Al-Quran custom cover dengan nama, pilihan desain cantik dan harga terjangkau. Spesialis Al-Quran custom berkualitas tinggi di Indonesia.",
+  keywords: [
+    "al-quran custom cover",
+    "al-quran custom nama",
+    "jual al-quran custom",
+    "al-quran custom murah",
+  ],
+};
+
+// Increase revalidation period to reduce build frequency
+export const revalidate = 86400; // 24 hours
+
+export default async function Home() {
+  // Use lightweight structured data that doesn't depend on fetched products
+  const lightStructuredData = generateLightHomeStructuredData();
+  // Halaman home dengan metadata dan structured data optimasi SEO
   return (
-    <>
-      <MainNav />
-      <main>
+    <MainLayout>
+      {/* Use lightweight structured data component */}
+      <SimpleStructuredData data={lightStructuredData} />{" "}
+      {/* Main hero section dengan properti semantik yang tepat */}
+      <div>
         <HeroLandingpage />
         <BannerLandingpage />
-        <section aria-labelledby="featured-products" className="py-12">
-          <ProductCollections title="Produk Unggulan" />
-        </section>
-        <section aria-labelledby="new-products" className="py-12">
-          <ProductCollections title="Produk Terbaru" />
-        </section>
-        <section aria-labelledby="latest-articles" className="py-12">
-          <ArticleCollection />
-        </section>
-      </main>
-    </>
+      </div>
+      {/* Use the client component wrapper for collections */}
+      <div className="mt-0">
+        <HomeCollections
+          featuredProductsTitle="Produk Unggulan"
+          featuredProductsLink="/produk?specialLabel=best"
+          newProductsTitle="Produk Terbaru"
+          newProductsLink="/produk?specialLabel=new"
+        />
+      </div>
+    </MainLayout>
   );
 }

@@ -1,8 +1,7 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Filter, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,152 +11,220 @@ import {
 } from "@/components/ui/select";
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import { useProductFilterStore } from "@/store/useProductFilterStore";
 import { useProductStore } from "@/store/useProductStore";
 
-function ProductSidebar() {
-  const { categories, fetchCategories } = useCategoryStore();
-  const { collections, fetchCollections } = useCollectionStore();
-  const filters = useProductFilterStore();
-  const { fetchFilteredProducts, loading } = useProductStore();
-  const [searchQuery, setSearchQuery] = useState("");
+interface ProductSidebarProps {
+  onFilterApplied?: () => void;
+  onFilterChange?: (filters: any) => void;
+}
 
+function ProductSidebar({
+  onFilterApplied,
+  onFilterChange,
+}: ProductSidebarProps) {
+  const { categories } = useCategoryStore();
+  const { collections } = useCollectionStore();
+  const { filters, loading } = useProductStore();
+
+  // Use a ref to track if we've initialized the sidebar
+  const initialized = useRef(false);
+
+  // Local state for filters that will be batched and applied together
+  const [localFilters, setLocalFilters] = useState({
+    categoryId: filters.categoryId,
+    collectionId: filters.collectionId,
+    sortBy: filters.sortBy || "newest",
+  });
+
+  // Update local filters when store filters change, but only after initialization
   useEffect(() => {
-    fetchCategories();
-    fetchCollections();
-  }, [fetchCategories, fetchCollections]);
+    // Short delay on first render to avoid initialization issues
+    if (!initialized.current) {
+      const timer = setTimeout(() => {
+        initialized.current = true;
+        setLocalFilters({
+          categoryId: filters.categoryId,
+          collectionId: filters.collectionId,
+          sortBy: filters.sortBy || "newest",
+        });
+      }, 100);
 
-  const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      fetchFilteredProducts({
-        category: filters.category,
-        collection: filters.collection,
-        sortBy: filters.sortBy,
-        itemsPerPage: 12,
+      return () => clearTimeout(timer);
+    } else {
+      setLocalFilters({
+        categoryId: filters.categoryId,
+        collectionId: filters.collectionId,
+        sortBy: filters.sortBy || "newest",
       });
-      return;
+    }
+  }, [filters.categoryId, filters.collectionId, filters.sortBy]);
+
+  // Handle category selection
+  const handleCategoryChange = (value: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      categoryId: value === "all" ? undefined : value,
+    }));
+  };
+
+  // Handle collection selection
+  const handleCollectionChange = (value: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      collectionId: value === "all" ? undefined : value,
+    }));
+  };
+
+  // Handle sort selection
+  const handleSortChange = (value: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      sortBy: value,
+    }));
+  };
+
+  // Apply all filters at once
+  const handleApplyFilters = () => {
+    if (onFilterChange) {
+      // Apply all filters at once with page reset
+      onFilterChange({
+        ...localFilters,
+        page: 1,
+      });
     }
 
-    fetchFilteredProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: 12,
-      searchQuery: searchQuery.trim(),
-    });
+    // Close the mobile filter sheet if needed
+    if (onFilterApplied) {
+      onFilterApplied();
+    }
   };
 
-  const handleResetSearch = () => {
-    setSearchQuery("");
-    fetchFilteredProducts({
-      category: filters.category,
-      collection: filters.collection,
-      sortBy: filters.sortBy,
-      itemsPerPage: 12,
-    });
+  // Reset all filters
+  const handleResetFilters = () => {
+    const defaultFilters = {
+      categoryId: undefined,
+      collectionId: undefined,
+      sortBy: "newest",
+    };
+
+    // Update local state
+    setLocalFilters(defaultFilters);
+
+    // Apply changes immediately if set to do so
+    if (onFilterChange) {
+      onFilterChange({
+        ...defaultFilters,
+        page: 1,
+      });
+    }
+
+    if (onFilterApplied) {
+      onFilterApplied();
+    }
   };
+
+  // Check if filters have changed from what's currently in the store
+  const hasFilterChanges =
+    localFilters.categoryId !== filters.categoryId ||
+    localFilters.collectionId !== filters.collectionId ||
+    localFilters.sortBy !== filters.sortBy;
 
   return (
     <div className="space-y-4">
-      {/* Search input */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium pb-4">Pencarian</label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari produk..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSearch();
-                }
-              }}
-            />
-          </div>
-          <Button size="sm" onClick={handleSearch} disabled={loading}>
-            {loading ? "..." : "Cari"}
-          </Button>
-        </div>
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetSearch}
-            className="w-full text-muted-foreground"
-            disabled={loading}
-          >
-            Reset Pencarian
-          </Button>
-        )}
-      </div>
-
       {/* Urutan */}
       <div>
         <label className="text-sm font-medium pb-4">Urutkan</label>
-        <Select value={filters.sortBy} onValueChange={filters.setSortBy}>
+        <Select
+          value={localFilters.sortBy || "newest"}
+          onValueChange={handleSortChange}
+          disabled={loading}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Urutkan" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="newest">Terbaru</SelectItem>
-            <SelectItem value="price-asc">Harga Terendah</SelectItem>
-            <SelectItem value="price-desc">Harga Tertinggi</SelectItem>
+            <SelectItem value="oldest">Terlama</SelectItem>
+            <SelectItem value="price-low">Harga Terendah</SelectItem>
+            <SelectItem value="price-high">Harga Tertinggi</SelectItem>
+            <SelectItem value="name-asc">Nama A-Z</SelectItem>
+            <SelectItem value="name-desc">Nama Z-A</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      {/* Category & Collection filters */}
+      {/* Category filter */}
       <div>
         <label className="text-sm font-medium pb-4">Kategori</label>
-        <Select value={filters.category} onValueChange={filters.setCategory}>
+        <Select
+          value={localFilters.categoryId || "all"}
+          onValueChange={handleCategoryChange}
+          disabled={loading}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Pilih Kategori" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Kategori</SelectItem>
             {categories.map((category) => (
-              <SelectItem key={category.value} value={category.value}>
-                {category.label}
+              <SelectItem key={category.id} value={category.id}>
+                {category.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
+      {/* Collection filter */}
       <div>
         <label className="text-sm font-medium pb-4">Koleksi</label>
         <Select
-          value={filters.collection}
-          onValueChange={filters.setCollection}
+          value={localFilters.collectionId || "all"}
+          onValueChange={handleCollectionChange}
+          disabled={loading}
         >
           <SelectTrigger>
             <SelectValue placeholder="Pilih Koleksi" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Koleksi</SelectItem>
-            <SelectItem value="none">Tanpa Koleksi</SelectItem>
             {collections.map((collection) => (
-              <SelectItem key={collection.value} value={collection.value}>
-                {collection.label}
+              <SelectItem key={collection.id} value={collection.id}>
+                {collection.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Reset all filters */}
+      {/* Apply Filters button - highlight when changes are pending */}
       <Button
         className="w-full"
-        onClick={() => {
-          filters.resetFilters();
-          setSearchQuery("");
-          handleResetSearch();
-        }}
+        onClick={handleApplyFilters}
+        disabled={loading || !hasFilterChanges}
+        variant={hasFilterChanges ? "default" : "outline"}
       >
-        Reset Semua Filter
+        {loading ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Menerapkan...
+          </>
+        ) : (
+          <>
+            <Filter className="h-4 w-4 mr-2" />
+            Terapkan Filter
+          </>
+        )}
+      </Button>
+
+      {/* Reset Filters button */}
+      <Button
+        className="w-full"
+        variant="outline"
+        onClick={handleResetFilters}
+        disabled={loading}
+      >
+        Reset Filter
       </Button>
     </div>
   );

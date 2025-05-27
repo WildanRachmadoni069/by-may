@@ -1,0 +1,748 @@
+/**
+ * GAYA QUILL EDITOR UNTUK SHADCN UI
+ * 
+ * File ini berisi styling untuk komponen editor teks kaya Quill
+ * yang disesuaikan dengan tema Shadcn UI menggunakan variabel CSS
+ */
+
+/**
+ * 1. CONTAINER UTAMA
+ * Wrapper utama untuk seluruh komponen editor
+ */
+.quill-editor-container {
+  position: relative; /* Pastikan diatur sebagai relative untuk anak absolute */
+  display: flex;
+  flex-direction: column;
+}
+
+/**
+ * 2. CONTAINER TOOLBAR
+ * Bagian atas yang berisi kontrol pemformatan
+ */
+.quill-editor-container .ql-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+/**
+ * 3. CONTAINER EDITOR
+ * Container yang membungkus area pengeditan konten aktual
+ */
+.quill-editor-container .ql-container {
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  border-color: hsl(var(--border));
+  font-family: inherit;
+  background-color: hsl(var(--card));
+  min-height: 250px;
+}
+
+/**
+ * 4. AREA KONTEN EDITOR
+ * Area yang dapat diedit di mana konten dimasukkan
+ */
+.quill-editor-container .ql-editor {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #374151;
+  line-height: 1.8;
+  min-height: 300px;
+  outline: none;
+  tab-size: 4;
+  -moz-tab-size: 4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  font-size: 1.125rem;
+}
+
+/**
+ * 5. TEKS PLACEHOLDER
+ * Styling untuk teks placeholder yang ditampilkan saat editor kosong
+ */
+.quill-editor-container .ql-editor.ql-blank::before {
+  font-style: normal;
+  color: hsl(var(--muted-foreground));
+}
+
+/**
+ * 6. TOMBOL TOOLBAR
+ * Styling dasar untuk semua tombol toolbar (bold, italic, dll.)
+ */
+.quill-editor-container .ql-toolbar button {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/**
+ * 7. STATUS HOVER TOMBOL
+ * Tampilan tombol toolbar saat kursor di atasnya
+ */
+.quill-editor-container .ql-toolbar button:hover {
+  background-color: hsl(var(--accent));
+  border: none;
+  border-radius: 4px;
+}
+
+/**
+ * 8. HOVER KELOMPOK TOMBOL
+ * Styling khusus untuk kelompok tombol (format) saat kursor di atasnya
+ */
+.quill-editor-container .ql-toolbar .ql-formats button:hover {
+  border-radius: 4px;
+  color: hsl(var(--primary)) !important;
+}
+
+/**
+ * 9. STATUS TOMBOL AKTIF
+ * Styling untuk tombol saat berada dalam keadaan aktif/diaktifkan
+ */
+.quill-editor-container .ql-toolbar button.ql-active {
+  background-color: hsl(var(--accent));
+  border: none;
+  border-radius: 4px;
+}
+
+/**
+ * 10. DROPDOWN PEMILIH
+ * Styling untuk elemen dropdown (ukuran font, heading, dll.)
+ */
+.quill-editor-container .ql-toolbar .ql-picker {
+  color: hsl(var(--foreground));
+}
+
+/**
+ * 11. LABEL PEMILIH
+ * Bagian yang terlihat dari pemilih dropdown yang menampilkan pilihan saat ini
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label {
+  border-radius: 4px;
+  border: none;
+}
+
+/**
+ * 12. HOVER LABEL PEMILIH
+ * Styling untuk label pemilih saat kursor di atasnya
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--primary));
+}
+
+/**
+ * 13. IKON DROPDOWN PEMILIH
+ * Styling untuk ikon SVG dalam pemilih dropdown saat hover
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label:hover .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 14. STATUS PEMILIH AKTIF
+ * Styling untuk label pemilih saat dropdown terbuka atau opsi dipilih
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label.ql-active {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--primary)) !important;
+}
+
+/**
+ * 15. IKON PEMILIH AKTIF
+ * Styling untuk ikon SVG dalam label pemilih saat aktif
+ */
+.quill-editor-container .ql-toolbar .ql-picker-label.ql-active .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 16. KHUSUS PEMILIH HEADING
+ * Styling khusus untuk dropdown heading saat aktif
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-header.ql-picker
+  .ql-picker-label.ql-active {
+  color: hsl(var(--primary)) !important;
+}
+
+/**
+ * 17. ITEM HEADING TERPILIH
+ * Styling untuk opsi heading yang saat ini dipilih
+ */
+.quill-editor-container .ql-toolbar .ql-header .ql-picker-item.ql-selected {
+  color: hsl(var(--primary)) !important;
+}
+
+/**
+ * 18. MENU DROPDOWN
+ * Styling untuk menu dropdown yang muncul saat pemilih diklik
+ */
+.quill-editor-container .ql-toolbar .ql-picker-options {
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--card));
+  padding: 8px 4px;
+}
+
+/**
+ * 19. STATUS PEMILIH TERBUKA
+ * Styling untuk label pemilih saat dropdown-nya terbuka
+ */
+.quill-editor-container .ql-toolbar .ql-picker.ql-expanded .ql-picker-label {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--primary));
+  border-color: transparent;
+}
+
+/**
+ * 20. HOVER ITEM DROPDOWN
+ * Styling untuk item menu dropdown individu saat kursor di atasnya
+ */
+.quill-editor-container .ql-toolbar .ql-picker-item:hover {
+  color: hsl(var(--primary));
+}
+
+/**
+ * 21. PEMILIH BERBASIS IKON (PERATAAN, DAFTAR)
+ * Styling default untuk ikon SVG dalam pemilih khusus
+ */
+.quill-editor-container .ql-toolbar .ql-align .ql-picker-item svg .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-align.ql-picker svg .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-list .ql-picker-item svg .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-list.ql-picker svg .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 22. HOVER IKON PEMILIH
+ * Styling untuk ikon SVG dalam pemilih perataan/daftar saat kursor di atasnya
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-align
+  .ql-picker-item:hover
+  svg
+  .ql-stroke,
+.quill-editor-container
+  .ql-toolbar
+  .ql-list
+  .ql-picker-item:hover
+  svg
+  .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 23. ITEM PEMILIH IKON TERPILIH
+ * Styling untuk opsi perataan yang dipilih dalam pemilih
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-align
+  .ql-picker-item.ql-selected
+  svg
+  .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24. IKON SVG DALAM TOMBOL
+ * Styling default untuk ikon SVG dalam tombol standar
+ */
+.quill-editor-container .ql-toolbar button svg .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 24a. IKON SVG TOMBOL HOVER 
+ * Styling untuk ikon SVG dalam tombol saat kursor di atasnya
+ */
+.quill-editor-container .ql-toolbar button:hover svg .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24b. IKON SVG TOMBOL AKTIF
+ * Styling untuk ikon SVG dalam tombol saat aktif
+ */
+.quill-editor-container .ql-toolbar button.ql-active svg .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24c. IKON SVG FILL DALAM TOMBOL
+ * Styling default untuk ikon SVG fill dalam tombol standar
+ */
+.quill-editor-container .ql-toolbar button svg .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+/**
+ * 24d. IKON SVG FILL TOMBOL HOVER
+ * Styling untuk ikon SVG fill dalam tombol saat kursor di atasnya
+ */
+.quill-editor-container .ql-toolbar button:hover svg .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24e. IKON SVG FILL TOMBOL AKTIF
+ * Styling untuk ikon SVG fill dalam tombol saat aktif
+ */
+.quill-editor-container .ql-toolbar button.ql-active svg .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24f. SVG STROKE MITER DALAM TOMBOL
+ * Styling untuk elemen stroke-miter dalam ikon SVG
+ */
+.quill-editor-container .ql-toolbar button svg .ql-stroke-miter {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 24g. HOVER TOMBOL SVG STROKE MITER
+ * Styling untuk elemen stroke-miter saat tombol di-hover
+ */
+.quill-editor-container .ql-toolbar button:hover svg .ql-stroke-miter {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24h. TOMBOL AKTIF SVG STROKE MITER
+ * Styling untuk elemen stroke-miter saat tombol aktif
+ */
+.quill-editor-container .ql-toolbar button.ql-active svg .ql-stroke-miter {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24i. GARIS TIPIS DALAM SVG
+ * Styling untuk elemen garis tipis dalam ikon SVG
+ */
+.quill-editor-container .ql-toolbar button svg .ql-thin {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 24j. HOVER TOMBOL GARIS TIPIS
+ * Styling untuk elemen garis tipis saat tombol di-hover
+ */
+.quill-editor-container .ql-toolbar button:hover svg .ql-thin {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24k. TOMBOL AKTIF GARIS TIPIS
+ * Styling untuk elemen garis tipis saat tombol aktif
+ */
+.quill-editor-container .ql-toolbar button.ql-active svg .ql-thin {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24l. TOMBOL PEMILIH WARNA
+ * Styling khusus untuk tombol pemilih warna
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label:hover,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label:hover {
+  background-color: hsl(var(--accent));
+}
+
+/**
+ * 24m. PEMILIH WARNA AKTIF
+ * Styling untuk pemilih warna saat aktif
+ */
+.quill-editor-container .ql-toolbar .ql-color.ql-expanded .ql-picker-label,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background.ql-expanded
+  .ql-picker-label {
+  background-color: hsl(var(--accent));
+  border-color: transparent;
+}
+
+/**
+ * 24n. FILL LABEL PEMILIH WARNA
+ * Styling untuk elemen SVG fill pada label pemilih warna
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-fill,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+/**
+ * 24o. HOVER FILL LABEL PEMILIH WARNA
+ * Styling untuk elemen SVG fill pada label pemilih warna saat di-hover
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label:hover .ql-fill,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label:hover
+  .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24p. FILL AKTIF LABEL PEMILIH WARNA
+ * Styling untuk elemen SVG fill pada label pemilih warna saat aktif
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-color.ql-expanded
+  .ql-picker-label
+  .ql-fill,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background.ql-expanded
+  .ql-picker-label
+  .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24q. KHUSUS LABEL WARNA PEMILIH WARNA
+ * Styling untuk kelas color-label khusus dalam pemilih warna
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-color-label,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label
+  .ql-color-label {
+  fill: hsl(var(--foreground));
+}
+
+/**
+ * 24r. HOVER LABEL WARNA PEMILIH WARNA
+ * Styling untuk kelas color-label khusus saat di-hover
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-color
+  .ql-picker-label:hover
+  .ql-color-label,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label:hover
+  .ql-color-label {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24s. LABEL WARNA AKTIF PEMILIH WARNA
+ * Styling untuk kelas color-label khusus saat aktif
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-color.ql-expanded
+  .ql-picker-label
+  .ql-color-label,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background.ql-expanded
+  .ql-picker-label
+  .ql-color-label {
+  fill: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24t. ELEMEN STROKE PEMILIH WARNA
+ * Styling untuk elemen stroke dalam pemilih warna
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+/**
+ * 24u. HOVER STROKE PEMILIH WARNA
+ * Styling untuk elemen stroke dalam pemilih warna saat di-hover
+ */
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label:hover .ql-stroke,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label:hover
+  .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 24v. STROKE AKTIF PEMILIH WARNA
+ * Styling untuk elemen stroke dalam pemilih warna saat aktif
+ */
+.quill-editor-container
+  .ql-toolbar
+  .ql-color.ql-expanded
+  .ql-picker-label
+  .ql-stroke,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background.ql-expanded
+  .ql-picker-label
+  .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+/**
+ * 25. CONTAINER TOOLTIP
+ * Styling untuk tooltip (seperti popup editor tautan)
+ */
+.quill-editor-container .ql-tooltip {
+  background-color: hsl(var(--popover));
+  border-color: hsl(var(--border));
+  border-radius: 4px;
+  color: hsl(var(--foreground));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/**
+ * 26. INPUT TEKS TOOLTIP
+ * Styling untuk bidang teks dalam tooltip (seperti input URL tautan)
+ */
+.quill-editor-container .ql-tooltip input[type="text"] {
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+  padding: 4px 8px;
+}
+
+/**
+ * 27. TIPOGRAFI KONTEN
+ * Styling untuk berbagai tingkat heading dalam konten editor
+ */
+
+/* Heading Tingkat 1 */
+.quill-editor-container .ql-editor h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  line-height: 1.2;
+  color: #1f2937;
+}
+
+/* Heading Tingkat 2 */
+.quill-editor-container .ql-editor h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 1.25em;
+  margin-bottom: 0.625em;
+  line-height: 1.3;
+  color: #1f2937;
+}
+
+/* Heading Tingkat 3 */
+.quill-editor-container .ql-editor h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  line-height: 1.4;
+  color: #1f2937;
+}
+
+/* Paragraphs */
+.quill-editor-container .ql-editor p {
+  margin-bottom: 1em;
+  line-height: 1.8;
+  font-size: 1rem;
+}
+
+/* Links */
+.quill-editor-container .ql-editor a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 500;
+}
+.quill-editor-container .ql-editor a:hover {
+  color: #1d4ed8;
+}
+
+/* Lists */
+.quill-editor-container .ql-editor ul,
+.quill-editor-container .ql-editor ol {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+  padding-left: 1.75em; /* Indent lists */
+}
+.quill-editor-container .ql-editor ul li,
+.quill-editor-container .ql-editor ol li {
+  margin-bottom: 0.5em;
+  padding-left: 0.5em; /* Space between marker and text */
+}
+.quill-editor-container .ql-editor ul li::before {
+  content: ""; /* Quill handles its own list markers */
+}
+.quill-editor-container .ql-editor ol li::before {
+  content: ""; /* Quill handles its own list markers */
+}
+
+/* Blockquotes */
+.quill-editor-container .ql-editor blockquote {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  padding: 1em 1.25em;
+  border-left: 0.25em solid #d1d5db;
+  color: #4b5563;
+  font-style: italic;
+  background-color: #f9fafb;
+  border-radius: 0.25rem;
+}
+
+/* Code Blocks (pre) */
+.quill-editor-container .ql-editor pre {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875em;
+  line-height: 1.5;
+  padding: 1em;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  overflow-x: auto;
+  border-radius: 0.375rem;
+  white-space: pre;
+}
+
+/**
+ * 28. MODE HANYA-BACA
+ * Styling yang diterapkan saat editor dalam keadaan hanya-baca
+ */
+
+/* Sembunyikan toolbar dalam mode hanya-baca */
+.editor-readonly .ql-toolbar {
+  display: none;
+}
+
+/* Styling container untuk mode hanya-baca */
+.editor-readonly .ql-container {
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* Styling area konten untuk mode hanya-baca */
+.editor-readonly .ql-editor {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+/**
+ * 29. TRANSISI
+ * Efek transisi halus untuk elemen interaktif
+ */
+.quill-editor-container .ql-toolbar,
+.quill-editor-container .ql-container,
+.quill-editor-container .ql-editor,
+.quill-editor-container button,
+.quill-editor-container .ql-toolbar button svg .ql-stroke,
+.quill-editor-container .ql-toolbar button svg .ql-fill,
+.quill-editor-container .ql-toolbar button svg .ql-stroke-miter,
+.quill-editor-container .ql-toolbar button svg .ql-thin,
+.quill-editor-container .ql-toolbar .ql-picker-label,
+.quill-editor-container .ql-toolbar .ql-picker-options,
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-fill,
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-stroke,
+.quill-editor-container .ql-toolbar .ql-color .ql-picker-label .ql-color-label,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label .ql-fill,
+.quill-editor-container .ql-toolbar .ql-background .ql-picker-label .ql-stroke,
+.quill-editor-container
+  .ql-toolbar
+  .ql-background
+  .ql-picker-label
+  .ql-color-label {
+  transition: all 0.2s ease;
+}
+
+/**
+ * 30. GAYA PERATAAN GAMBAR
+ * Styling khusus untuk perataan gambar melalui toolbar align
+ */
+
+/* Gaya gambar default */
+.quill-editor-container .ql-editor img {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 1em;
+}
+
+/* Gambar rata kiri */
+.quill-editor-container .ql-editor img.ql-align-left {
+  float: left;
+  margin-right: 1em;
+  margin-bottom: 1em;
+}
+
+/* Gambar rata tengah */
+.quill-editor-container .ql-editor img.ql-align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  float: none;
+}
+
+/* Gambar rata kanan */
+.quill-editor-container .ql-editor img.ql-align-right {
+  float: right;
+  margin-left: 1em;
+  margin-bottom: 1em;
+}
+
+/* Gambar rata penuh (berperilaku seperti rata kiri untuk kegunaan yang lebih baik) */
+.quill-editor-container .ql-editor img.ql-align-justify {
+  float: left;
+  margin-right: 1em;
+  margin-bottom: 1em;
+}
+
+/* Bersihkan float setelah gambar untuk mencegah masalah tata letak */
+.quill-editor-container .ql-editor p:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/**
+ * PERBAIKAN GAYA PEMILIHAN GAMBAR
+ * Mencegah overlay pemilihan biru pada gambar saat dipilih
+ */
+
+/* Target semua gambar dalam editor Quill untuk mencegah pemilihan seperti teks */
+.quill-editor-container .ql-editor img {
+  user-select: none !important;
+}
+
+/* Spesifikasi tambahan untuk gambar yang dipilih */
+.quill-editor-container .ql-editor img.ql-image-selected {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Hapus latar belakang pemilihan biru di semua browser */
+.quill-editor-container .ql-editor img::selection {
+  background-color: transparent !important;
+}
+
+.quill-editor-container .ql-editor img::-moz-selection {
+  background-color: transparent !important;
+}
+
+/* Pastikan container itu sendiri tidak menampilkan warna seleksi saat gambar dipilih */
+.quill-editor-container .ql-editor img.ql-image-selected::selection,
+.quill-editor-container .ql-editor img.ql-image-selected::-moz-selection {
+  background-color: transparent !important;
+}

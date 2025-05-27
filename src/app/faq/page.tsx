@@ -1,3 +1,13 @@
+/**
+ * Halaman FAQ (Frequently Asked Questions)
+ * @module FAQPage
+ * @description Menampilkan halaman FAQ dengan fitur:
+ * - Daftar pertanyaan yang sering diajukan
+ * - Accordion untuk mempermudah navigasi
+ * - Tombol hubungi admin untuk pertanyaan lebih lanjut
+ * - Breadcrumb navigation
+ * - Loading states & error handling
+ */
 "use client";
 
 import {
@@ -6,85 +16,159 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-
-const faqs = [
-  {
-    question: "Apa itu Al-Qur'an custom cover dari Bymay?",
-    answer:
-      "Al-Qur'an custom cover dari Bymay adalah Al-Qur'an dengan desain sampul yang dapat disesuaikan sesuai keinginan Anda. Kami menawarkan berbagai pilihan desain, warna, dan bahan untuk membuat Al-Qur'an Anda menjadi unik dan bermakna. Setiap Al-Qur'an custom kami diproduksi dengan standar kualitas tinggi namun tetap dengan harga terjangkau di Surabaya dan sekitarnya.",
-  },
-  {
-    question: "Bagaimana cara memesan Al-Qur'an custom cover di website Bymay?",
-    answer:
-      "Untuk memesan Al-Qur'an custom cover di website Bymay, ikuti langkah-langkah berikut: 1) Pilih produk Al-Qur'an custom di halaman produk kami. 2) Klik 'Customisasi' dan pilih desain, warna, dan bahan yang Anda inginkan. 3) Tambahkan ke keranjang dan lanjutkan ke pembayaran. 4) Isi detail pengiriman dan pilih metode pembayaran. 5) Selesaikan pesanan dan tunggu konfirmasi dari tim kami. Kami akan mengirimkan proof desain untuk persetujuan Anda sebelum produksi dimulai.",
-  },
-  {
-    question: "Berapa lama waktu pengerjaan untuk Al-Qur'an custom cover?",
-    answer:
-      "Waktu pengerjaan Al-Qur'an custom cover kami biasanya memakan waktu 7-14 hari kerja, tergantung pada kompleksitas desain dan volume pesanan saat itu. Kami selalu berusaha untuk menyelesaikan pesanan secepat mungkin tanpa mengorbankan kualitas. Untuk pengiriman di area Surabaya, biasanya membutuhkan waktu tambahan 1-2 hari kerja.",
-  },
-  {
-    question: "Apakah Bymay menyediakan layanan pengiriman ke luar Surabaya?",
-    answer:
-      "Ya, Bymay menyediakan layanan pengiriman ke seluruh Indonesia. Meskipun kami berbasis di Surabaya dan menawarkan harga terjangkau untuk area ini, kami juga melayani pengiriman ke kota-kota lain dengan biaya tambahan sesuai jarak dan berat paket. Kami bekerja sama dengan beberapa jasa ekspedisi terpercaya untuk memastikan produk Anda sampai dengan aman dan tepat waktu.",
-  },
-  {
-    question:
-      "Apa saja jenis perlengkapan ibadah yang tersedia di Bymay selain Al-Qur'an?",
-    answer:
-      "Selain Al-Qur'an custom cover, Bymay menyediakan berbagai perlengkapan ibadah berkualitas dengan harga terjangkau, termasuk: 1) Sajadah premium dengan berbagai motif dan ukuran. 2) Tasbih dari berbagai bahan seperti kayu, batu, dan kristal. 3) Hampers Islami untuk berbagai kesempatan seperti Ramadhan, Hari Raya, pernikahan, dan aqiqah. 4) Buku-buku Islami dan alat bantu belajar mengaji. 5) Perlengkapan sholat lainnya seperti mukena dan peci. Semua produk kami dipilih dengan teliti untuk memastikan kualitas terbaik bagi pelanggan kami di Surabaya dan seluruh Indonesia.",
-  },
-  {
-    question: "Bagaimana cara merawat Al-Qur'an custom cover agar tetap awet?",
-    answer:
-      "Untuk merawat Al-Qur'an custom cover agar tetap awet, ikuti tips berikut: 1) Simpan di tempat yang sejuk dan kering, jauh dari sinar matahari langsung. 2) Gunakan tangan yang bersih saat memegang Al-Qur'an. 3) Hindari meletakkan benda berat di atasnya. 4) Bersihkan cover secara berkala dengan kain lembut yang sedikit dibasahi. 5) Gunakan pembatas buku yang tipis untuk menandai halaman. 6) Jika tidak digunakan, simpan dalam kotak atau sarung Al-Qur'an yang kami sediakan. Dengan perawatan yang baik, Al-Qur'an custom cover Anda akan tetap indah dan tahan lama.",
-  },
-  {
-    question:
-      "Apakah Bymay menerima pesanan dalam jumlah besar untuk acara atau lembaga?",
-    answer:
-      "Ya, Bymay menerima pesanan dalam jumlah besar untuk berbagai keperluan seperti acara pernikahan, aqiqah, corporate gift, atau lembaga pendidikan dan masjid. Kami menawarkan harga khusus yang lebih terjangkau untuk pemesanan dalam jumlah besar. Tim kami siap membantu Anda merancang Al-Qur'an custom cover atau perlengkapan ibadah lainnya sesuai dengan tema acara atau kebutuhan lembaga Anda. Hubungi kami untuk mendapatkan penawaran khusus dan konsultasi gratis.",
-  },
-  {
-    question: "Bagaimana kebijakan pengembalian dan garansi produk Bymay?",
-    answer:
-      "Bymay berkomitmen untuk memberikan produk berkualitas dan kepuasan pelanggan. Kebijakan kami meliputi: 1) Garansi 7 hari untuk cacat produksi pada semua produk. 2) Pengembalian dana penuh atau penggantian produk jika terjadi kesalahan dari pihak kami. 3) Untuk Al-Qur'an custom cover, kami akan mengirimkan proof desain sebelum produksi untuk memastikan kepuasan Anda. 4) Produk yang rusak dalam pengiriman akan kami ganti dengan yang baru. Syarat dan ketentuan berlaku, dan kami selalu berusaha untuk menyelesaikan setiap masalah dengan solusi terbaik bagi pelanggan kami di Surabaya dan seluruh Indonesia.",
-  },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import Footer from "@/components/landingpage/Footer";
+import { useFAQs } from "@/hooks/useFAQs";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Instagram } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 
 export default function FAQPage() {
+  // Gunakan hook SWR untuk FAQ, limit banyak karena FAQ biasanya tidak banyak
+  const { faqs, isLoading, error, mutate } = useFAQs({ limit: 50 });
+
+  if (isLoading) {
+    return (
+      <>
+        <main className="container px-4 py-8">
+          {/* Breadcrumb skeleton */}
+          <div className="flex items-center space-x-2 mb-6">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+          <Skeleton className="h-12 w-3/4 mx-auto mb-4" />
+          <Skeleton className="h-24 w-2/3 mx-auto mb-8" />
+          <div className="w-full max-w-3xl mx-auto space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ))}
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <main className="container px-4 py-8 text-center">
+          {/* Breadcrumb */}
+          <Breadcrumb className="mb-6 text-left">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/">Beranda</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>FAQ</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
+          <h1 className="text-4xl font-bold mb-4">
+            Pertanyaan yang Sering Diajukan (FAQ)
+          </h1>
+          <p className="text-red-500 mt-8 mb-4">{error.message}</p>
+          <Button onClick={() => mutate()} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" /> Coba Lagi
+          </Button>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   return (
-    <main className="container px-4 py-8">
-      <h1 className="text-4xl font-bold mb-4 text-center">
-        Pertanyaan yang Sering Diajukan (FAQ)
-      </h1>
-      <p className="text-gray-600 mb-8 text-center max-w-2xl mx-auto">
-        Temukan jawaban atas pertanyaan umum seputar produk Al-Qur'an custom
-        cover, perlengkapan ibadah, dan layanan Bymay. Kami berkomitmen untuk
-        memberikan informasi yang jelas dan membantu Anda mendapatkan produk
-        berkualitas dengan harga terjangkau di Surabaya dan seluruh Indonesia.
-      </p>
-
-      <Accordion type="single" collapsible className="w-full max-w-3xl mx-auto">
-        {faqs.map((faq, index) => (
-          <AccordionItem key={index} value={`item-${index}`}>
-            <AccordionTrigger>{faq.question}</AccordionTrigger>
-            <AccordionContent>{faq.answer}</AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-
-      <div className="mt-12 text-center">
-        <p className="text-gray-600 mb-4">
-          Masih punya pertanyaan? Jangan ragu untuk menghubungi kami.
+    <>
+      <main className="container px-4 py-8">
+        {/* Breadcrumb */}
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">Beranda</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>FAQ</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <h1 className="text-4xl font-bold mb-4 text-center">
+          Pertanyaan yang Sering Diajukan (FAQ)
+        </h1>
+        <p className="text-gray-600 mb-8 text-center max-w-2xl mx-auto">
+          Temukan jawaban atas pertanyaan umum seputar produk Al-Qur'an custom
+          cover, perlengkapan ibadah, dan layanan bymayscarf. Kami berkomitmen
+          untuk memberikan informasi yang jelas dan membantu Anda mendapatkan
+          produk berkualitas dengan harga termurah di Surabaya dan seluruh
+          Indonesia.
         </p>
-        <a
-          href="mailto:info@bymay.com"
-          className="text-blue-600 hover:underline"
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full max-w-3xl mx-auto"
         >
-          info@bymay.com
-        </a>
-      </div>
-    </main>
+          {faqs.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              Belum ada pertanyaan yang tersedia saat ini.
+            </p>
+          ) : (
+            faqs.map((faq) => (
+              <AccordionItem key={faq.id} value={faq.id}>
+                <AccordionTrigger>{faq.question}</AccordionTrigger>
+                <AccordionContent>{faq.answer}</AccordionContent>
+              </AccordionItem>
+            ))
+          )}
+        </Accordion>
+        <div className="mt-12 text-center">
+          <h2 className="text-2xl font-semibold mb-6">
+            Masih punya pertanyaan?
+          </h2>
+          <p className="text-gray-600 mb-8">
+            Jangan ragu untuk menghubungi kami melalui:
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="https://wa.me/6285161790424"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 bg-white text-green-600 rounded-lg shadow-md hover:shadow-lg transition-all border border-green-200 hover:border-green-300 w-full sm:w-auto justify-center"
+            >
+              <FaWhatsapp className="w-5 h-5" />
+              <span>Chat WhatsApp</span>
+            </a>
+            <a
+              href="https://instagram.com/by.mayofficial"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 bg-white text-pink-600 rounded-lg shadow-md hover:shadow-lg transition-all border border-pink-200 hover:border-pink-300 w-full sm:w-auto justify-center"
+            >
+              <Instagram className="w-5 h-5" />
+              <span>Follow Instagram</span>
+            </a>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </>
   );
 }

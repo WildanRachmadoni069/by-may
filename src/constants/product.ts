@@ -1,5 +1,5 @@
 export const SPECIAL_LABELS = [
-  { value: "", label: "Tidak Ada" },
+  { value: "none", label: "Tidak Ada" }, // Changed from empty string to "none"
   { value: "new", label: "Produk Baru" },
   { value: "best", label: "Best Seller" },
   { value: "sale", label: "Diskon" },

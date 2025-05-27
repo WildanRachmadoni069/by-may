@@ -1,108 +1,237 @@
 import Link from "next/link";
-import { Instagram, Mail, Phone } from "lucide-react";
+import { BsInstagram, BsWhatsapp, BsTiktok } from "react-icons/bs";
+import Image from "next/image";
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t">
-      <div className="container px-4 py-12 mx-auto">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          <div>
-            <h3 className="text-lg font-semibold mb-4">By May</h3>
-            <p className="text-gray-600 mb-4">
-              Spesialis Al-Qur'an custom cover dan perlengkapan ibadah
+    <footer
+      className="bg-background border-t border-border relative"
+      itemScope
+      itemType="https://schema.org/WPFooter"
+    >
+      <div className="container px-4 py-16 mx-auto">
+        <div className="grid grid-cols-1 gap-12 md:gap-16 md:grid-cols-4">
+          {/* Brand Column */}
+          <div
+            itemScope
+            itemType="https://schema.org/Organization"
+            className="md:pr-8"
+          >
+            <div className="mb-6">
+              <Link href="/" itemProp="url" className="inline-block">
+                <Image
+                  src="/img/Logo.webp"
+                  alt="bymayscarf"
+                  width={150}
+                  height={50}
+                  className="h-auto w-36"
+                  itemProp="logo"
+                  sizes="150px"
+                  quality={85}
+                />
+              </Link>
+            </div>
+            <p
+              className="text-muted-foreground/90 text-sm leading-relaxed"
+              itemProp="description"
+            >
+              Spesialis Al-Qur&apos;an custom cover dan perlengkapan ibadah
               berkualitas. Mewujudkan keindahan dalam beribadah dengan sentuhan
               personal.
             </p>
-            <div className="space-y-2">
+          </div>
+
+          {/* Contact Column */}
+          <div itemScope itemType="https://schema.org/ContactPoint">
+            <h3 className="text-lg font-medium mb-6">Kontak & Sosial Media</h3>
+            <div className="space-y-4">
               <a
-                href="tel:+6281234567890"
-                className="flex items-center text-gray-600 hover:text-primary"
-              >
-                <Phone className="w-4 h-4 mr-2" />
-                +62 812-3456-7890
-              </a>
-              <a
-                href="mailto:contact@bymayscarf.com"
-                className="flex items-center text-gray-600 hover:text-primary"
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                contact@bymayscarf.com
-              </a>
-              <a
-                href="https://instagram.com/bymayscarf"
+                href="https://wa.me/6285161790424"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center text-gray-600 hover:text-primary"
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors group"
+                itemProp="telephone"
               >
-                <Instagram className="w-4 h-4 mr-2" />
-                @bymayscarf
+                <span className="inline-flex items-center justify-center w-8 h-8 mr-3 rounded-full bg-background border border-border group-hover:border-primary group-hover:text-primary transition-colors">
+                  <BsWhatsapp className="w-4 h-4" />
+                </span>
+                +62 851-6179-0424
+              </a>
+              <a
+                href="https://www.instagram.com/by.mayofficial/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <span className="inline-flex items-center justify-center w-8 h-8 mr-3 rounded-full bg-background border border-border group-hover:border-primary group-hover:text-primary transition-colors">
+                  <BsInstagram className="w-4 h-4" />
+                </span>
+                @by.mayofficial
+              </a>
+              <a
+                href="https://www.tiktok.com/@by.mayofficial"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <span className="inline-flex items-center justify-center w-8 h-8 mr-3 rounded-full bg-background border border-border group-hover:border-primary group-hover:text-primary transition-colors">
+                  <BsTiktok className="w-4 h-4" />
+                </span>
+                @by.mayofficial
+              </a>
+            </div>
+            <h3 className="text-lg font-medium mb-6 mt-8">Marketplace</h3>
+            <div className="flex items-center gap-6">
+              <a
+                href="https://shopee.co.id/by.may"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block hover:opacity-75 transition-opacity"
+                title="by.may official di Shopee"
+              >
+                <Image
+                  src="/img/marketplace-logo/shopee.webp"
+                  alt="Shopee by.may official"
+                  width={32}
+                  height={32}
+                  className="h-8 w-auto"
+                  quality={85}
+                />
+              </a>
+              <a
+                href="https://www.tokopedia.com/by-mayscarf/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block hover:opacity-75 transition-opacity"
+                title="BY MAYSCARF di Tokopedia"
+              >
+                <Image
+                  src="/img/marketplace-logo/tokopedia.webp"
+                  alt="Tokopedia BY MAYSCARF"
+                  width={32}
+                  height={32}
+                  className="h-8 w-auto"
+                  quality={85}
+                />
+              </a>
+              <a
+                href="https://www.lazada.co.id/shop/by-may/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block hover:opacity-75 transition-opacity"
+                title="by.may di Lazada"
+              >
+                <Image
+                  src="/img/marketplace-logo/lazada.webp"
+                  alt="Lazada by.may"
+                  width={32}
+                  height={32}
+                  className="h-8 w-auto"
+                  quality={85}
+                />
               </a>
             </div>
           </div>
 
+          {/* Products Column */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Produk Kami</h3>
-            <nav className="space-y-2">
+            <h3 className="text-lg font-medium mb-6">Produk Kami</h3>
+            <nav
+              className="space-y-4"
+              itemScope
+              itemType="https://schema.org/SiteNavigationElement"
+            >
               <Link
-                href="/produk/al-quran-custom"
-                className="block text-gray-600 hover:text-primary"
+                href="/produk?category=Al-Quran"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
               >
-                Al-Qur'an Custom Cover
+                <span itemProp="name">Al-Qur&apos;an Custom Cover</span>
               </Link>
               <Link
-                href="/produk/sajadah-custom"
-                className="block text-gray-600 hover:text-primary"
+                href="/produk?category=Sajadah"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
               >
-                Sajadah Custom
+                <span itemProp="name">Sajadah Premium</span>
               </Link>
               <Link
-                href="/produk/tasbih"
-                className="block text-gray-600 hover:text-primary"
+                href="/produk?category=Tasbih"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
               >
-                Tasbih
+                <span itemProp="name">Tasbih</span>
               </Link>
               <Link
-                href="/produk/hampers"
-                className="block text-gray-600 hover:text-primary"
+                href="/produk?category=Hampers"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
               >
-                Hampers Islami
+                <span itemProp="name">Hampers Islami</span>
+              </Link>
+              <Link
+                href="/produk"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
+              >
+                <span itemProp="name">Semua Produk</span>
               </Link>
             </nav>
           </div>
 
+          {/* Information Column */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Informasi</h3>
-            <nav className="space-y-2">
+            <h3 className="text-lg font-medium mb-6">Informasi</h3>
+            <nav
+              className="space-y-4"
+              itemScope
+              itemType="https://schema.org/SiteNavigationElement"
+            >
               <Link
-                href="/cara-pesan"
-                className="block text-gray-600 hover:text-primary"
+                href="/tentang-kami"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
               >
-                Cara Pemesanan Custom
-              </Link>
-              <Link
-                href="/pengiriman"
-                className="block text-gray-600 hover:text-primary"
-              >
-                Informasi Pengiriman
+                <span itemProp="name">Tentang Kami</span>
               </Link>
               <Link
                 href="/faq"
-                className="block text-gray-600 hover:text-primary"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
               >
-                FAQ
+                <span itemProp="name">FAQ</span>
               </Link>
               <Link
-                href="/tentang"
-                className="block text-gray-600 hover:text-primary"
+                href="/artikel"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
               >
-                Tentang Kami
+                <span itemProp="name">Artikel</span>
+              </Link>
+              <Link
+                href="/keranjang"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
+              >
+                <span itemProp="name">Keranjang</span>
+              </Link>
+              <Link
+                href="/pesanan"
+                className="block text-muted-foreground hover:text-primary transition-colors"
+                itemProp="url"
+              >
+                <span itemProp="name">Pesanan Saya</span>
               </Link>
             </nav>
           </div>
         </div>
 
-        <div className="border-t mt-12 pt-8 text-center text-gray-600">
-          <p>&copy; {new Date().getFullYear()} By May. All rights reserved.</p>
+        {/* Copyright */}
+        <div className="border-t border-border mt-12 pt-8 text-center text-muted-foreground">
+          {" "}
+          <p>
+            &copy; {new Date().getFullYear()} bymayscarf. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

@@ -1,48 +1,177 @@
+/**
+ * Category Store
+ *
+ * Store Zustand untuk pengelolaan state category di sisi klien
+ */
+
 import { create } from "zustand";
-import { collection, query, onSnapshot, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
+import {
+  CategoryData,
+  CategoryCreateInput,
+  CategoryUpdateInput,
+} from "@/types/category";
+import {
+  createCategory,
+  deleteCategory,
+  getCategories,
+  updateCategory,
+} from "@/lib/api/categories";
 
-interface Category {
-  id: string;
-  name: string;
-  value: string;
-  label: string;
-}
-
+/**
+ * Interface untuk state category
+ */
 interface CategoryState {
-  categories: Category[];
+  /** Daftar kategori */
+  categories: CategoryData[];
+  /** Status loading */
   loading: boolean;
+  /** Pesan error */
   error: string | null;
-  fetchCategories: () => void;
+  /** State untuk kategori yang sedang dihapus (ID kategori: boolean) */
+  deletingCategories: Record<string, boolean>;
+
+  /** Mengambil daftar kategori */
+  fetchCategories: () => Promise<void>;
+  /** Membuat kategori baru */
+  createCategory: (data: CategoryCreateInput) => Promise<CategoryData>;
+  /** Memperbarui kategori */
+  updateCategory: (
+    id: string,
+    data: CategoryUpdateInput
+  ) => Promise<CategoryData>;
+  /** Menghapus kategori */
+  deleteCategory: (
+    id: string
+  ) => Promise<{ success: boolean; message?: string }>;
+  /** Mengatur status penghapusan kategori */
+  setDeletingCategory: (id: string, isDeleting: boolean) => void;
 }
 
-export const useCategoryStore = create<CategoryState>((set) => ({
+/**
+ * Zustand store untuk pengelolaan kategori
+ */
+export const useCategoryStore = create<CategoryState>((set, get) => ({
   categories: [],
   loading: false,
   error: null,
-  fetchCategories: () => {
-    set({ loading: true });
+  deletingCategories: {},
 
-    const q = query(collection(db, "categories"), orderBy("name", "asc"));
+  /**
+   * Mengambil data kategori dari API
+   */
+  fetchCategories: async () => {
+    try {
+      set({ loading: true, error: null });
+      const categories = await getCategories();
+      set({ categories, loading: false });
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error ? error.message : "Gagal mengambil kategori",
+        loading: false,
+      });
+    }
+  },
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const categoriesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          name: doc.data().name,
-          value: doc.id, // For select component
-          label: doc.data().name, // For select component
+  /**
+   * Membuat kategori baru
+   * @param data Data kategori yang akan dibuat
+   * @returns Kategori yang dibuat
+   */
+  createCategory: async (data: CategoryCreateInput) => {
+    try {
+      set({ loading: true, error: null });
+      const newCategory = await createCategory(data);
+      set((state) => ({
+        categories: [...state.categories, newCategory],
+        loading: false,
+      }));
+      return newCategory;
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error ? error.message : "Gagal membuat kategori",
+        loading: false,
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * Memperbarui kategori yang sudah ada
+   * @param id ID kategori yang akan diperbarui
+   * @param data Data kategori yang diperbarui
+   * @returns Kategori yang diperbarui
+   */
+  updateCategory: async (id: string, data: CategoryUpdateInput) => {
+    try {
+      set({ loading: true, error: null });
+      const updatedCategory = await updateCategory(id, data);
+      set((state) => ({
+        categories: state.categories.map((category) =>
+          category.id === id ? updatedCategory : category
+        ),
+        loading: false,
+      }));
+      return updatedCategory;
+    } catch (error) {
+      set({
+        error:
+          error instanceof Error ? error.message : "Gagal memperbarui kategori",
+        loading: false,
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * Menghapus kategori
+   * @param id ID kategori yang akan dihapus
+   * @returns Status keberhasilan dan pesan
+   */
+  deleteCategory: async (id: string) => {
+    try {
+      set((state) => ({
+        deletingCategories: { ...state.deletingCategories, [id]: true },
+      }));
+
+      const result = await deleteCategory(id);
+
+      if (result.success) {
+        set((state) => ({
+          categories: state.categories.filter((category) => category.id !== id),
+          deletingCategories: { ...state.deletingCategories, [id]: false },
         }));
-        set({ categories: categoriesData, loading: false, error: null });
-      },
-      (error) => {
-        console.error("Error fetching categories:", error);
-        set({ error: "Failed to fetch categories", loading: false });
+      } else {
+        set((state) => ({
+          error: result.message || "Gagal menghapus kategori",
+          deletingCategories: { ...state.deletingCategories, [id]: false },
+        }));
       }
-    );
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+      return result;
+    } catch (error) {
+      set((state) => ({
+        error:
+          error instanceof Error ? error.message : "Gagal menghapus kategori",
+        deletingCategories: { ...state.deletingCategories, [id]: false },
+      }));
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Gagal menghapus kategori",
+      };
+    }
+  },
+
+  /**
+   * Mengatur status penghapusan kategori
+   * @param id ID kategori
+   * @param isDeleting Status penghapusan
+   */
+  setDeletingCategory: (id, isDeleting) => {
+    set((state) => ({
+      deletingCategories: { ...state.deletingCategories, [id]: isDeleting },
+    }));
   },
 }));

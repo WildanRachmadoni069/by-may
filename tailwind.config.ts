@@ -10,21 +10,90 @@ export default {
   theme: {
     extend: {
       fontSize: {
-        // Base sizes (mobile)
-        "h1-mobile": ["2rem", { lineHeight: "1.2", fontWeight: "700" }], // 32px
-        "h2-mobile": ["1.75rem", { lineHeight: "1.3", fontWeight: "600" }], // 28px
-        "h3-mobile": ["1.5rem", { lineHeight: "1.4", fontWeight: "600" }], // 24px
-        "h4-mobile": ["1.25rem", { lineHeight: "1.4", fontWeight: "600" }], // 20px
-        "h5-mobile": ["1.125rem", { lineHeight: "1.5", fontWeight: "600" }], // 18px
-        "h6-mobile": ["1rem", { lineHeight: "1.5", fontWeight: "600" }], // 16px
-
-        // Desktop sizes
-        h1: ["2.5rem", { lineHeight: "1.2", fontWeight: "700" }], // 40px
-        h2: ["2rem", { lineHeight: "1.3", fontWeight: "600" }], // 32px
-        h3: ["1.75rem", { lineHeight: "1.4", fontWeight: "600" }], // 28px
-        h4: ["1.5rem", { lineHeight: "1.4", fontWeight: "600" }], // 24px
-        h5: ["1.25rem", { lineHeight: "1.5", fontWeight: "600" }], // 20px
-        h6: ["1.125rem", { lineHeight: "1.5", fontWeight: "600" }], // 18px
+        "h1-mobile": [
+          "2rem",
+          {
+            lineHeight: "1.2",
+            fontWeight: "700",
+          },
+        ],
+        "h2-mobile": [
+          "1.75rem",
+          {
+            lineHeight: "1.3",
+            fontWeight: "600",
+          },
+        ],
+        "h3-mobile": [
+          "1.5rem",
+          {
+            lineHeight: "1.4",
+            fontWeight: "600",
+          },
+        ],
+        "h4-mobile": [
+          "1.25rem",
+          {
+            lineHeight: "1.4",
+            fontWeight: "600",
+          },
+        ],
+        "h5-mobile": [
+          "1.125rem",
+          {
+            lineHeight: "1.5",
+            fontWeight: "600",
+          },
+        ],
+        "h6-mobile": [
+          "1rem",
+          {
+            lineHeight: "1.5",
+            fontWeight: "600",
+          },
+        ],
+        h1: [
+          "2.5rem",
+          {
+            lineHeight: "1.2",
+            fontWeight: "700",
+          },
+        ],
+        h2: [
+          "2rem",
+          {
+            lineHeight: "1.3",
+            fontWeight: "600",
+          },
+        ],
+        h3: [
+          "1.75rem",
+          {
+            lineHeight: "1.4",
+            fontWeight: "600",
+          },
+        ],
+        h4: [
+          "1.5rem",
+          {
+            lineHeight: "1.4",
+            fontWeight: "600",
+          },
+        ],
+        h5: [
+          "1.25rem",
+          {
+            lineHeight: "1.5",
+            fontWeight: "600",
+          },
+        ],
+        h6: [
+          "1.125rem",
+          {
+            lineHeight: "1.5",
+            fontWeight: "600",
+          },
+        ],
       },
       container: {
         center: true,
@@ -103,10 +172,48 @@ export default {
             height: "0",
           },
         },
+        float: {
+          "0%, 100%": {
+            transform: "translateY(0)",
+          },
+          "50%": {
+            transform: "translateY(-10px)",
+          },
+        },
+        ping: {
+          "0%": {
+            transform: "scale(1)",
+            opacity: "1",
+          },
+          "75%, 100%": {
+            transform: "scale(2)",
+            opacity: "0",
+          },
+        },
+        bounce: {
+          "0%, 100%": {
+            transform: "translateY(0)",
+          },
+          "50%": {
+            transform: "translateY(-25%)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "ping-slow": "ping 3s cubic-bezier(0, 0, 0.2, 1) infinite",
+        "ping-slower": "ping 4s cubic-bezier(0, 0, 0.2, 1) infinite",
+        float: "float 3s ease-in-out infinite",
+        "bounce-staggered-1": "bounce 1s ease infinite 0.1s",
+        "bounce-staggered-2": "bounce 1s ease infinite 0.2s",
+        "bounce-staggered-3": "bounce 1s ease infinite 0.3s",
+        "bounce-staggered-4": "bounce 1s ease infinite 0.4s",
+        "bounce-staggered-5": "bounce 1s ease infinite 0.5s",
+        "bounce-staggered-6": "bounce 1s ease infinite 0.6s",
+        "bounce-staggered-7": "bounce 1s ease infinite 0.7s",
+        "bounce-staggered-8": "bounce 1s ease infinite 0.8s",
+        "bounce-staggered-9": "bounce 1s ease infinite 0.9s",
       },
     },
   },

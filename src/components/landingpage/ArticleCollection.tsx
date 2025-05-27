@@ -1,97 +1,111 @@
 "use client";
 
 import { ArticleCard } from "@/components/general/ArticleCard";
+import { ArticleEmptyState } from "@/components/article/ArticleEmptyState";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
-import type { ArticleData } from "@/types/article";
-
-function formatFirebaseTimestamp(timestamp: any) {
-  if (!timestamp) return null;
-  if (typeof timestamp === "string") return timestamp;
-  if (timestamp.seconds) {
-    return new Date(timestamp.seconds * 1000).toISOString();
-  }
-  return null;
-}
+import { useArticles } from "@/hooks/useArticles";
 
 export default function ArticleCollection() {
-  const [articles, setArticles] = useState<ArticleData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchArticles = async () => {
-      try {
-        const articlesRef = collection(db, "articles");
-        const q = query(
-          articlesRef,
-          where("status", "==", "published"),
-          orderBy("created_at", "desc"),
-          limit(3)
-        );
-
-        const snapshot = await getDocs(q);
-        const articlesData = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          created_at: formatFirebaseTimestamp(doc.data().created_at),
-          updated_at: formatFirebaseTimestamp(doc.data().updated_at),
-        })) as ArticleData[];
-
-        setArticles(articlesData);
-      } catch (error) {
-        console.error("Error fetching articles:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchArticles();
-  }, []);
-
+  // Use SWR hook to fetch articles
+  const {
+    data: articles,
+    isLoading,
+    error,
+  } = useArticles(
+    {
+      status: "published",
+      limit: 3,
+      sort: "desc", // Show newest first
+    },
+    {
+      // Disable automatic revalidation for better performance
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+    }
+  ); // Show loading state
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="py-6 bg-gray-50">
+        <div className="container px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mx-auto text-center mb-6">
+            <h2 className="text-3xl font-bold mb-3">Artikel Terbaru</h2>
+            <p className="text-gray-600">Memuat artikel...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // Show error state
+  if (error) {
+    return (
+      <div className="py-6 bg-gray-50">
+        <div className="container px-4 sm:px-6 lg:px-8">
+          <div className="max-w-2xl mx-auto text-center mb-6">
+            <h2 className="text-3xl font-bold mb-4">Artikel Terbaru</h2>
+            <p className="text-red-500">Gagal memuat artikel</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
+  // If there are no articles, show the empty state
   if (articles.length === 0) {
-    return null;
+    return <ArticleEmptyState showHomeButton={false} />;
   }
-
   return (
-    <section className="py-16 bg-gray-50">
+    <section
+      className="py-6 bg-gray-50"
+      aria-labelledby="latest-articles"
+      itemScope
+      itemType="https://schema.org/Collection"
+    >
+      {" "}
       <div className="container px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Artikel Terbaru</h2>
-          <p className="text-gray-600">
+        <div className="max-w-2xl mx-auto text-center mb-6">
+          <h2
+            id="latest-articles"
+            className="text-3xl font-bold mb-4"
+            itemProp="name"
+          >
+            Artikel Terbaru
+          </h2>
+          <p className="text-gray-600" itemProp="description">
             Jelajahi artikel-artikel inspiratif seputar Al-Qur'an dan kehidupan
             islami
           </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
-          {articles.map((article) => (
-            <ArticleCard
+        </div>{" "}
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-6"
+          itemProp="hasPart"
+          itemScope
+          itemType="https://schema.org/ItemList"
+        >
+          {articles.map((article, index) => (
+            <div
               key={article.id}
-              title={article.title}
-              excerpt={article.excerpt}
-              slug={article.slug}
-              featured_image={article.featured_image}
-              created_at={article.created_at || undefined}
-            />
+              itemProp="itemListElement"
+              itemScope
+              itemType="https://schema.org/ListItem"
+            >
+              <meta itemProp="position" content={`${index + 1}`} />
+              <ArticleCard
+                title={article.title}
+                excerpt={article.excerpt || ""}
+                slug={article.slug}
+                featuredImage={article.featuredImage || { url: "", alt: "" }}
+                createdAt={
+                  article.publishedAt?.toString() ||
+                  article.createdAt?.toString() ||
+                  ""
+                }
+              />
+            </div>
           ))}
         </div>
-
         <div className="text-center">
-          <Link href="/artikel">
+          <Link href="/artikel" aria-label="Lihat semua artikel blog">
             <Button variant="outline" size="lg">
               Lihat Semua Artikel
             </Button>

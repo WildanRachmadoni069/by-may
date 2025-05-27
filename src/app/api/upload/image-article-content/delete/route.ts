@@ -1,3 +1,7 @@
+/**
+ * API route untuk menghapus gambar konten artikel dari Cloudinary
+ * Digunakan oleh editor rich text ketika gambar dihapus dari konten
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -14,23 +18,26 @@ export async function POST(req: NextRequest) {
 
     if (!publicId) {
       return NextResponse.json(
-        { error: "Public ID is required" },
+        { error: "Public ID diperlukan" },
         { status: 400 }
       );
     }
 
-    // Delete the image from Cloudinary
     const result = await cloudinary.uploader.destroy(publicId);
 
     if (result.result === "ok") {
-      return NextResponse.json({ message: "Image deleted successfully" });
+      return NextResponse.json({
+        message: "Gambar berhasil dihapus",
+      });
     } else {
-      throw new Error("Failed to delete image");
+      return NextResponse.json(
+        { error: "Gagal menghapus gambar" },
+        { status: 500 }
+      );
     }
   } catch (error) {
-    console.error("Delete error:", error);
     return NextResponse.json(
-      { error: "Error deleting image" },
+      { error: "Kesalahan menghapus gambar" },
       { status: 500 }
     );
   }

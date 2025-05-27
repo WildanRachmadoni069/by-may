@@ -1,57 +1,55 @@
-import type { Metadata, ResolvingMetadata } from "next";
-import { getArticleBySlug } from "@/lib/article";
+/**
+ * Layout Detail Artikel
+ * @description Layout untuk halaman detail artikel yang menangani metadata dasar
+ * dan struktur umum halaman detail artikel
+ */
+import { Metadata } from "next";
 
-type Props = {
-  params: Promise<{ slug: string }>;
-  children: React.ReactNode;
+/**
+ * Metadata dasar untuk template artikel
+ */
+export const metadata: Metadata = {
+  title: {
+    template: "%s | By May Scarf",
+    default: "Artikel | By May Scarf",
+  },
+  description: "Artikel islami dan inspiratif dari By May Scarf",
+  alternates: {
+    canonical: `${
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop"
+    }/artikel`,
+  },
+  openGraph: {
+    type: "article",
+    siteName: "By May Scarf",
+    locale: "id_ID",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@by.mayofficial",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 };
 
-export async function generateMetadata(
-  { params }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
-  try {
-    // Read route params
-    const getParams = await params;
-    const { slug } = getParams;
-
-    // Fetch article data
-    const article = await getArticleBySlug(slug);
-
-    if (!article) {
-      return {
-        title: "Article Not Found",
-      };
-    }
-
-    // Optionally access and extend parent metadata
-    const previousImages = (await parent).openGraph?.images || [];
-
-    return {
-      title: article.meta.title,
-      description: article.meta.description,
-      openGraph: {
-        title: article.meta.title,
-        description: article.meta.description,
-        images: [
-          {
-            url: article.meta.og_image || article.featured_image.url,
-            width: 1200,
-            height: 630,
-            alt: article.title,
-          },
-          ...previousImages,
-        ],
-      },
-    };
-  } catch (error) {
-    console.error("Error generating metadata:", error);
-    return {
-      title: "Error Loading Article",
-    };
-  }
+/**
+ * Komponen layout untuk halaman detail artikel
+ * @param {Object} props - Props komponen
+ * @param {React.ReactNode} props.children - Konten halaman yang akan di-render
+ * @returns {JSX.Element} Layout halaman detail artikel
+ */
+// Props untuk layout dengan Promise-based params sesuai Next.js 15
+interface Props {
+  children: React.ReactNode;
+  params: Promise<{ slug: string }>;
 }
 
-export default function ArticleLayout({ children }: Props) {
+export default function ArticleDetailLayout({ children, params }: Props) {
   return <>{children}</>;
 }

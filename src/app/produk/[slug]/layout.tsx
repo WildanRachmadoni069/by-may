@@ -1,68 +1,147 @@
+/**
+ * Layout Halaman Detail Produk
+ * @module ProductDetailLayout
+ * @description Layout untuk halaman detail produk dengan:
+ * - Dynamic metadata berdasarkan data produk
+ * - Schema.org Product markup
+ * - OpenGraph dan Twitter Cards
+ * - Title, meta description dan canonical URL
+ */
 import React from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase/firebaseConfig";
 import { Metadata } from "next";
+import { ProductService } from "@/lib/services/product-service";
+import { createExcerptFromHtml } from "@/lib/utils";
 
+// Props untuk layout dengan Promise-based params sesuai Next.js 15
 interface Props {
   children: React.ReactNode;
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+// Define a proper type for the meta object to fix property access errors
+interface ProductMeta {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const q = query(collection(db, "products"), where("slug", "==", slug));
-    const querySnapshot = await getDocs(q);
+    const product = await ProductService.getProductBySlug(slug);
 
-    if (!querySnapshot.empty) {
-      const product = querySnapshot.docs[0].data();
-      const seo = product.seo || {};
-
+    if (!product) {
       return {
-        title: seo.title || product.name,
-        description:
-          seo.description ||
-          product.description?.replace(/<[^>]*>/g, "").slice(0, 160),
-        keywords: seo.keywords || [],
-        openGraph: {
-          title: seo.title || product.name,
-          description:
-            seo.description ||
-            product.description?.replace(/<[^>]*>/g, "").slice(0, 160),
-          type: "website",
-          images: product.mainImage
-            ? [
-                {
-                  url: product.mainImage,
-                  width: 1200,
-                  height: 630,
-                  alt: product.name,
-                },
-              ]
-            : [],
-        },
+        title: "Produk Tidak Ditemukan",
+        description: "Produk yang Anda cari tidak dapat ditemukan.",
       };
     }
 
+    const meta = (product.meta as ProductMeta) || {};
+    const description =
+      meta.description || createExcerptFromHtml(product.description || "");
+    const title = meta.title || product.name;
+    const ogImage = meta.ogImage || product.featuredImage?.url;
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
+    const canonicalUrl = `${baseUrl}/produk/${slug}`;
+
+    // Get min and max prices for price range
+    const prices = product.priceVariants.map((v) => v.price);
+    const minPrice = Math.min(
+      ...(prices.length ? prices : [product.basePrice || 0])
+    );
+    const maxPrice = Math.max(
+      ...(prices.length ? prices : [product.basePrice || 0])
+    );
+
+    // Create JSON-LD structured data
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      description: description,
+      image: product.featuredImage?.url || [],
+      sku: product.id,
+      category: product.category?.name || "Al-Quran Custom Cover",
+      brand: {
+        "@type": "Brand",
+        name: "bymayscarf",
+      },
+      offers: {
+        "@type": "AggregateOffer",
+        priceCurrency: "IDR",
+        lowPrice: minPrice,
+        highPrice: maxPrice,
+        offerCount: product.priceVariants.length || 1,
+        availability:
+          product.baseStock || product.priceVariants.some((v) => v.stock > 0)
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+      },
+    };
+    const keywordList = [product.name, "bymayscarf", "Al-Quran Custom Cover"];
+
+    if (product.category?.name) {
+      keywordList.push(product.category.name);
+    }
+
     return {
-      title: "Product Not Found",
-      description: "The requested product could not be found.",
+      title: `${title} | bymayscarf`,
+      description: description,
+      keywords: keywordList,
+      alternates: {
+        canonical: canonicalUrl,
+      },
+      robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+        },
+      },
+      openGraph: {
+        title: title,
+        description: description,
+        type: "website",
+        url: canonicalUrl,
+        images: ogImage
+          ? [
+              {
+                url: ogImage,
+                width: 1200,
+                height: 630,
+                alt: product.name,
+              },
+            ]
+          : [],
+      },
+      other: {
+        "og:product:availability":
+          product.baseStock || product.priceVariants.some((v) => v.stock > 0)
+            ? "instock"
+            : "out of stock",
+        "og:product:price:amount": minPrice.toString(),
+        "og:product:price:currency": "IDR",
+        "script:ld+json": JSON.stringify(structuredData),
+      },
     };
   } catch (error) {
     console.error("Error generating metadata:", error);
     return {
       title: "Error",
-      description: "There was an error loading the product.",
+      description: "Terjadi kesalahan saat memuat produk.",
     };
   }
 }
 
 function ProductDetailLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <main>{children}</main>
-    </>
-  );
+  return <>{children}</>;
 }
 
 export default ProductDetailLayout;

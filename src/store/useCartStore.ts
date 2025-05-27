@@ -1,121 +1,205 @@
 import { create } from "zustand";
-import { CartItem, CartStore, CartData } from "@/types/cart";
-import { getCart, updateCart, clearCart } from "@/lib/firebase/cart";
+import { persist } from "zustand/middleware";
+import {
+  CartItem,
+  CartSummary,
+  AddToCartInput,
+  UpdateCartItemInput,
+} from "@/types/cart";
+import { calculateCartSummary } from "@/utils/cart";
+import {
+  getCart,
+  addToCart,
+  updateCartItem,
+  removeFromCart,
+} from "@/lib/api/cart";
+import useAuthStore from "@/store/useAuthStore";
 
-export const useCartStore = create<CartStore>()((set, get) => ({
-  items: [],
-  loading: false,
-  error: null,
+interface CartState {
+  // State
+  items: CartItem[];
+  isLoading: boolean;
+  isInitialized: boolean;
+  error: string | null;
+  summary: CartSummary;
 
-  initializeCart: async () => {
-    set({ loading: true });
-    try {
-      const cart = await getCart();
-      set({ items: cart.items || [], error: null });
-    } catch (error) {
-      set({ error: "Failed to fetch cart" });
-      console.error("Error fetching cart:", error);
-    } finally {
-      set({ loading: false });
-    }
-  },
+  // Actions
+  fetchCart: () => Promise<void>;
+  addItem: (item: AddToCartInput) => Promise<CartItem>;
+  updateItemQuantity: (input: UpdateCartItemInput) => Promise<CartItem>;
+  removeItem: (id: string) => Promise<void>;
+  clearCart: () => void;
+  clearError: () => void;
+  setInitialized: (value: boolean) => void;
+}
 
-  addItem: async (newItem: CartItem) => {
-    set({ loading: true });
-    try {
-      const { items } = get();
-      const existingItemIndex = items.findIndex(
-        (item) =>
-          item.productId === newItem.productId &&
-          item.variationKey === newItem.variationKey
-      );
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      items: [],
+      isLoading: false,
+      isInitialized: false,
+      error: null,
+      summary: { totalItems: 0, totalAmount: 0 },
 
-      let updatedItems: CartItem[];
-      if (existingItemIndex > -1) {
-        updatedItems = [...items];
-        updatedItems[existingItemIndex].quantity += newItem.quantity;
-      } else {
-        updatedItems = [...items, newItem];
-      }
+      // Actions
+      fetchCart: async () => {
+        // Get current auth state
+        const user = useAuthStore.getState().currentUser;
 
-      await updateCart(updatedItems);
-      set({ items: updatedItems, error: null });
-    } catch (error) {
-      set({ error: "Failed to add item" });
-      throw error;
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  removeItem: async (productId: string, variationKey?: string) => {
-    set({ loading: true });
-    try {
-      const { items } = get();
-      const updatedItems = items.filter(
-        (item) =>
-          !(
-            item.productId === productId &&
-            (!variationKey || item.variationKey === variationKey)
-          )
-      );
-      await updateCart(updatedItems);
-      set({ items: updatedItems, error: null });
-    } catch (error) {
-      set({ error: "Failed to remove item" });
-      console.error("Error removing item:", error);
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  updateQuantity: async (
-    productId: string,
-    quantity: number,
-    variationKey?: string
-  ) => {
-    set({ loading: true });
-    try {
-      const { items } = get();
-      const updatedItems = items.map((item) => {
-        if (
-          item.productId === productId &&
-          (!variationKey || item.variationKey === variationKey)
-        ) {
-          return { ...item, quantity };
+        // Skip fetching if not logged in
+        if (!user) {
+          set({ isInitialized: true });
+          return;
         }
-        return item;
-      });
-      await updateCart(updatedItems);
-      set({ items: updatedItems, error: null });
-    } catch (error) {
-      set({ error: "Failed to update quantity" });
-      console.error("Error updating quantity:", error);
-    } finally {
-      set({ loading: false });
+
+        try {
+          set({ isLoading: true, error: null });
+          const items = await getCart();
+          const summary = calculateCartSummary(items);
+          set({ items, summary, isLoading: false, isInitialized: true });
+        } catch (error) {
+          console.error("Failed to fetch cart:", error);
+          set({
+            error:
+              error instanceof Error ? error.message : "Failed to fetch cart",
+            isLoading: false,
+            isInitialized: true,
+          });
+        }
+      },
+
+      addItem: async (item) => {
+        // Check auth state
+        const user = useAuthStore.getState().currentUser;
+
+        // Ensure user is logged in
+        if (!user) {
+          throw new Error("User must be logged in to add items to cart");
+        }
+
+        try {
+          set({ isLoading: true, error: null });
+          const newItem = await addToCart(item);
+
+          // Update the items and calculate new summary
+          const updatedItems = [...get().items];
+
+          // Check if the item already exists by productId and priceVariantId
+          const existingItemIndex = updatedItems.findIndex(
+            (i) =>
+              i.productId === item.productId &&
+              i.priceVariantId === item.priceVariantId
+          );
+
+          if (existingItemIndex >= 0) {
+            // Update existing item
+            updatedItems[existingItemIndex] = newItem;
+          } else {
+            // Add new item
+            updatedItems.push(newItem);
+          }
+
+          const summary = calculateCartSummary(updatedItems);
+          set({ items: updatedItems, summary, isLoading: false });
+
+          return newItem;
+        } catch (error) {
+          console.error("Failed to add item to cart:", error);
+          set({
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to add item to cart",
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      updateItemQuantity: async (input) => {
+        // Check auth state
+        const user = useAuthStore.getState().currentUser;
+
+        // Ensure user is logged in
+        if (!user) {
+          throw new Error("User must be logged in to update cart");
+        }
+
+        try {
+          set({ isLoading: true, error: null });
+          const updatedItem = await updateCartItem(input);
+
+          // Update the items and calculate new summary
+          const updatedItems = get().items.map((item) =>
+            item.id === input.id ? updatedItem : item
+          );
+
+          const summary = calculateCartSummary(updatedItems);
+          set({ items: updatedItems, summary, isLoading: false });
+
+          return updatedItem;
+        } catch (error) {
+          console.error("Failed to update item quantity:", error);
+          set({
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to update item quantity",
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      removeItem: async (id) => {
+        // Check auth state
+        const user = useAuthStore.getState().currentUser;
+
+        // Ensure user is logged in
+        if (!user) {
+          throw new Error("User must be logged in to remove items from cart");
+        }
+
+        try {
+          set({ isLoading: true, error: null });
+          await removeFromCart(id);
+
+          // Remove item from state and calculate new summary
+          const updatedItems = get().items.filter((item) => item.id !== id);
+          const summary = calculateCartSummary(updatedItems);
+          set({ items: updatedItems, summary, isLoading: false });
+        } catch (error) {
+          console.error("Failed to remove item from cart:", error);
+          set({
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to remove item from cart",
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
+      clearCart: () => {
+        set({
+          items: [],
+          summary: { totalItems: 0, totalAmount: 0 },
+        });
+      },
+
+      clearError: () => set({ error: null }),
+
+      setInitialized: (value) => set({ isInitialized: value }),
+    }),
+    {
+      name: "cart-storage",
+      partialize: (state) => ({
+        items: state.items,
+        summary: state.summary,
+      }),
     }
-  },
-
-  clearCart: async () => {
-    set({ loading: true });
-    try {
-      await clearCart();
-      set({ items: [], error: null });
-    } catch (error) {
-      set({ error: "Failed to clear cart" });
-      console.error("Error clearing cart:", error);
-    } finally {
-      set({ loading: false });
-    }
-  },
-
-  getTotalItems: () => {
-    const { items } = get();
-    return items.reduce((total, item) => total + item.quantity, 0);
-  },
-
-  getTotalPrice: () => {
-    const { items } = get();
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
-  },
-}));
+  )
+);

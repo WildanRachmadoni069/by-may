@@ -1,3 +1,7 @@
+/**
+ * API route untuk mengupload gambar konten artikel ke Cloudinary
+ * Digunakan oleh editor rich text untuk menyisipkan gambar
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -19,9 +23,10 @@ export async function POST(req: NextRequest) {
       cloudinary.uploader
         .upload_stream(
           {
-            folder: "article-content", // Folder khusus untuk konten
+            folder: "article-content", // Folder tetap article-content
             tags: ["article-content"],
-            upload_preset: "article_preset", // Preset khusus untuk konten
+            upload_preset: "article_preset", // Preset yang sama untuk konsistensi
+            resource_type: "image",
           },
           function (error, result) {
             if (error) {
@@ -38,7 +43,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Error uploading content image" },
+      { error: "Error mengupload gambar konten" },
       { status: 500 }
     );
   }

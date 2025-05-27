@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -14,1082 +12,1096 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import ImageUploadPreview from "./ImageUploadPreview";
-import { Plus, X } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
 import {
-  ProductFormValues,
-  ProductOption,
-  ProductVariation,
-  VariationCombination,
-  VariationFormData,
-  VariationFormOption,
-} from "@/types/product";
-import { SPECIAL_LABELS } from "@/constants/product";
-import { VariationCard } from "./VariationCard";
-import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import { useCategoryStore } from "@/store/useCategoryStore";
-import { useProductStore } from "@/store/useProductStore";
-import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import LabelWithTooltip from "@/components/general/LabelWithTooltip";
-import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
+import ImageUploadPreview from "@/components/admin/product/ImageUploadPreview";
+import QuillEditor from "@/components/editor/DynamicQuillEditor";
+import { SPECIAL_LABELS } from "@/constants/product";
+import { slugify, createExcerptFromHtml } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+import { Product, CreateProductInput, ProductVariation } from "@/types/product";
+import { useCategoryStore } from "@/store/useCategoryStore";
 import { useCollectionStore } from "@/store/useCollectionStore";
-import ProductDescriptionEditor from "@/components/editor/ProductDescriptionEditor";
-import { generateMeaningfulId } from "@/lib/utils";
-import { VariationManager } from "./VariationManager";
-import { PriceStockGrid } from "./PriceStockGrid";
+import ProductVariationSection from "@/components/admin/product/ProductVariationSection";
+import {
+  PriceVariantItem,
+  useProductVariationStore,
+  Variation,
+} from "@/store/useProductVariationStore";
+import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
+import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
+import { useRouter } from "next/navigation";
+import { CloudinaryService } from "@/lib/services/cloudinary-service";
+import { useSWRConfig } from "swr"; // Add SWR config
 
 interface ProductFormProps {
-  productId?: string;
-  initialData?: ProductFormValues & { id: string };
+  initialValues?: Partial<Product>;
+  onSubmit: (values: CreateProductInput) => Promise<void>;
+  isSubmitting?: boolean;
 }
 
-const ProductSchema = Yup.object().shape({
-  name: Yup.string().required("Nama produk wajib diisi"),
-  slug: Yup.string().required("Slug wajib diisi"),
-  description: Yup.string().required("Deskripsi produk wajib diisi"),
-  category: Yup.string().required("Kategori wajib dipilih"),
-  specialLabel: Yup.string(),
-  mainImage: Yup.string().nullable(),
-  additionalImages: Yup.array().of(Yup.string().nullable()),
-  hasVariations: Yup.boolean(),
-  basePrice: Yup.number().when("hasVariations", (hasVariations, schema) =>
-    hasVariations
-      ? schema
-      : schema.required("Harga wajib diisi").positive("Harga harus positif")
-  ),
-  baseStock: Yup.number().when("hasVariations", (hasVariations, schema) =>
-    hasVariations
-      ? schema
-      : schema.required("Stok wajib diisi").min(0, "Stok tidak boleh negatif")
-  ),
-  variations: Yup.array().of(
-    Yup.object().shape({
-      name: Yup.string().required("Nama variasi wajib diisi"),
-      options: Yup.array()
-        .of(
-          Yup.object().shape({
-            name: Yup.string().required("Nama opsi wajib diisi"),
-          })
-        )
-        .min(1, "Minimal satu opsi harus diisi"),
-    })
-  ),
-  variationPrices: Yup.object(),
-  weight: Yup.number()
-    .required("Berat produk wajib diisi")
-    .positive("Berat harus positif"),
-  dimensions: Yup.object().shape({
-    width: Yup.number()
-      .required("Lebar wajib diisi")
-      .positive("Lebar harus positif"),
-    length: Yup.number()
-      .required("Panjang wajib diisi")
-      .positive("Panjang harus positif"),
-    height: Yup.number()
-      .required("Tinggi wajib diisi")
-      .positive("Tinggi harus positif"),
-  }),
-  seo: Yup.object().shape({
-    title: Yup.string().required("Meta title wajib diisi"),
-    description: Yup.string().required("Meta description wajib diisi"),
-    keywords: Yup.array().of(Yup.string()),
-  }),
-  collection: Yup.string(),
-});
-
-const initialValues: ProductFormValues = {
-  name: "",
-  nameSearch: "",
-  slug: "", // Add initial value for slug
-  description: "",
-  category: "",
-  specialLabel: "",
-  mainImage: null,
-  additionalImages: Array(8).fill(null),
-  hasVariations: false,
-  basePrice: undefined,
-  baseStock: undefined,
-  variations: [],
-  variationPrices: {},
-  weight: 0,
-  dimensions: { width: 0, length: 0, height: 0 },
-  seo: {
-    title: "",
-    description: "",
-    keywords: [],
-  },
-  collection: "none", // Change default value from undefined/empty to "none"
-};
-
-export function ProductForm({ productId, initialData }: ProductFormProps) {
+const ProductForm: React.FC<ProductFormProps> = ({
+  initialValues,
+  onSubmit,
+  isSubmitting = false,
+}) => {
   const { toast } = useToast();
-  const router = useRouter();
-  const {
-    categories,
-    loading: categoriesLoading,
-    fetchCategories,
-  } = useCategoryStore();
-  const { addProduct, editProduct } = useProductStore();
-  const {
-    collections,
-    loading: collectionsLoading,
-    fetchCollections,
-  } = useCollectionStore();
+  const [excerpt, setExcerpt] = useState<string>("");
+  const quillRef = React.useRef<any>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [isDeletingImages, setIsDeletingImages] = useState(false);
+  const { mutate } = useSWRConfig(); // Get SWR's global mutate function
 
-  // Fetch categories on mount
+  // Get variation state from store
+  const {
+    hasVariations,
+    importVariations,
+    variations,
+    resetVariations,
+    priceVariants, // Make sure to get priceVariants from the store
+  } = useProductVariationStore();
+
+  // Fetch categories and collections
+  const { categories, fetchCategories } = useCategoryStore();
+  const { collections, fetchCollections } = useCollectionStore();
+
+  // Load data
   useEffect(() => {
     fetchCategories();
-  }, [fetchCategories]);
-
-  useEffect(() => {
     fetchCollections();
-  }, [fetchCollections]);
+  }, [fetchCategories, fetchCollections]);
 
-  const [showVariationForm, setShowVariationForm] = useState(false);
-  const [editingVariationIndex, setEditingVariationIndex] = useState<
-    number | null
-  >(null);
-  const [newVariation, setNewVariation] = useState<VariationFormData>({
-    name: "",
-    options: [{ id: generateMeaningfulId("option"), name: "", imageUrl: null }],
+  // Initialize the variation store if we have initial values
+  useEffect(() => {
+    if (initialValues?.variations && initialValues.variations.length > 0) {
+      // Convert from API model to store model
+      const mappedVariations: Variation[] = initialValues.variations.map(
+        (v) => ({
+          id: v.id,
+          name: v.name,
+          options: v.options.map((o) => ({
+            id: o.id,
+            name: o.name,
+            imageUrl: o.imageUrl,
+          })),
+        })
+      );
+      importVariations(mappedVariations);
+
+      // Initialize price variants if they exist
+      if (
+        initialValues.priceVariants &&
+        initialValues.priceVariants.length > 0
+      ) {
+        // Map the price variants to the format needed by the store
+        const priceVariantsForStore: PriceVariantItem[] =
+          initialValues.priceVariants.map((priceVariant) => {
+            // Extract option combinations for this price variant
+            const optionCombination = priceVariant.options.map(
+              (opt) => opt.option.id
+            );
+            const optionLabels = priceVariant.options.map((opt) => {
+              // Find the corresponding variation for this option
+              const variation = initialValues.variations?.find((v) =>
+                v.options.some((o) => o.id === opt.option.id)
+              );
+              const variationName = variation?.name || "";
+              const optionName = opt.option.name;
+              return `${variationName}: ${optionName}`;
+            });
+
+            return {
+              id: priceVariant.id,
+              optionCombination,
+              optionLabels,
+              price: priceVariant.price,
+              stock: priceVariant.stock,
+              sku: priceVariant.sku,
+            };
+          });
+
+        // Import price variants into the store
+        useProductVariationStore
+          .getState()
+          .importPriceVariants(priceVariantsForStore);
+      }
+    }
+  }, [
+    initialValues?.variations,
+    initialValues?.priceVariants,
+    importVariations,
+  ]);
+
+  const formSchema = Yup.object({
+    name: Yup.string().required("Nama produk harus diisi"),
+    slug: Yup.string().required("Slug harus diisi"),
+    description: Yup.string().nullable(),
+    featuredImage: Yup.object({
+      url: Yup.string().required("URL gambar harus diisi"),
+      alt: Yup.string().required("Alt text harus diisi"),
+    }).nullable(),
+    additionalImages: Yup.array().of(
+      Yup.object({
+        url: Yup.string().required("URL gambar harus diisi"),
+        alt: Yup.string().required("Alt text harus diisi"),
+      })
+    ),
+    basePrice: Yup.number().nullable().min(0, "Harga tidak boleh negatif"),
+    baseStock: Yup.number()
+      .nullable()
+      .integer("Stok harus bilangan bulat")
+      .min(0, "Stok tidak boleh negatif"),
+    hasVariations: Yup.boolean().default(false),
+    specialLabel: Yup.string().nullable(),
+    weight: Yup.number().nullable().min(0, "Berat tidak boleh negatif"),
+    dimensions: Yup.object({
+      width: Yup.number().min(0, "Lebar tidak boleh negatif"),
+      length: Yup.number().min(0, "Panjang tidak boleh negatif"),
+      height: Yup.number().min(0, "Tinggi tidak boleh negatif"),
+    }).nullable(),
+    meta: Yup.object({
+      title: Yup.string(),
+      description: Yup.string(),
+      ogImage: Yup.string(),
+    }).nullable(),
+    categoryId: Yup.string().nullable(),
+    collectionId: Yup.string().nullable(),
   });
 
-  const formik = useFormik({
-    initialValues: initialData || initialValues,
-    validationSchema: ProductSchema,
-    enableReinitialize: true,
-    onSubmit: async (values, actions) => {
+  const formik = useFormik<CreateProductInput>({
+    initialValues: {
+      name: initialValues?.name || "",
+      slug: initialValues?.slug || "",
+      description: initialValues?.description || "",
+      featuredImage: initialValues?.featuredImage || null,
+      additionalImages: initialValues?.additionalImages || [],
+      basePrice: initialValues?.basePrice || null,
+      baseStock: initialValues?.baseStock || null,
+      hasVariations: initialValues?.hasVariations || false,
+      specialLabel: initialValues?.specialLabel || "",
+      weight: initialValues?.weight || null,
+      dimensions: initialValues?.dimensions || null,
+      meta: initialValues?.meta || null,
+      categoryId: initialValues?.categoryId || null,
+      collectionId: initialValues?.collectionId || null,
+    },
+    validationSchema: formSchema,
+    onSubmit: async (values) => {
       try {
-        if (productId) {
-          await editProduct(productId, values);
-          toast({
-            title: "Produk berhasil diperbarui",
-            description: "Perubahan telah disimpan",
-          });
-        } else {
-          await addProduct(values);
-          toast({
-            title: "Produk berhasil ditambahkan",
-            description: "Produk baru telah disimpan",
-          });
-        }
-        router.push("/dashboard/admin/product");
+        // Pastikan semua data variasi valid dan memiliki format yang benar
+        const processedVariations = variations.map((variation) => ({
+          id: variation.id || undefined, // Gunakan undefined daripada null
+          name: variation.name,
+          options: variation.options.map((option) => ({
+            id: option.id || undefined, // Gunakan undefined daripada null
+            name: option.name,
+            imageUrl: option.imageUrl,
+          })),
+        }));
+
+        // Proses price variants agar tidak ada nilai yang null
+        const processedPriceVariants = hasVariations
+          ? priceVariants
+              .filter((pv) => pv.price !== null && pv.stock !== null) // Jangan sertakan varian dengan nilai null
+              .map((pv) => ({
+                id: pv.id,
+                optionCombination: pv.optionCombination,
+                optionLabels: pv.optionLabels,
+                price: pv.price || 0, // Gunakan 0 daripada null
+                stock: pv.stock || 0, // Gunakan 0 daripada null
+                sku: pv.sku || undefined, // Gunakan undefined daripada null
+              }))
+          : [];
+
+        // Set the hasVariations value from the store before submitting
+        const submissionValues = {
+          ...values,
+          hasVariations: hasVariations,
+          // Include the variations from store with proper formatting
+          variations: processedVariations,
+          // Include the price variants from store if product has variations, with proper formatting
+          priceVariants: processedPriceVariants,
+        };
+
+        await onSubmit(submissionValues);
+
+        // Reset variation store after successful submission
+        resetVariations();
+
+        // Invalidate the products cache to ensure fresh data display
+        mutate(
+          (key: string) =>
+            typeof key === "string" && key.startsWith("/api/products"),
+          undefined,
+          { revalidate: true }
+        );
+
+        toast({
+          title: initialValues
+            ? "Produk berhasil diperbarui"
+            : "Produk berhasil ditambahkan",
+          description: `Produk ${values.name} telah ${
+            initialValues ? "diperbarui" : "ditambahkan"
+          }`,
+        });
       } catch (error) {
-        console.error("Error submitting form:", error);
+        console.error("Error submitting product form:", error);
         toast({
           variant: "destructive",
           title: "Gagal menyimpan produk",
-          description: "Terjadi kesalahan. Silakan coba lagi.",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Terjadi kesalahan saat menyimpan produk",
         });
-      } finally {
-        actions.setSubmitting(false);
       }
     },
   });
 
-  // Add useEffect to generate slug whenever name changes
+  // Get meta fields from initial values or set defaults
+  const [metaTitle, setMetaTitle] = useState<string>(
+    initialValues?.meta?.title || ""
+  );
+  const [metaDescription, setMetaDescription] = useState<string>(
+    initialValues?.meta?.description || ""
+  );
+
+  // Track if user has manually edited the meta fields
+  const [metaTitleManuallyEdited, setMetaTitleManuallyEdited] =
+    useState<boolean>(!!initialValues?.meta?.title);
+  const [metaDescriptionManuallyEdited, setMetaDescriptionManuallyEdited] =
+    useState<boolean>(!!initialValues?.meta?.description);
+
+  // Auto-generate slug when name changes
   useEffect(() => {
-    if (formik.values.name) {
-      const generatedSlug = formik.values.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
+    if (formik.values.name && !initialValues?.slug) {
+      const generatedSlug = slugify(formik.values.name);
       formik.setFieldValue("slug", generatedSlug);
     }
-  }, [formik.values.name]);
+  }, [formik.values.name, initialValues?.slug]);
 
-  // Update the function when changing hasVariations state
+  // Auto-generate excerpt from description
   useEffect(() => {
-    if (formik.values.hasVariations) {
-      // When switching to variations mode, ensure basePrice/baseStock aren't used
-      formik.setFieldValue("basePrice", 0);
-      formik.setFieldValue("baseStock", 0);
+    if (formik.values.description) {
+      const newExcerpt = createExcerptFromHtml(formik.values.description);
+      setExcerpt(newExcerpt);
+    } else {
+      setExcerpt("");
     }
-  }, [formik.values.hasVariations]);
+  }, [formik.values.description]);
 
-  // Update the function to properly handle option types
-  const handleAddOption = () => {
-    setNewVariation((prev) => {
-      // Determine if we need to add imageUrl property based on whether this is first variation
-      const isFirstVariation =
-        formik.values.variations.length === 0 ||
-        (editingVariationIndex !== null && editingVariationIndex === 0);
+  // Auto-update meta title when product name changes (if not manually edited)
+  useEffect(() => {
+    if (formik.values.name && !metaTitleManuallyEdited) {
+      setMetaTitle(formik.values.name);
+      formik.setFieldValue("meta", {
+        ...formik.values.meta,
+        title: formik.values.name,
+      });
+    }
+  }, [formik.values.name, metaTitleManuallyEdited]);
 
-      // Add imageUrl property only for first variation options
-      const newOption: VariationFormOption = isFirstVariation
-        ? { id: generateMeaningfulId("option"), name: "", imageUrl: null }
-        : { id: generateMeaningfulId("option"), name: "" };
+  // Auto-update meta description when excerpt changes (if not manually edited)
+  useEffect(() => {
+    if (excerpt && !metaDescriptionManuallyEdited) {
+      setMetaDescription(excerpt);
+      formik.setFieldValue("meta", {
+        ...formik.values.meta,
+        description: excerpt,
+      });
+    }
+  }, [excerpt, metaDescriptionManuallyEdited]);
 
-      return {
-        ...prev,
-        options: [...prev.options, newOption],
-      };
+  // Set OG image from featured image (only if meta exists and no OG image already set)
+  useEffect(() => {
+    if (formik.values.featuredImage?.url) {
+      formik.setFieldValue("meta", {
+        ...formik.values.meta,
+        ogImage: formik.values.meta?.ogImage || formik.values.featuredImage.url,
+      });
+    }
+  }, [formik.values.featuredImage?.url]);
+
+  // Handle featured image change
+  const handleFeaturedImageChange = (imageUrl: string | null) => {
+    if (imageUrl) {
+      formik.setFieldValue("featuredImage", {
+        url: imageUrl,
+        alt: formik.values.name || "Product Image",
+      });
+    } else {
+      formik.setFieldValue("featuredImage", null);
+    }
+  };
+
+  // Handle additional image change
+  const handleAdditionalImageChange = (
+    index: number,
+    imageUrl: string | null
+  ) => {
+    const additionalImages = [...(formik.values.additionalImages || [])];
+
+    if (imageUrl) {
+      // Add or update image
+      if (index < additionalImages.length) {
+        additionalImages[index] = {
+          url: imageUrl,
+          alt: `${formik.values.name || "Product"} ${index + 1}`,
+        };
+      } else {
+        additionalImages.push({
+          url: imageUrl,
+          alt: `${formik.values.name || "Product"} ${
+            additionalImages.length + 1
+          }`,
+        });
+      }
+    } else {
+      // Remove image
+      if (index < additionalImages.length) {
+        additionalImages.splice(index, 1);
+      }
+    }
+
+    formik.setFieldValue("additionalImages", additionalImages);
+  };
+
+  // Handle special label selection
+  const handleSpecialLabelChange = (value: string) => {
+    // Use null for the "none" option, otherwise use the selected value
+    formik.setFieldValue("specialLabel", value === "none" ? null : value);
+  };
+
+  // Handle category selection with proper null handling
+  const handleCategoryChange = (value: string) => {
+    formik.setFieldValue("categoryId", value === "none" ? null : value);
+  };
+
+  // Handle collection selection with proper null handling
+  const handleCollectionChange = (value: string) => {
+    formik.setFieldValue("collectionId", value === "none" ? null : value);
+  };
+
+  // Handle meta title change
+  const handleMetaTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMetaTitle(value);
+    setMetaTitleManuallyEdited(true);
+    formik.setFieldValue("meta", {
+      ...formik.values.meta,
+      title: value,
     });
   };
 
-  const handleRemoveOption = (index: number) => {
-    setNewVariation((prev) => ({
-      ...prev,
-      options: prev.options.filter((_, i) => i !== index),
-    }));
-  };
-
-  // Ensure proper typing in this function
-  const handleEditVariation = (index: number) => {
-    const variation = formik.values.variations[index];
-
-    // Convert ProductOption[] to VariationFormOption[]
-    const options: VariationFormOption[] = variation.options.map((option) => ({
-      id: option.id,
-      name: option.name,
-      imageUrl: option.imageUrl,
-    }));
-
-    setNewVariation({
-      name: variation.name,
-      options,
+  // Handle meta description change
+  const handleMetaDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    const value = e.target.value;
+    setMetaDescription(value);
+    setMetaDescriptionManuallyEdited(true);
+    formik.setFieldValue("meta", {
+      ...formik.values.meta,
+      description: value,
     });
-
-    setEditingVariationIndex(index);
-    setShowVariationForm(true);
   };
 
-  const generateVariationCombinations = (
-    variations: ProductFormValues["variations"]
-  ): VariationCombination[] => {
-    if (!variations.length) return [];
+  const router = useRouter();
 
-    const combinations = variations.reduce((acc, variation, currentIndex) => {
-      // For first variation
-      if (currentIndex === 0) {
-        return variation.options.map((option) => ({
-          id: `${variation.id}-${option.id}`,
-          name: `${option.name}`,
-          components: [{ variationId: variation.id, optionId: option.id }],
-        }));
+  /**
+   * Fungsi untuk menghapus gambar dari Cloudinary
+   * @param url URL gambar yang akan dihapus
+   */
+  const deleteCloudinaryImage = async (url: string): Promise<boolean> => {
+    try {
+      await fetch("/api/cloudinary/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      });
+      return true;
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      return false;
+    }
+  };
+
+  /**
+   * Mengidentifikasi apakah URL adalah gambar yang baru saja diupload
+   * @param url URL gambar
+   * @param initialUrl URL gambar awal (jika ada)
+   * @returns boolean - true jika gambar baru ditambahkan dan perlu dibersihkan
+   */
+  const isNewlyUploadedImage = (
+    url: string | undefined,
+    initialUrl: string | undefined
+  ): boolean => {
+    // Jika tidak ada URL, tidak perlu dibersihkan
+    if (!url) return false;
+
+    // Jika URL-nya sama dengan yang awal, tidak perlu dibersihkan
+    if (initialUrl === url) return false;
+
+    // Jika ada URL tapi tidak ada URL awal, ini adalah gambar baru
+    return true;
+  };
+
+  /**
+   * Membersihkan semua gambar yang diupload dalam formulir
+   */
+  const cleanupAllUploadedImages = async () => {
+    if (!formik.dirty) return;
+
+    setIsDeletingImages(true);
+    const imagesToDelete: string[] = [];
+
+    try {
+      // 1. Periksa gambar utama
+      if (
+        formik.values.featuredImage?.url &&
+        isNewlyUploadedImage(
+          formik.values.featuredImage.url,
+          initialValues?.featuredImage?.url
+        )
+      ) {
+        imagesToDelete.push(formik.values.featuredImage.url);
       }
 
-      // For subsequent variations, combine with existing combinations
-      const newCombinations: VariationCombination[] = [];
-      for (const existingComb of acc) {
-        for (const option of variation.options) {
-          newCombinations.push({
-            id: `${existingComb.id}-${option.id}`,
-            name: `${existingComb.name} + ${option.name}`,
-            components: [
-              ...existingComb.components,
-              { variationId: variation.id, optionId: option.id },
-            ],
+      // 2. Periksa gambar tambahan
+      formik.values.additionalImages?.forEach((img, index) => {
+        const initialImageUrl = initialValues?.additionalImages?.[index]?.url;
+        if (img.url && isNewlyUploadedImage(img.url, initialImageUrl)) {
+          imagesToDelete.push(img.url);
+        }
+      });
+
+      // 3. Periksa gambar opsi variasi (hanya variasi pertama yang bisa memiliki gambar)
+      const variationsFromStore = variations;
+
+      if (variationsFromStore && variationsFromStore.length > 0) {
+        const firstVariation = variationsFromStore[0];
+
+        // Periksa apakah ada opsi dengan gambar
+        if (firstVariation?.options) {
+          firstVariation.options.forEach((option) => {
+            if (!option.imageUrl) return;
+
+            // Periksa apakah ini gambar baru yang perlu dihapus
+            const isNewImage = !initialValues?.variations?.[0]?.options.some(
+              (initialOption) => initialOption.imageUrl === option.imageUrl
+            );
+
+            if (isNewImage) {
+              imagesToDelete.push(option.imageUrl);
+            }
           });
         }
       }
-      return newCombinations;
-    }, [] as VariationCombination[]);
 
-    return combinations;
+      // Hapus semua gambar secara paralel
+      if (imagesToDelete.length > 0) {
+        toast({
+          title: "Menghapus gambar",
+          description: "Sedang membersihkan gambar yang telah diupload...",
+        });
+
+        await Promise.all(
+          imagesToDelete.map((url) => deleteCloudinaryImage(url))
+        );
+
+        toast({
+          title: "Pembersihan selesai",
+          description: `${imagesToDelete.length} gambar berhasil dihapus`,
+        });
+      }
+    } catch (error) {
+      console.error("Error cleaning up images:", error);
+      toast({
+        variant: "destructive",
+        title: "Gagal membersihkan gambar",
+        description: "Beberapa gambar mungkin tidak berhasil dihapus",
+      });
+    } finally {
+      setIsDeletingImages(false);
+
+      // Reset variation store before navigating away
+      resetVariations();
+
+      // Invalidate cache before navigating away to ensure fresh data
+      mutate(
+        (key: string) =>
+          typeof key === "string" && key.startsWith("/api/products"),
+        undefined,
+        { revalidate: true }
+      );
+
+      router.push("/dashboard/admin/product");
+    }
   };
 
-  // Type the local variables in the variation saving function
-  const handleSaveVariation = () => {
-    if (!newVariation.name || newVariation.options.some((opt) => !opt.name)) {
-      return;
-    }
-
-    // Determine if this is first variation position (either new first or editing first)
-    const isFirstVariation =
-      formik.values.variations.length === 0 ||
-      (editingVariationIndex !== null && editingVariationIndex === 0);
-
-    // Process options to ensure proper imageUrl handling
-    let processedOptions: ProductOption[] = [...newVariation.options].map(
-      (option) => {
-        if (isFirstVariation) {
-          // First variation: ensure all options have imageUrl (converting null to undefined)
-          return {
-            id: option.id,
-            name: option.name,
-            imageUrl: option.imageUrl === null ? undefined : option.imageUrl, // Convert null to undefined
-          };
-        } else {
-          // Second variation: omit imageUrl
-          return {
-            id: option.id,
-            name: option.name,
-          };
-        }
-      }
-    );
-
-    if (editingVariationIndex !== null) {
-      // Editing existing variation
-      const updatedVariations = [...formik.values.variations];
-      updatedVariations[editingVariationIndex] = {
-        id: formik.values.variations[editingVariationIndex].id,
-        name: newVariation.name,
-        options: processedOptions,
-      };
-      formik.setFieldValue("variations", updatedVariations);
-
-      // Recalculate variation prices with clean combinations
-      const combinations = generateVariationCombinations(updatedVariations);
-      const newVariationPrices: Record<
-        string,
-        { price: number; stock: number }
-      > = {};
-
-      // Preserve existing prices and stocks for combinations that still exist
-      combinations.forEach((combination) => {
-        if (formik.values.variationPrices[combination.id]) {
-          newVariationPrices[combination.id] =
-            formik.values.variationPrices[combination.id];
-        } else {
-          newVariationPrices[combination.id] = { price: 0, stock: 0 };
-        }
-      });
-
-      formik.setFieldValue("variationPrices", newVariationPrices);
+  // Replace window.confirm with Dialog component
+  const handleCancel = () => {
+    // If we have unsaved changes, show a confirmation dialog
+    if (formik.dirty) {
+      setConfirmDialogOpen(true);
     } else {
-      // Adding new variation with a meaningful ID
-      const variationId = generateMeaningfulId(`var-${newVariation.name}`);
-      const newVariationData = {
-        id: variationId,
-        name: newVariation.name,
-        options: processedOptions,
-      };
-      const updatedVariations = [...formik.values.variations, newVariationData];
-      formik.setFieldValue("variations", updatedVariations);
-      formik.setFieldValue("hasVariations", true);
-
-      // Generate clean combinations for the new variation structure
-      const combinations = generateVariationCombinations(updatedVariations);
-      const newVariationPrices: Record<
-        string,
-        { price: number; stock: number }
-      > = {};
-
-      combinations.forEach((combination) => {
-        if (formik.values.variationPrices[combination.id]) {
-          newVariationPrices[combination.id] =
-            formik.values.variationPrices[combination.id];
-        } else {
-          newVariationPrices[combination.id] = { price: 0, stock: 0 };
-        }
-      });
-
-      formik.setFieldValue("variationPrices", newVariationPrices);
-    }
-
-    // Reset form with proper structure for next potential variation
-    const resetOptions: VariationFormOption[] =
-      formik.values.variations.length === 0
-        ? [{ id: generateMeaningfulId("option"), name: "", imageUrl: null }]
-        : [{ id: generateMeaningfulId("option"), name: "" }];
-
-    setNewVariation({
-      name: "",
-      options: resetOptions,
-    });
-    setShowVariationForm(false);
-    setEditingVariationIndex(null);
-  };
-
-  // Update this function to handle proper defaults when removing variations
-  const handleRemoveVariation = (index: number) => {
-    const newVariations = formik.values.variations.filter(
-      (_, i) => i !== index
-    );
-
-    // If removing the last variation, reset to non-variation product
-    if (newVariations.length === 0) {
-      formik.setFieldValue("variations", []);
-      formik.setFieldValue("hasVariations", false);
-
-      // Set default price and stock if they were previously undefined
-      if (formik.values.basePrice === undefined) {
-        formik.setFieldValue("basePrice", 0);
-      }
-      if (formik.values.baseStock === undefined) {
-        formik.setFieldValue("baseStock", 0);
-      }
-    } else {
-      formik.setFieldValue("variations", newVariations);
-
-      // Recalculate variations prices
-      const combinations = generateVariationCombinations(newVariations);
-      const newVariationPrices: Record<
-        string,
-        { price: number; stock: number }
-      > = {};
-
-      combinations.forEach((combination) => {
-        if (formik.values.variationPrices[combination.id]) {
-          newVariationPrices[combination.id] =
-            formik.values.variationPrices[combination.id];
-        } else {
-          newVariationPrices[combination.id] = { price: 0, stock: 0 };
-        }
-      });
-
-      formik.setFieldValue("variationPrices", newVariationPrices);
+      // Reset variation store and navigate back if no changes
+      resetVariations();
+      router.push("/dashboard/admin/product");
     }
   };
 
-  // Add helper function to get variation price/stock
-  const getVariationValue = (
-    combinationId: string,
-    field: "price" | "stock"
-  ) => {
-    const value = formik.values.variationPrices[combinationId]?.[field];
-    return value === 0 ? "" : value || "";
-  };
-
-  // Add helper function for base price/stock
-  const getBaseValue = (field: "basePrice" | "baseStock") => {
-    const value = formik.values[field];
-    return value === 0 ? "" : value || "";
-  };
-
-  // Update the variations list JSX to include edit button
-  const renderVariationsList = () => (
-    <div className="space-y-4">
-      {formik.values.variations.map((variation, index) => (
-        <VariationCard
-          key={variation.id}
-          variation={variation}
-          index={index}
-          onEdit={() => handleEditVariation(index)}
-          onRemove={() => handleRemoveVariation(index)}
-          disabled={showVariationForm}
-        />
-      ))}
-    </div>
-  );
-
-  // Fix the renderVariationForm function to restore all original functionality
-  const renderVariationForm = () => {
-    const isFirstVariation = formik.values.variations.length === 0;
-    const showImageUpload =
-      isFirstVariation ||
-      (editingVariationIndex !== null && editingVariationIndex === 0);
-
-    const handleCancelEdit = () => {
-      setShowVariationForm(false);
-      setEditingVariationIndex(null);
-      // Reset form state
-      const initialOption: VariationFormOption =
-        formik.values.variations.length === 0
-          ? { id: generateMeaningfulId("option"), name: "", imageUrl: null }
-          : { id: generateMeaningfulId("option"), name: "" };
-
-      setNewVariation({
-        name: "",
-        options: [initialOption],
-      });
-    };
-
-    return (
-      <div className="space-y-4 border p-4 rounded-lg">
-        <div className="flex justify-between items-center">
-          <Label>
-            {editingVariationIndex !== null ? "Edit Variasi" : "Nama Variasi"}
-          </Label>
-          {/* Show close button when adding, or cancel text when editing */}
-          {editingVariationIndex === null ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelEdit}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={handleCancelEdit}
-            >
-              Batal
-            </Button>
-          )}
-        </div>
-
-        {/* Restore the variation name input field */}
-        <Input
-          value={newVariation.name}
-          onChange={(e) =>
-            setNewVariation((prev) => ({
-              ...prev,
-              name: e.target.value,
-            }))
-          }
-          placeholder="Contoh: Ukuran, Warna"
-        />
-
-        <div className="space-y-2">
-          <Label>Opsi Variasi</Label>
-          {newVariation.options.map((option, index) => (
-            <div key={option.id} className="space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  value={option.name}
-                  onChange={(e) => {
-                    const newOptions = [...newVariation.options];
-                    newOptions[index].name = e.target.value;
-                    setNewVariation((prev) => ({
-                      ...prev,
-                      options: newOptions,
-                    }));
-                  }}
-                  placeholder="Nama opsi"
-                />
-                {index > 0 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveOption(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-
-              {/* Add image upload for first variation options */}
-              {showImageUpload && (
-                <div className="ml-0">
-                  <Label className="text-sm">Foto Opsi</Label>
-                  <ImageUploadPreview
-                    value={option.imageUrl}
-                    onChange={(url) => {
-                      const newOptions = [...newVariation.options];
-                      newOptions[index] = {
-                        ...newOptions[index],
-                        imageUrl: url || undefined,
-                      };
-                      setNewVariation((prev) => ({
-                        ...prev,
-                        options: newOptions,
-                      }));
-                    }}
-                    className="max-w-[100px]"
-                    id={`option-image-${option.id}`}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={handleAddOption}>
-            <Plus className="h-4 w-4 mr-2" />
-            Tambah Opsi
-          </Button>
-          <Button type="button" onClick={handleSaveVariation}>
-            {editingVariationIndex !== null
-              ? "Update Variasi"
-              : "Simpan Variasi"}
-          </Button>
-          {/* Add cancel button at the bottom only when in edit mode */}
-          {editingVariationIndex !== null && (
-            <Button type="button" variant="outline" onClick={handleCancelEdit}>
-              Batal
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderNoVariationsFields = () => (
-    <div className="border rounded-lg p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-lg font-medium">Harga dan Stok Produk</Label>
-      </div>
-      <Separator />
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="basePrice">Harga</Label>
-          <Input
-            id="basePrice"
-            type="number"
-            value={getBaseValue("basePrice")}
-            onChange={(e) => {
-              const value = e.target.value;
-              formik.setFieldValue(
-                "basePrice",
-                value === "" ? 0 : Number(value)
-              );
-            }}
-          />
-          {formik.touched.basePrice && formik.errors.basePrice && (
-            <div className="text-red-500">{formik.errors.basePrice}</div>
-          )}
-        </div>
-        <div>
-          <Label htmlFor="baseStock">Stok</Label>
-          <Input
-            id="baseStock"
-            type="number"
-            value={getBaseValue("baseStock")}
-            onChange={(e) => {
-              const value = e.target.value;
-              formik.setFieldValue(
-                "baseStock",
-                value === "" ? 0 : Number(value)
-              );
-            }}
-          />
-          {formik.touched.baseStock && formik.errors.baseStock && (
-            <div className="text-red-500">{formik.errors.baseStock}</div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  // Update this function to properly initialize the newVariation state
-  // Update setupVariationForm to use proper types
-  const setupVariationForm = (isFirstVariation: boolean = false) => {
-    const initialOption: VariationFormOption = isFirstVariation
-      ? { id: generateMeaningfulId("option"), name: "", imageUrl: null }
-      : { id: generateMeaningfulId("option"), name: "" };
-
-    setNewVariation({
-      name: "",
-      options: [initialOption],
-    });
-
-    setShowVariationForm(true);
-  };
-
-  const renderVariationsSection = () => {
-    return (
-      <>
-        <VariationManager
-          variations={formik.values.variations}
-          onAddVariation={(variation) => {
-            const updatedVariations = [...formik.values.variations, variation];
-            formik.setFieldValue("variations", updatedVariations);
-            formik.setFieldValue("hasVariations", true);
-
-            // Generate combinations and update prices when adding variation
-            const combinations =
-              generateVariationCombinations(updatedVariations);
-            const newVariationPrices: Record<
-              string,
-              { price: number; stock: number }
-            > = {};
-
-            combinations.forEach((combination) => {
-              if (formik.values.variationPrices[combination.id]) {
-                newVariationPrices[combination.id] =
-                  formik.values.variationPrices[combination.id];
-              } else {
-                newVariationPrices[combination.id] = { price: 0, stock: 0 };
-              }
-            });
-
-            formik.setFieldValue("variationPrices", newVariationPrices);
-          }}
-          onUpdateVariation={(index, variation) => {
-            const updatedVariations = [...formik.values.variations];
-            updatedVariations[index] = variation;
-            formik.setFieldValue("variations", updatedVariations);
-
-            // Recalculate combinations and update prices
-            const combinations =
-              generateVariationCombinations(updatedVariations);
-            const newVariationPrices: Record<
-              string,
-              { price: number; stock: number }
-            > = {};
-
-            combinations.forEach((combination) => {
-              if (formik.values.variationPrices[combination.id]) {
-                newVariationPrices[combination.id] =
-                  formik.values.variationPrices[combination.id];
-              } else {
-                newVariationPrices[combination.id] = { price: 0, stock: 0 };
-              }
-            });
-
-            formik.setFieldValue("variationPrices", newVariationPrices);
-          }}
-          onRemoveVariation={handleRemoveVariation}
-          onGenerateCombinations={() => {
-            // You could add additional logic here if needed
-          }}
-          disabled={formik.isSubmitting}
-        />
-
-        {/* Show price/stock grid if there are variations */}
-        {formik.values.variations.length > 0 && (
-          <div className="mt-6">
-            <PriceStockGrid
-              variations={formik.values.variations}
-              combinations={generateVariationCombinations(
-                formik.values.variations
-              )}
-              variationPrices={formik.values.variationPrices}
-              onChange={(id, field, value) => {
-                formik.setFieldValue(`variationPrices.${id}.${field}`, value);
-              }}
-            />
-          </div>
-        )}
-      </>
-    );
+  // Function to confirm navigation after dialog confirmation
+  const handleConfirmNavigation = async () => {
+    setConfirmDialogOpen(false);
+    await cleanupAllUploadedImages();
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">
-          {productId ? "Edit Produk" : "Tambah Produk Baru"}
-        </h2>
-        <p className="text-muted-foreground mt-2">
-          {productId
-            ? "Perbarui informasi produk Anda."
-            : "Isi informasi produk dengan lengkap untuk menampilkan produk di toko Anda."}
-        </p>
-      </div>
-
-      <form onSubmit={formik.handleSubmit} className="space-y-6">
-        {/* Informasi Utama */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle>Informasi Utama</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="name">Nama Produk</Label>
-              <Input id="name" {...formik.getFieldProps("name")} />
-              {formik.touched.name && formik.errors.name && (
-                <div className="text-red-500">{formik.errors.name}</div>
-              )}
-            </div>
-
-            {/* Add hidden slug input */}
-            <Input
-              type="hidden"
-              id="slug"
-              {...formik.getFieldProps("slug")}
-              readOnly
-            />
-
-            <div>
-              <Label htmlFor="description">Deskripsi</Label>
-              <ProductDescriptionEditor
-                value={formik.values.description}
-                onChange={(value) => formik.setFieldValue("description", value)}
-              />
-              {formik.touched.description && formik.errors.description && (
-                <div className="text-red-500">{formik.errors.description}</div>
-              )}
-            </div>
-            <div>
-              <Label>Kategori</Label>
-              <Select
-                value={formik.values.category}
-                onValueChange={(value) =>
-                  formik.setFieldValue("category", value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      categoriesLoading ? "Memuat..." : "Pilih kategori"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formik.touched.category && formik.errors.category && (
-                <div className="text-red-500">{formik.errors.category}</div>
-              )}
-            </div>
-            <div>
-              <Label>Koleksi (Opsional)</Label>
-              <Select
-                value={formik.values.collection || "none"} // Ensure we always have a valid value
-                onValueChange={(value) =>
-                  formik.setFieldValue(
-                    "collection",
-                    value === "none" ? undefined : value
-                  )
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      collectionsLoading ? "Memuat..." : "Pilih koleksi"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Tidak ada koleksi</SelectItem>
-                  {collections.map((collection) => (
-                    <SelectItem key={collection.value} value={collection.value}>
-                      {collection.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Label Produk Spesial</Label>
-              <RadioGroup
-                value={formik.values.specialLabel}
-                onValueChange={(value) =>
-                  formik.setFieldValue("specialLabel", value)
-                }
-                className="mt-2"
-              >
-                {SPECIAL_LABELS.map((label) => (
-                  <div
-                    key={label.value}
-                    className="flex items-center space-x-2"
-                  >
-                    <RadioGroupItem value={label.value} id={label.value} />
-                    <Label htmlFor={label.value}>{label.label}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Foto Produk */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle>Foto Produk</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Foto pertama akan menjadi foto utama. Seret untuk mengatur ulang.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Foto Utama</Label>
-              <ImageUploadPreview
-                value={formik.values.mainImage}
-                onChange={(url) => formik.setFieldValue("mainImage", url)}
-                className="max-w-[200px]"
-                id="main-image"
-              />
-            </div>
-            <div>
-              <Label>Foto Tambahan</Label>
-              <div className="grid grid-cols-4 gap-4 mt-2">
-                {formik.values.additionalImages.map((_, index) => (
+    <>
+      <form
+        onSubmit={formik.handleSubmit}
+        className="space-y-6 sm:space-y-8 pb-24"
+      >
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              {/* Product Image */}
+              <div>
+                <LabelWithTooltip
+                  htmlFor="featuredImage"
+                  label="Gambar Utama"
+                  tooltip="Gambar utama yang akan ditampilkan pada halaman produk dan daftar produk"
+                />
+                <div className="mt-2">
                   <ImageUploadPreview
-                    key={index}
-                    value={formik.values.additionalImages[index]}
-                    onChange={(url) => {
-                      const newImages = [...formik.values.additionalImages];
-                      newImages[index] = url;
-                      formik.setFieldValue("additionalImages", newImages);
-                    }}
-                    id={`additional-image-${index}`}
+                    id="featuredImage"
+                    value={formik.values.featuredImage?.url || null}
+                    onChange={handleFeaturedImageChange}
+                    className="w-full aspect-square"
                   />
-                ))}
+                </div>
+                {formik.touched.featuredImage &&
+                  formik.errors.featuredImage && (
+                    <p className="text-sm text-destructive mt-2">
+                      {typeof formik.errors.featuredImage === "string"
+                        ? formik.errors.featuredImage
+                        : "Gambar utama diperlukan"}
+                    </p>
+                  )}
+              </div>
+
+              {/* Basic Info */}
+              <div className="md:col-span-2 space-y-3 sm:space-y-4 mt-4 md:mt-0">
+                {/* Product Name */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="name"
+                    label="Nama Produk"
+                    tooltip="Nama produk yang akan ditampilkan"
+                  />
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="Masukkan nama produk"
+                    value={formik.values.name}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                  {formik.touched.name && formik.errors.name && (
+                    <p className="text-sm text-destructive">
+                      {formik.errors.name}
+                    </p>
+                  )}
+                </div>
+
+                {/* Product Slug */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="slug"
+                    label="Slug"
+                    tooltip="URL-friendly identifier yang akan digunakan pada URL produk. Dihasilkan otomatis dari nama produk."
+                  />
+                  <Input
+                    id="slug"
+                    name="slug"
+                    placeholder="produk-nama"
+                    value={formik.values.slug}
+                    readOnly
+                    className="bg-muted"
+                  />
+                </div>
+
+                {/* Category */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="categoryId"
+                    label="Kategori"
+                    tooltip="Kategori produk untuk pengelompokan"
+                  />
+                  <Select
+                    name="categoryId"
+                    value={formik.values.categoryId || "none"}
+                    onValueChange={handleCategoryChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tanpa Kategori</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Collection */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="collectionId"
+                    label="Koleksi"
+                    tooltip="Koleksi produk untuk pengelompokan khusus"
+                  />
+                  <Select
+                    name="collectionId"
+                    value={formik.values.collectionId || "none"}
+                    onValueChange={handleCollectionChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih koleksi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tanpa Koleksi</SelectItem>
+                      {collections.map((collection) => (
+                        <SelectItem key={collection.id} value={collection.id}>
+                          {collection.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Special Label */}
+                <div className="space-y-2">
+                  <LabelWithTooltip
+                    htmlFor="specialLabel"
+                    label="Label Khusus"
+                    tooltip="Label khusus untuk produk, seperti Produk Baru, Best Seller, dll."
+                  />
+                  <Select
+                    name="specialLabel"
+                    value={formik.values.specialLabel || "none"}
+                    onValueChange={handleSpecialLabelChange}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih label" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SPECIAL_LABELS.map((label) => (
+                        <SelectItem key={label.value} value={label.value}>
+                          {label.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Detail Produk */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle>Detail Produk</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Atur harga, stok, dan variasi produk Anda.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* For products without variations */}
-              {!formik.values.hasVariations &&
-                formik.values.variations.length === 0 &&
-                renderNoVariationsFields()}
-
-              {/* Variations section - use new components */}
-              {renderVariationsSection()}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pengiriman */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle>Informasi Pengiriman</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Masukkan berat dan dimensi untuk kalkulasi ongkos kirim.
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="weight">Berat (gram)</Label>
-              <Input
-                id="weight"
-                type="number"
-                {...formik.getFieldProps("weight")}
-              />
-              {formik.touched.weight && formik.errors.weight && (
-                <div className="text-red-500">{formik.errors.weight}</div>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="dimensions.width">Lebar (cm)</Label>
-                <Input
-                  id="dimensions.width"
-                  type="number"
-                  {...formik.getFieldProps("dimensions.width")}
-                />
-                {formik.touched.dimensions?.width &&
-                  formik.errors.dimensions?.width && (
-                    <div className="text-red-500">
-                      {formik.errors.dimensions.width}
-                    </div>
-                  )}
-              </div>
-              <div>
-                <Label htmlFor="dimensions.length">Panjang (cm)</Label>
-                <Input
-                  id="dimensions.length"
-                  type="number"
-                  {...formik.getFieldProps("dimensions.length")}
-                />
-                {formik.touched.dimensions?.length &&
-                  formik.errors.dimensions?.length && (
-                    <div className="text-red-500">
-                      {formik.errors.dimensions.length}
-                    </div>
-                  )}
-              </div>
-              <div>
-                <Label htmlFor="dimensions.height">Tinggi (cm)</Label>
-                <Input
-                  id="dimensions.height"
-                  type="number"
-                  {...formik.getFieldProps("dimensions.height")}
-                />
-                {formik.touched.dimensions?.height &&
-                  formik.errors.dimensions?.height && (
-                    <div className="text-red-500">
-                      {formik.errors.dimensions.height}
-                    </div>
-                  )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* SEO & Meta */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle>SEO & Meta</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Optimasi produk Anda untuk mesin pencari
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        {/* Description */}
+        <Card>
+          <CardContent className="pt-6">
             <div className="space-y-4">
+              <LabelWithTooltip
+                htmlFor="description"
+                label="Deskripsi Produk"
+                tooltip="Deskripsi detail tentang produk ini. Mendukung format HTML."
+              />
+              {/* Adjust minimum height for better mobile editing */}
+              <div className="min-h-[250px] sm:min-h-[300px]">
+                <QuillEditor
+                  value={formik.values.description || ""}
+                  onChange={(value) =>
+                    formik.setFieldValue("description", value)
+                  }
+                  ref={quillRef}
+                />
+              </div>
+
+              {/* Auto-generated excerpt */}
               <div className="space-y-2">
                 <LabelWithTooltip
-                  htmlFor="seo.title"
-                  label="Meta Title"
-                  tooltip="Judul yang muncul di hasil pencarian Google. Idealnya 50-60 karakter."
+                  htmlFor="excerpt"
+                  label="Ringkasan Otomatis"
+                  tooltip="Ringkasan singkat dari deskripsi produk yang dihasilkan secara otomatis."
                 />
-                <Input id="seo.title" {...formik.getFieldProps("seo.title")} />
-                <CharacterCountSEO
-                  current={formik.values.seo.title.length}
-                  type="title"
+                <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+                  {excerpt ||
+                    "Ringkasan akan dihasilkan secara otomatis dari deskripsi."}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Additional Images */}
+        <Card>
+          <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
+            <CardTitle>Gambar Tambahan</CardTitle>
+            <CardDescription>
+              Upload gambar tambahan produk (maksimal 8 gambar)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              {/* Generate 8 image upload slots */}
+              {Array.from({ length: 8 }).map((_, index) => {
+                const existingImage = formik.values.additionalImages?.[index];
+                return (
+                  <div key={index} className="space-y-1 sm:space-y-2">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      {`Gambar ${index + 1}`}
+                    </div>
+                    <ImageUploadPreview
+                      id={`additional-image-${index}`}
+                      value={existingImage?.url || null}
+                      onChange={(url) =>
+                        handleAdditionalImageChange(index, url)
+                      }
+                      className="aspect-square w-full h-auto"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Product Variations and Pricing */}
+        <ProductVariationSection
+          onPriceChange={(price) => formik.setFieldValue("basePrice", price)}
+          onStockChange={(stock) => formik.setFieldValue("baseStock", stock)}
+          basePrice={formik.values.basePrice ?? null}
+          baseStock={formik.values.baseStock ?? null}
+        />
+
+        {/* Product Dimensions */}
+        <Card>
+          <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
+            <CardTitle>Dimensi Produk</CardTitle>
+            <CardDescription>
+              Informasi dimensi produk untuk kalkulasi pengiriman
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="space-y-4 sm:space-y-6">
+              {/* Weight */}
+              <div className="space-y-2">
+                <LabelWithTooltip
+                  htmlFor="weight"
+                  label="Berat (gram)"
+                  tooltip="Berat produk dalam gram"
                 />
-                {formik.touched.seo?.title && formik.errors.seo?.title && (
-                  <div className="text-red-500">{formik.errors.seo.title}</div>
+                <Input
+                  id="weight"
+                  name="weight"
+                  type="number"
+                  placeholder="0"
+                  value={formik.values.weight || ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+                {formik.touched.weight && formik.errors.weight && (
+                  <p className="text-sm text-destructive">
+                    {formik.errors.weight as string}
+                  </p>
                 )}
               </div>
 
+              {/* Dimensions */}
               <div className="space-y-2">
                 <LabelWithTooltip
-                  htmlFor="seo.description"
-                  label="Meta Description"
-                  tooltip="Deskripsi singkat yang muncul di hasil pencarian. Idealnya 120-160 karakter."
+                  htmlFor="dimensions"
+                  label="Dimensi (cm)"
+                  tooltip="Panjang, lebar, dan tinggi produk dalam sentimeter"
                 />
-                <Textarea
-                  id="seo.description"
-                  {...formik.getFieldProps("seo.description")}
-                />
-                <CharacterCountSEO
-                  current={formik.values.seo.description.length}
-                  type="description"
-                />
-                {formik.touched.seo?.description &&
-                  formik.errors.seo?.description && (
-                    <div className="text-red-500">
-                      {formik.errors.seo.description}
-                    </div>
-                  )}
-              </div>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="dimensions.length"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Panjang
+                    </label>
+                    <Input
+                      id="dimensions.length"
+                      name="dimensions.length"
+                      type="number"
+                      placeholder="0"
+                      value={formik.values.dimensions?.length || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                  </div>
 
-              <div className="border rounded-lg p-4 bg-white space-y-2">
-                <h4 className="text-sm font-medium text-gray-500">
-                  Pratinjau Hasil Pencarian Google
-                </h4>
-                <GoogleSearchPreview
-                  title={formik.values.seo.title || formik.values.name}
-                  description={formik.values.seo.description}
-                  slug={`products/${formik.values.name
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")}`}
-                />
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="dimensions.width"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Lebar
+                    </label>
+                    <Input
+                      id="dimensions.width"
+                      name="dimensions.width"
+                      type="number"
+                      placeholder="0"
+                      value={formik.values.dimensions?.width || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="dimensions.height"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Tinggi
+                    </label>
+                    <Input
+                      id="dimensions.height"
+                      name="dimensions.height"
+                      type="number"
+                      placeholder="0"
+                      value={formik.values.dimensions?.height || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                  </div>
+                </div>
+                {formik.touched.dimensions && formik.errors.dimensions && (
+                  <p className="text-sm text-destructive">
+                    {typeof formik.errors.dimensions === "string"
+                      ? formik.errors.dimensions
+                      : "Dimensi harus berupa angka positif"}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Sticky Submit Button */}
-        <div className="sticky bottom-0 left-0 right-0 py-4 bg-background border-t">
-          <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
-            <div>
-              {formik.status?.submitError && (
-                <div className="text-red-500">{formik.status.submitError}</div>
+        {/* Meta & SEO */}
+        <Card>
+          <CardHeader className="px-4 py-4 sm:px-6 sm:py-6">
+            <CardTitle>SEO & Meta</CardTitle>
+            <CardDescription>
+              Informasi untuk pengoptimalan mesin pencari (SEO)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="space-y-4">
+              {/* Google Search Preview */}
+              <div className="p-3 sm:p-4 border rounded-md bg-white mb-4 overflow-hidden">
+                <div className="text-xs text-muted-foreground mb-2 font-medium">
+                  Preview di Google
+                </div>
+                <GoogleSearchPreview
+                  title={metaTitle || formik.values.name}
+                  description={
+                    metaDescription ||
+                    excerpt ||
+                    formik.values.description ||
+                    ""
+                  }
+                  slug={`products/${formik.values.slug}`}
+                />
+              </div>
+
+              {/* Meta Title */}
+              <div className="space-y-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <LabelWithTooltip
+                    htmlFor="meta.title"
+                    label="Meta Title"
+                    tooltip="Judul yang muncul di hasil pencarian. Idealnya 50-60 karakter."
+                  />
+                  {metaTitleManuallyEdited && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMetaTitleManuallyEdited(false);
+                        setMetaTitle(formik.values.name);
+                        formik.setFieldValue("meta", {
+                          ...formik.values.meta,
+                          title: formik.values.name,
+                        });
+                      }}
+                      className="h-6 text-xs justify-start sm:justify-center w-auto"
+                    >
+                      Selaraskan dengan nama produk
+                    </Button>
+                  )}
+                </div>
+                <Input
+                  id="meta.title"
+                  name="meta.title"
+                  placeholder="Gunakan nama produk yang menarik"
+                  value={metaTitle}
+                  onChange={handleMetaTitleChange}
+                  onBlur={formik.handleBlur}
+                />
+                <CharacterCountSEO current={metaTitle.length} type="title" />
+              </div>
+
+              {/* Meta Description */}
+              <div className="space-y-1">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <LabelWithTooltip
+                    htmlFor="meta.description"
+                    label="Meta Description"
+                    tooltip="Deskripsi yang muncul di hasil pencarian. Idealnya 150-160 karakter."
+                  />
+                  {metaDescriptionManuallyEdited && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setMetaDescriptionManuallyEdited(false);
+                        setMetaDescription(excerpt);
+                        formik.setFieldValue("meta", {
+                          ...formik.values.meta,
+                          description: excerpt,
+                        });
+                      }}
+                      className="h-6 text-xs justify-start sm:justify-center w-auto"
+                    >
+                      Selaraskan dengan deskripsi
+                    </Button>
+                  )}
+                </div>
+                <textarea
+                  id="meta.description"
+                  name="meta.description"
+                  rows={3}
+                  className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Deskripsi singkat dan menarik tentang produk"
+                  value={metaDescription}
+                  onChange={handleMetaDescriptionChange}
+                  onBlur={formik.handleBlur}
+                ></textarea>
+                <CharacterCountSEO
+                  current={metaDescription.length}
+                  type="description"
+                />
+              </div>
+
+              {/* Hidden OG Image field - uses featuredImage by default */}
+              <input
+                type="hidden"
+                name="meta.ogImage"
+                value={
+                  formik.values.meta?.ogImage ||
+                  formik.values.featuredImage?.url ||
+                  ""
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sticky Form Actions */}
+        <div className="fixed bottom-0 left-0 right-0 py-3 px-4 sm:py-4 sm:px-6 bg-background border-t z-[5] shadow-[0_-1px_2px_rgba(0,0,0,0.1)]">
+          <div className="container flex items-center justify-end gap-2 sm:gap-4 max-w-7xl mx-auto">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSubmitting}
+              className="flex-1 sm:flex-none"
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !formik.isValid}
+              className="flex-1 sm:flex-none"
+            >
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-            </div>
-            <div className="flex gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                onClick={() => router.push("/dashboard/admin/product")}
-              >
-                Batal
-              </Button>
-              <Button type="submit" size="lg" disabled={formik.isSubmitting}>
-                {formik.isSubmitting
-                  ? "Menyimpan..."
-                  : productId
-                  ? "Perbarui Produk"
-                  : "Simpan Produk"}
-              </Button>
-            </div>
+              {initialValues ? "Perbarui Produk" : "Tambah Produk"}
+            </Button>
           </div>
         </div>
       </form>
-    </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        open={confirmDialogOpen}
+        onOpenChange={(open) => !isDeletingImages && setConfirmDialogOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Pembatalan</DialogTitle>
+            <DialogDescription>
+              Anda memiliki perubahan yang belum disimpan. Yakin ingin
+              membatalkan?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialogOpen(false)}
+              disabled={isDeletingImages}
+            >
+              Lanjutkan Mengedit
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmNavigation}
+              disabled={isDeletingImages}
+            >
+              {isDeletingImages ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Membersihkan...
+                </>
+              ) : (
+                "Ya, Batalkan"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
-}
+};
+
+export default ProductForm;
