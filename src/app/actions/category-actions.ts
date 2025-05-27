@@ -16,6 +16,7 @@ import {
   CategoryCreateInput,
   CategoryUpdateInput,
 } from "@/types/category";
+import { ApiResponse } from "@/types/common";
 import { verifyToken } from "@/lib/auth/auth";
 
 /**
@@ -48,14 +49,23 @@ async function checkAdminAuth() {
  */
 export async function createCategoryAction(
   data: CategoryCreateInput
-): Promise<CategoryData> {
-  // Verifikasi autentikasi admin
-  await checkAdminAuth();
-
-  const category = await CategoryService.createCategory(data);
-  revalidatePath("/produk");
-  revalidatePath("/dashboard/admin/product/category");
-  return category;
+): Promise<ApiResponse<CategoryData>> {
+  try {
+    // Verifikasi autentikasi admin
+    await checkAdminAuth();
+    const response = await CategoryService.createCategory(data);
+    if (response.success) {
+      revalidatePath("/produk");
+      revalidatePath("/dashboard/admin/product/category");
+    }
+    return response;
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Gagal membuat kategori",
+    };
+  }
 }
 
 /**
@@ -68,14 +78,23 @@ export async function createCategoryAction(
 export async function updateCategoryAction(
   id: string,
   data: CategoryUpdateInput
-): Promise<CategoryData> {
-  // Verifikasi autentikasi admin
-  await checkAdminAuth();
-
-  const category = await CategoryService.updateCategory(id, data);
-  revalidatePath("/produk");
-  revalidatePath("/dashboard/admin/product/category");
-  return category;
+): Promise<ApiResponse<CategoryData>> {
+  try {
+    // Verifikasi autentikasi admin
+    await checkAdminAuth();
+    const response = await CategoryService.updateCategory(id, data);
+    if (response.success) {
+      revalidatePath("/produk");
+      revalidatePath("/dashboard/admin/product/category");
+    }
+    return response;
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Gagal memperbarui kategori",
+    };
+  }
 }
 
 /**
@@ -84,17 +103,16 @@ export async function updateCategoryAction(
  * @returns Objek yang berisi status keberhasilan dan pesan opsional
  * @throws Error jika tidak terautentikasi
  */
-export async function deleteCategoryAction(
-  id: string
-): Promise<{ success: boolean; message?: string }> {
-  // Verifikasi autentikasi admin
-  await checkAdminAuth();
-
+export async function deleteCategoryAction(id: string): Promise<ApiResponse> {
   try {
-    await CategoryService.deleteCategory(id);
-    revalidatePath("/produk");
-    revalidatePath("/dashboard/admin/product/category");
-    return { success: true };
+    // Verifikasi autentikasi admin
+    await checkAdminAuth();
+    const response = await CategoryService.deleteCategory(id);
+    if (response.success) {
+      revalidatePath("/produk");
+      revalidatePath("/dashboard/admin/product/category");
+    }
+    return response;
   } catch (error) {
     return {
       success: false,
@@ -108,8 +126,20 @@ export async function deleteCategoryAction(
  * Mengambil semua kategori
  * @returns Array kategori
  */
-export async function getCategoriesAction(): Promise<CategoryData[]> {
-  return await CategoryService.getCategories();
+export async function getCategoriesAction(): Promise<
+  ApiResponse<CategoryData[]>
+> {
+  try {
+    return await CategoryService.getCategories();
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal mengambil daftar kategori",
+    };
+  }
 }
 
 /**
@@ -119,6 +149,16 @@ export async function getCategoriesAction(): Promise<CategoryData[]> {
  */
 export async function getCategoryByIdAction(
   id: string
-): Promise<CategoryData | null> {
-  return await CategoryService.getCategoryById(id);
+): Promise<ApiResponse<CategoryData>> {
+  try {
+    return await CategoryService.getCategoryById(id);
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Gagal mengambil detail kategori",
+    };
+  }
 }

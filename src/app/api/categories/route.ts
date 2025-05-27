@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/auth";
 import { CategoryService } from "@/lib/services/category-service";
+import { logError } from "@/lib/debug";
+import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api";
 
 /**
  * GET /api/categories
@@ -9,14 +10,17 @@ import { CategoryService } from "@/lib/services/category-service";
  */
 export async function GET() {
   try {
-    const categories = await CategoryService.getCategories();
-    return NextResponse.json(categories);
+    const response = await CategoryService.getCategories();
+    if (!response.success) {
+      return createErrorResponse(
+        response.message || "Gagal mengambil daftar kategori",
+        400
+      );
+    }
+    return createSuccessResponse(response.data);
   } catch (error) {
-    console.error("Error fetching categories:", error);
-    return NextResponse.json(
-      { error: "Gagal mengambil kategori" },
-      { status: 500 }
-    );
+    logError("GET /api/categories", error);
+    return createErrorResponse("Gagal mengambil daftar kategori", 500);
   }
 }
 
@@ -33,31 +37,35 @@ export async function POST(request: Request) {
       ?.split("authToken=")[1]
       ?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse(
+        "Unauthorized - Silakan login terlebih dahulu",
+        401
+      );
     }
 
     const payload = verifyToken(token);
     if (!payload || payload.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return createErrorResponse("Forbidden - Hanya admin yang diizinkan", 403);
     }
 
     const data = await request.json();
 
     // Validate input
     if (!data.name || typeof data.name !== "string") {
-      return NextResponse.json(
-        { error: "Nama kategori harus diisi" },
-        { status: 400 }
+      return createErrorResponse("Nama kategori harus diisi", 400);
+    }
+
+    const response = await CategoryService.createCategory(data);
+    if (!response.success) {
+      return createErrorResponse(
+        response.message || "Gagal membuat kategori",
+        400
       );
     }
 
-    const category = await CategoryService.createCategory(data);
-    return NextResponse.json(category, { status: 201 });
+    return createSuccessResponse(response.data, "Kategori berhasil dibuat");
   } catch (error) {
-    console.error("Error creating category:", error);
-    return NextResponse.json(
-      { error: "Gagal membuat kategori" },
-      { status: 500 }
-    );
+    logError("POST /api/categories", error);
+    return createErrorResponse("Gagal membuat kategori", 500);
   }
 }

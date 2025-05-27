@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/auth";
 import { CategoryService } from "@/lib/services/category-service";
+import { logError } from "@/lib/debug";
+import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api";
 
 /**
  * GET /api/categories/[id]
@@ -16,19 +17,13 @@ export async function GET(
     const category = await CategoryService.getCategoryById(id);
 
     if (!category) {
-      return NextResponse.json(
-        { error: "Kategori tidak ditemukan" },
-        { status: 404 }
-      );
+      return createErrorResponse("Kategori tidak ditemukan", 404);
     }
 
-    return NextResponse.json(category);
+    return createSuccessResponse(category);
   } catch (error) {
-    console.error("Error fetching category:", error);
-    return NextResponse.json(
-      { error: "Gagal mengambil kategori" },
-      { status: 500 }
-    );
+    logError("GET /api/categories/[id]", error);
+    return createErrorResponse("Gagal mengambil kategori");
   }
 }
 
@@ -48,12 +43,12 @@ export async function PATCH(
       ?.split("authToken=")[1]
       ?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse("Unauthorized", 401);
     }
 
     const payload = verifyToken(token);
     if (!payload || payload.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return createErrorResponse("Forbidden", 403);
     }
 
     const { id } = await params;
@@ -61,30 +56,21 @@ export async function PATCH(
 
     // Validate input
     if (!data.name || typeof data.name !== "string") {
-      return NextResponse.json(
-        { error: "Nama kategori harus diisi" },
-        { status: 400 }
-      );
+      return createErrorResponse("Nama kategori harus diisi", 400);
     }
 
     const category = await CategoryService.updateCategory(id, data);
-    return NextResponse.json(category);
+    return createSuccessResponse(category, "Kategori berhasil diperbarui");
   } catch (error) {
     if (
       error instanceof Error &&
       error.message === "Kategori tidak ditemukan"
     ) {
-      return NextResponse.json(
-        { error: "Kategori tidak ditemukan" },
-        { status: 404 }
-      );
+      return createErrorResponse("Kategori tidak ditemukan", 404);
     }
 
-    console.error("Error updating category:", error);
-    return NextResponse.json(
-      { error: "Gagal memperbarui kategori" },
-      { status: 500 }
-    );
+    logError("PATCH /api/categories/[id]", error);
+    return createErrorResponse("Gagal memperbarui kategori");
   }
 }
 
@@ -104,38 +90,27 @@ export async function DELETE(
       ?.split("authToken=")[1]
       ?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse("Unauthorized", 401);
     }
 
     const payload = verifyToken(token);
     if (!payload || payload.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return createErrorResponse("Forbidden", 403);
     }
 
     const { id } = await params;
     await CategoryService.deleteCategory(id);
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.message === "Kategori tidak ditemukan") {
-        return NextResponse.json(
-          { error: "Kategori tidak ditemukan" },
-          { status: 404 }
-        );
-      }
 
-      if (error.message.includes("tidak dapat dihapus karena digunakan oleh")) {
-        return NextResponse.json(
-          { success: false, message: error.message },
-          { status: 400 }
-        );
-      }
+    return createSuccessResponse(null, "Kategori berhasil dihapus");
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === "Kategori tidak ditemukan"
+    ) {
+      return createErrorResponse("Kategori tidak ditemukan", 404);
     }
 
-    console.error("Error deleting category:", error);
-    return NextResponse.json(
-      { success: false, message: "Gagal menghapus kategori" },
-      { status: 500 }
-    );
+    logError("DELETE /api/categories/[id]", error);
+    return createErrorResponse("Gagal menghapus kategori");
   }
 }

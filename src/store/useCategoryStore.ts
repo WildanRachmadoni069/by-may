@@ -10,6 +10,7 @@ import {
   CategoryCreateInput,
   CategoryUpdateInput,
 } from "@/types/category";
+import { ApiResponse } from "@/types/common";
 import {
   createCategory,
   deleteCategory,
@@ -40,9 +41,7 @@ interface CategoryState {
     data: CategoryUpdateInput
   ) => Promise<CategoryData>;
   /** Menghapus kategori */
-  deleteCategory: (
-    id: string
-  ) => Promise<{ success: boolean; message?: string }>;
+  deleteCategory: (id: string) => Promise<ApiResponse>;
   /** Mengatur status penghapusan kategori */
   setDeletingCategory: (id: string, isDeleting: boolean) => void;
 }
@@ -58,12 +57,18 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
 
   /**
    * Mengambil data kategori dari API
-   */
-  fetchCategories: async () => {
+   */ fetchCategories: async () => {
     try {
       set({ loading: true, error: null });
-      const categories = await getCategories();
-      set({ categories, loading: false });
+      const response = await getCategories();
+      if (response.success && response.data) {
+        set({ categories: response.data, loading: false });
+      } else {
+        set({
+          error: response.message || "Gagal mengambil kategori",
+          loading: false,
+        });
+      }
     } catch (error) {
       set({
         error:
@@ -81,7 +86,11 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
   createCategory: async (data: CategoryCreateInput) => {
     try {
       set({ loading: true, error: null });
-      const newCategory = await createCategory(data);
+      const response = await createCategory(data);
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "Gagal membuat kategori");
+      }
+      const newCategory = response.data;
       set((state) => ({
         categories: [...state.categories, newCategory],
         loading: false,
@@ -106,7 +115,11 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
   updateCategory: async (id: string, data: CategoryUpdateInput) => {
     try {
       set({ loading: true, error: null });
-      const updatedCategory = await updateCategory(id, data);
+      const response = await updateCategory(id, data);
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "Gagal memperbarui kategori");
+      }
+      const updatedCategory = response.data;
       set((state) => ({
         categories: state.categories.map((category) =>
           category.id === id ? updatedCategory : category
@@ -135,21 +148,21 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
         deletingCategories: { ...state.deletingCategories, [id]: true },
       }));
 
-      const result = await deleteCategory(id);
+      const response = await deleteCategory(id);
 
-      if (result.success) {
+      if (response.success) {
         set((state) => ({
           categories: state.categories.filter((category) => category.id !== id),
           deletingCategories: { ...state.deletingCategories, [id]: false },
         }));
       } else {
         set((state) => ({
-          error: result.message || "Gagal menghapus kategori",
+          error: response.message || "Gagal menghapus kategori",
           deletingCategories: { ...state.deletingCategories, [id]: false },
         }));
       }
 
-      return result;
+      return response;
     } catch (error) {
       set((state) => ({
         error:

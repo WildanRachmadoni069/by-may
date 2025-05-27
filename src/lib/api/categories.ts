@@ -9,22 +9,19 @@ import {
   CategoryCreateInput,
   CategoryUpdateInput,
 } from "@/types/category";
+import { ApiResponse } from "@/types/common";
+import { getErrorMessage } from "../debug";
 
 /**
  * Mengambil semua kategori
  * @returns Promise yang menyelesaikan ke array kategori
  */
-export async function getCategories(): Promise<CategoryData[]> {
+export async function getCategories(): Promise<ApiResponse<CategoryData[]>> {
   const res = await fetch("/api/categories", {
     next: { tags: ["categories"] },
   });
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal mengambil kategori");
-  }
-
-  return res.json();
+  return await res.json();
 }
 
 /**
@@ -32,27 +29,24 @@ export async function getCategories(): Promise<CategoryData[]> {
  * @param id ID kategori yang dicari
  * @returns Kategori yang ditemukan
  */
-export async function getCategoryById(id: string): Promise<CategoryData> {
+export async function getCategoryById(
+  id: string
+): Promise<ApiResponse<CategoryData>> {
   const res = await fetch(`/api/categories/${id}`, {
     next: { tags: [`category-${id}`] },
   });
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal mengambil kategori");
-  }
-
-  return res.json();
+  return await res.json();
 }
 
 /**
  * Membuat kategori baru
  * @param data Data kategori yang akan dibuat
- * @returns Kategori yang dibuat
+ * @returns Response API yang berisi data kategori yang dibuat
  */
 export async function createCategory(
   data: CategoryCreateInput
-): Promise<CategoryData> {
+): Promise<ApiResponse<CategoryData>> {
   const res = await fetch("/api/categories", {
     method: "POST",
     headers: {
@@ -61,24 +55,25 @@ export async function createCategory(
     body: JSON.stringify(data),
   });
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal membuat kategori");
+  const response = await res.json();
+
+  if (!response.success) {
+    throw new Error(response.message || "Failed to create category");
   }
 
-  return res.json();
+  return response;
 }
 
 /**
  * Memperbarui kategori yang sudah ada
  * @param id ID kategori yang akan diperbarui
  * @param data Data kategori yang diperbarui
- * @returns Kategori yang diperbarui
+ * @returns Response API yang berisi data kategori yang diperbarui
  */
 export async function updateCategory(
   id: string,
   data: CategoryUpdateInput
-): Promise<CategoryData> {
+): Promise<ApiResponse<CategoryData>> {
   const res = await fetch(`/api/categories/${id}`, {
     method: "PATCH",
     headers: {
@@ -87,30 +82,30 @@ export async function updateCategory(
     body: JSON.stringify(data),
   });
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal memperbarui kategori");
+  const response = await res.json();
+
+  if (!response.success) {
+    throw new Error(response.message || "Failed to update category");
   }
 
-  return res.json();
+  return response;
 }
 
 /**
  * Menghapus kategori
  * @param id ID kategori yang akan dihapus
- * @returns Hasil operasi penghapusan
+ * @returns Response API untuk operasi penghapusan
  */
-export async function deleteCategory(
-  id: string
-): Promise<{ success: boolean; message?: string }> {
+export async function deleteCategory(id: string): Promise<ApiResponse> {
   const res = await fetch(`/api/categories/${id}`, {
     method: "DELETE",
   });
 
-  if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal menghapus kategori");
+  const response = await res.json();
+
+  if (!response.success) {
+    throw new Error(response.message || "Failed to delete category");
   }
 
-  return res.json();
+  return response;
 }
