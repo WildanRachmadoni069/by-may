@@ -4,6 +4,7 @@
  * Fungsi-fungsi untuk interaksi dengan Collection API dari client components
  */
 
+import { ApiResponse } from "@/types/common";
 import {
   CollectionData,
   CollectionCreateInput,
@@ -21,11 +22,12 @@ export async function getCollections(): Promise<CollectionData[]> {
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal mengambil koleksi");
+    const error = (await res.json()) as ApiResponse;
+    throw new Error(error.message || "Gagal mengambil koleksi");
   }
 
-  return res.json();
+  const response = (await res.json()) as ApiResponse<CollectionData[]>;
+  return response.data!;
 }
 
 /**
@@ -38,7 +40,7 @@ export async function getCollectionOptions(): Promise<CollectionOption[]> {
     id: collection.id,
     name: collection.name,
     slug: collection.slug,
-    value: collection.slug, // Changed from id to slug for URL-friendly values
+    value: collection.slug,
     label: collection.name,
   }));
 }
@@ -56,11 +58,12 @@ export async function getCollectionBySlug(
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal mengambil koleksi");
+    const error = (await res.json()) as ApiResponse;
+    throw new Error(error.message || "Gagal mengambil koleksi");
   }
 
-  return res.json();
+  const response = (await res.json()) as ApiResponse<CollectionData>;
+  return response.data!;
 }
 
 /**
@@ -80,11 +83,12 @@ export async function createCollection(
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal membuat koleksi");
+    const error = (await res.json()) as ApiResponse;
+    throw new Error(error.message || "Gagal membuat koleksi");
   }
 
-  return res.json();
+  const response = (await res.json()) as ApiResponse<CollectionData>;
+  return response.data!;
 }
 
 /**
@@ -106,11 +110,12 @@ export async function updateCollection(
   });
 
   if (!res.ok) {
-    const error = await res.text();
-    throw new Error(error || "Gagal memperbarui koleksi");
+    const error = (await res.json()) as ApiResponse;
+    throw new Error(error.message || "Gagal memperbarui koleksi");
   }
 
-  return res.json();
+  const response = (await res.json()) as ApiResponse<CollectionData>;
+  return response.data!;
 }
 
 /**
@@ -120,14 +125,19 @@ export async function updateCollection(
  */
 export async function deleteCollection(
   slug: string
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; message?: string }> {
   const res = await fetch(`/api/collections/${slug}`, {
     method: "DELETE",
   });
+
   if (!res.ok) {
-    const error = await res.json();
+    const error = (await res.json()) as ApiResponse;
     throw new Error(error.message || "Gagal menghapus koleksi");
   }
 
-  return { success: true };
+  const response = (await res.json()) as ApiResponse;
+  return {
+    success: response.success,
+    message: response.message,
+  };
 }

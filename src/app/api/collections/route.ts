@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { createSuccessResponse, createErrorResponse } from "@/lib/utils/api";
 import { verifyToken } from "@/lib/auth/auth";
 import { CollectionService } from "@/lib/services/collection-service";
+import { logError } from "@/lib/debug";
 
 /**
  * GET /api/collections
@@ -10,13 +11,10 @@ import { CollectionService } from "@/lib/services/collection-service";
 export async function GET() {
   try {
     const collections = await CollectionService.getCollections();
-    return NextResponse.json(collections);
+    return createSuccessResponse(collections);
   } catch (error) {
-    console.error("Error fetching collections:", error);
-    return NextResponse.json(
-      { error: "Gagal mengambil koleksi" },
-      { status: 500 }
-    );
+    logError("GET /api/collections", error);
+    return createErrorResponse("Gagal mengambil koleksi");
   }
 }
 
@@ -33,31 +31,25 @@ export async function POST(request: Request) {
       ?.split("authToken=")[1]
       ?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse("Unauthorized", 401);
     }
 
     const payload = verifyToken(token);
     if (!payload || payload.role !== "admin") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return createErrorResponse("Forbidden", 403);
     }
 
     const data = await request.json();
 
     // Validate input
     if (!data.name || typeof data.name !== "string") {
-      return NextResponse.json(
-        { error: "Nama koleksi harus diisi" },
-        { status: 400 }
-      );
+      return createErrorResponse("Nama koleksi harus diisi", 400);
     }
 
     const collection = await CollectionService.createCollection(data);
-    return NextResponse.json(collection, { status: 201 });
+    return createSuccessResponse(collection, "Koleksi berhasil dibuat");
   } catch (error) {
-    console.error("Error creating collection:", error);
-    return NextResponse.json(
-      { error: "Gagal membuat koleksi" },
-      { status: 500 }
-    );
+    logError("POST /api/collections", error);
+    return createErrorResponse("Gagal membuat koleksi");
   }
 }

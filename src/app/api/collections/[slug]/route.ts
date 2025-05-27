@@ -1,14 +1,7 @@
-import { NextResponse } from "next/server";
+import { createSuccessResponse, createErrorResponse } from "@/lib/utils/api";
 import { verifyToken } from "@/lib/auth/auth";
 import { CollectionService } from "@/lib/services/collection-service";
 import { logError } from "@/lib/debug";
-
-/**
- * Format standardized error response
- */
-const createErrorResponse = (message: string, status: number = 500) => {
-  return NextResponse.json({ message }, { status });
-};
 
 /**
  * GET /api/collections/[slug]
@@ -27,7 +20,7 @@ export async function GET(
       return createErrorResponse("Koleksi tidak ditemukan", 404);
     }
 
-    return NextResponse.json(collection);
+    return createSuccessResponse(collection);
   } catch (error) {
     logError("GET /api/collections/[slug]", error);
     return createErrorResponse("Gagal mengambil koleksi");
@@ -67,13 +60,12 @@ export async function PATCH(
     }
 
     const collection = await CollectionService.updateCollection(slug, data);
-    return NextResponse.json(collection);
+    return createSuccessResponse(collection, "Koleksi berhasil diperbarui");
   } catch (error) {
     logError("PATCH /api/collections/[slug]", error);
     if (error instanceof Error && error.message === "Koleksi tidak ditemukan") {
       return createErrorResponse("Koleksi tidak ditemukan", 404);
     }
-
     return createErrorResponse("Gagal memperbarui koleksi");
   }
 }
@@ -112,7 +104,7 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json({ message: "Koleksi berhasil dihapus" });
+    return createSuccessResponse(null, "Koleksi berhasil dihapus");
   } catch (error) {
     logError("DELETE /api/collections/[slug]", error);
     return createErrorResponse("Gagal menghapus koleksi");
