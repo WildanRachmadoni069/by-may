@@ -39,8 +39,7 @@ export const BannerService = {
       logError("BannerService.getBanners", error);
       return {
         success: false,
-        message:
-          error instanceof Error ? error.message : "Failed to fetch banners",
+        message: "Gagal mengambil data banner",
       };
     }
   },
@@ -73,20 +72,18 @@ export const BannerService = {
       logError("BannerService.getBannerById", error);
       return {
         success: false,
-        message:
-          error instanceof Error ? error.message : "Failed to fetch banner",
+        message: "Gagal mengambil detail banner",
       };
     }
   },
 
   /**
    * Membuat banner baru
-   */  async createBanner(
+   */
+  async createBanner(
     data: BannerCreateInput
   ): Promise<ApiResponse<BannerData>> {
     try {
-      console.log("Creating banner with data:", data);
-
       // Validate and sanitize input
       const sanitizedData = {
         title: data.title?.trim() || "",
@@ -110,26 +107,27 @@ export const BannerService = {
       };
     } catch (error) {
       logError("BannerService.createBanner", error);
-      // Add more specific error handling
+      let errorMessage = "Gagal membuat banner";
+
       if (error instanceof Error) {
         if (error.message.includes("Prisma")) {
-          return {
-            success: false,
-            message: "Terjadi kesalahan pada database",
-          };
+          errorMessage = "Terjadi kesalahan pada database";
+        } else if (error.message.includes("validation")) {
+          errorMessage = "Data banner tidak valid";
         }
       }
+
       return {
         success: false,
-        message:
-          error instanceof Error ? error.message : "Failed to create banner",
+        message: errorMessage,
       };
     }
   },
 
   /**
    * Memperbarui banner yang sudah ada
-   */ async updateBanner(
+   */
+  async updateBanner(
     id: string,
     data: BannerUpdateInput
   ): Promise<ApiResponse<BannerData>> {
@@ -161,17 +159,27 @@ export const BannerService = {
       };
     } catch (error) {
       logError("BannerService.updateBanner", error);
+      let errorMessage = "Gagal memperbarui banner";
+
+      if (error instanceof Error) {
+        if (error.message.includes("Prisma")) {
+          errorMessage = "Terjadi kesalahan pada database";
+        } else if (error.message.includes("validation")) {
+          errorMessage = "Data banner tidak valid";
+        }
+      }
+
       return {
         success: false,
-        message:
-          error instanceof Error ? error.message : "Failed to update banner",
+        message: errorMessage,
       };
     }
   },
 
   /**
    * Menghapus banner
-   */ async deleteBanner(id: string): Promise<ApiResponse<void>> {
+   */
+  async deleteBanner(id: string): Promise<ApiResponse<void>> {
     try {
       const banner = await db.banner.findUnique({
         where: { id },
@@ -203,10 +211,17 @@ export const BannerService = {
       };
     } catch (error) {
       logError("BannerService.deleteBanner", error);
+      let errorMessage = "Gagal menghapus banner";
+
+      if (error instanceof Error) {
+        if (error.message.includes("Prisma")) {
+          errorMessage = "Terjadi kesalahan pada database";
+        }
+      }
+
       return {
         success: false,
-        message:
-          error instanceof Error ? error.message : "Failed to delete banner",
+        message: errorMessage,
       };
     }
   },

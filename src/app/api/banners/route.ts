@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { BannerService } from "@/lib/services/banner-service";
 import { verifyToken } from "@/lib/auth/auth";
-import { logError } from "@/lib/debug";
 import { createErrorResponse, createSuccessResponse } from "@/lib/utils/api";
 
 /**
@@ -20,8 +19,7 @@ export async function GET() {
 
     return createSuccessResponse(result.data);
   } catch (error) {
-    logError("GET /api/banners", error);
-    return createErrorResponse("Gagal mengambil data banner");
+    return createErrorResponse("Terjadi kesalahan saat mengambil data banner");
   }
 }
 
@@ -70,16 +68,18 @@ export async function POST(request: NextRequest) {
 
     return createSuccessResponse(result.data, result.message);
   } catch (error) {
-    // Log raw error tanpa formatting
-    console.error("Raw error object:", error);
-    console.error(
-      "Error stack:",
-      error instanceof Error ? error.stack : "No stack trace"
-    );
+    // Tangani error dengan pesan yang lebih baik
+    let errorMessage = "Terjadi kesalahan saat membuat banner";
 
-    // Return error message as is
-    return createErrorResponse(
-      error instanceof Error ? `${error.name}: ${error.message}` : String(error)
-    );
+    if (error instanceof Error) {
+      // Tangani error spesifik
+      if (error.message.includes("Prisma")) {
+        errorMessage = "Terjadi kesalahan pada database";
+      } else if (error.message.includes("validation")) {
+        errorMessage = "Data banner tidak valid";
+      }
+    }
+
+    return createErrorResponse(errorMessage);
   }
 }
