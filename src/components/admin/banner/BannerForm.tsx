@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import BannerImageUpload from "./BannerImageUpload";
-import { BannerFormData } from "@/types/banner";
+import { BannerFormData, BannerCreateInput } from "@/types/banner";
 
 /**
  * Interface untuk data gambar banner
@@ -25,7 +25,7 @@ interface BannerFormProps {
   /** Data awal untuk form (opsional) */
   initialData?: BannerFormData;
   /** Fungsi yang dipanggil saat form disubmit */
-  onSubmit: (data: BannerFormData) => Promise<void>;
+  onSubmit: (data: BannerCreateInput) => Promise<void>;
   /** Teks untuk tombol submit */
   submitButtonText?: string;
   /** State loading saat proses submit */
@@ -113,11 +113,10 @@ export default function BannerForm({
 
   /**
    * Menangani submit form
-   */
-  const handleSubmit = async (e: React.FormEvent) => {
+   */ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.title.trim()) {
+    if (!formData.title?.trim()) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -126,18 +125,25 @@ export default function BannerForm({
       return;
     }
 
-    if (!formData.imageUrl) {
+    if (!formData.imageUrl?.trim()) {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Gambar banner harus diupload",
       });
       return;
-    }
-
+    } // Convert form data to BannerCreateInput
+    const submitData: BannerCreateInput = {
+      title: formData.title.trim(),
+      imageUrl: formData.imageUrl.trim(),
+      url: formData.url.trim() || null,
+      active: Boolean(formData.active),
+    };
     try {
-      await onSubmit(formData);
+      console.log("Submitting banner data:", submitData);
+      await onSubmit(submitData);
     } catch (error) {
+      console.error("Error submitting banner:", error);
       toast({
         variant: "destructive",
         title: "Error",

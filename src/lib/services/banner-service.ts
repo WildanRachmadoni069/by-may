@@ -81,17 +81,18 @@ export const BannerService = {
 
   /**
    * Membuat banner baru
-   */
-  async createBanner(
+   */  async createBanner(
     data: BannerCreateInput
   ): Promise<ApiResponse<BannerData>> {
     try {
+      console.log("Creating banner with data:", data);
+
       // Validate and sanitize input
       const sanitizedData = {
-        title: data.title.trim(),
-        imageUrl: data.imageUrl.trim(),
-        url: data.url ? data.url.trim() : null,
-        active: !!data.active,
+        title: data.title?.trim() || "",
+        imageUrl: data.imageUrl?.trim() || "",
+        url: data.url?.trim() || null,
+        active: Boolean(data.active),
       };
 
       const banner = await db.banner.create({

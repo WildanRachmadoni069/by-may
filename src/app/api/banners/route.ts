@@ -70,7 +70,16 @@ export async function POST(request: NextRequest) {
 
     return createSuccessResponse(result.data, result.message);
   } catch (error) {
-    logError("POST /api/banners", error);
-    return createErrorResponse("Gagal membuat banner");
+    // Log raw error tanpa formatting
+    console.error("Raw error object:", error);
+    console.error(
+      "Error stack:",
+      error instanceof Error ? error.stack : "No stack trace"
+    );
+
+    // Return error message as is
+    return createErrorResponse(
+      error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+    );
   }
 }
