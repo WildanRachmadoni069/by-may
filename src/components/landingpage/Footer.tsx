@@ -138,33 +138,27 @@ export default function Footer() {
               itemScope
               itemType="https://schema.org/SiteNavigationElement"
             >
+              {" "}
               <Link
-                href="/produk?category=Al-Quran"
+                href="/produk?category=may-quran"
                 className="block text-muted-foreground hover:text-primary transition-colors"
                 itemProp="url"
               >
-                <span itemProp="name">Al-Qur&apos;an Custom Cover</span>
+                <span itemProp="name">Al-Qur&apos;an Custom</span>
               </Link>
               <Link
-                href="/produk?category=Sajadah"
+                href="/produk?category=may-prayer"
                 className="block text-muted-foreground hover:text-primary transition-colors"
                 itemProp="url"
               >
-                <span itemProp="name">Sajadah Premium</span>
+                <span itemProp="name">Sajadah Ukir Nama</span>
               </Link>
               <Link
-                href="/produk?category=Tasbih"
+                href="/produk?category=may-gift"
                 className="block text-muted-foreground hover:text-primary transition-colors"
                 itemProp="url"
               >
-                <span itemProp="name">Tasbih</span>
-              </Link>
-              <Link
-                href="/produk?category=Hampers"
-                className="block text-muted-foreground hover:text-primary transition-colors"
-                itemProp="url"
-              >
-                <span itemProp="name">Hampers Islami</span>
+                <span itemProp="name">Hampers</span>
               </Link>
               <Link
                 href="/produk"

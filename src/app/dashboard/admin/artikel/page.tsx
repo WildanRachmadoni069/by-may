@@ -31,6 +31,7 @@ import {
   FileText,
   X,
   CircleSlashed,
+  ListTodo,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -419,8 +420,11 @@ function ArtikelAdminPage() {
                 handleFilterStatus(value)
               }
             >
-              <SelectTrigger className="h-9 w-[120px]">
-                <SelectValue placeholder="Status" />
+              <SelectTrigger className="h-9 min-w-[120px]">
+                <div className="flex items-center">
+                  <ListTodo className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Status" />
+                </div>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
@@ -435,7 +439,7 @@ function ArtikelAdminPage() {
         {filters.searchQuery && (
           <div className="mt-2 text-xs flex items-center gap-2 text-muted-foreground">
             <Search className="h-3 w-3" />
-            Hasil untuk:{" "}
+            Hasil untuk:
             <span className="font-medium">"{filters.searchQuery}"</span>
             {articles.length === 0
               ? " (tidak ditemukan)"

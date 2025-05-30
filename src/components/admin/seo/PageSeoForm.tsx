@@ -12,6 +12,7 @@ import LabelWithTooltip from "@/components/general/LabelWithTooltip";
 import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import GoogleSearchPreview from "@/components/general/GoogleSearchPreview";
 import { updateSEOSetting } from "@/lib/api/seo";
+import { revalidatePagePath } from "@/app/actions/revalidate";
 
 export interface PageSeoFormValues {
   title: string;
@@ -49,23 +50,27 @@ export function PageSeoForm({
     onSubmit: async (values) => {
       try {
         setIsSubmitting(true);
-
         // Update SEO data via API
-        await updateSEOSetting(pageId, {
+        const result = await updateSEOSetting(pageId, {
           title: values.title,
           description: values.description,
           keywords: values.keywords || null,
           ogImage: values.ogImage || null,
         });
+        console.log(pageSlug);
+
+        // Revalidate using server action
+        await revalidatePagePath(`/${pageSlug}`);
+
+        // Trigger mutation to update the cache
+        if (onSuccess) {
+          onSuccess();
+        }
 
         toast({
           title: "Pengaturan SEO diperbarui",
           description: `Pengaturan SEO untuk halaman ${pageType} telah berhasil diperbarui.`,
         });
-
-        if (onSuccess) {
-          onSuccess();
-        }
       } catch (error) {
         console.error("Error updating SEO settings:", error);
         toast({
