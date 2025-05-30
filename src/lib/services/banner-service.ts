@@ -86,8 +86,16 @@ export const BannerService = {
     data: BannerCreateInput
   ): Promise<ApiResponse<BannerData>> {
     try {
+      // Validate and sanitize input
+      const sanitizedData = {
+        title: data.title.trim(),
+        imageUrl: data.imageUrl.trim(),
+        url: data.url ? data.url.trim() : null,
+        active: !!data.active,
+      };
+
       const banner = await db.banner.create({
-        data,
+        data: sanitizedData,
       });
 
       return {
@@ -101,6 +109,15 @@ export const BannerService = {
       };
     } catch (error) {
       logError("BannerService.createBanner", error);
+      // Add more specific error handling
+      if (error instanceof Error) {
+        if (error.message.includes("Prisma")) {
+          return {
+            success: false,
+            message: "Terjadi kesalahan pada database",
+          };
+        }
+      }
       return {
         success: false,
         message:

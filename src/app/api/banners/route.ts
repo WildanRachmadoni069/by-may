@@ -46,6 +46,22 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
+
+    // Validate required fields
+    if (!data.title || typeof data.title !== "string") {
+      return createErrorResponse("Judul banner harus diisi", 400);
+    }
+    if (!data.imageUrl || typeof data.imageUrl !== "string") {
+      return createErrorResponse("URL gambar banner harus diisi", 400);
+    }
+    if (typeof data.active !== "boolean") {
+      return createErrorResponse("Status aktif banner harus diisi", 400);
+    }
+    // URL is optional but must be string if provided
+    if (data.url && typeof data.url !== "string") {
+      return createErrorResponse("URL tujuan harus berupa string", 400);
+    }
+
     const result = await BannerService.createBanner(data);
 
     if (!result.success) {
