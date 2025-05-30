@@ -9,7 +9,7 @@ import {
 } from "@/app/actions/banner-actions";
 import BannerForm from "@/components/admin/banner/BannerForm";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BannerFormData } from "@/types/banner";
+import { BannerCreateInput, BannerFormData } from "@/types/banner";
 
 /**
  * Halaman untuk mengedit banner
@@ -56,7 +56,7 @@ export default function EditBannerPage() {
    * Menangani pembaruan banner
    * @param data Data banner yang diperbarui
    */
-  const handleUpdate = async (data: BannerFormData) => {
+  const handleUpdate = async (data: BannerCreateInput) => {
     try {
       setIsProcessing(true);
       await updateBannerAction(id, data);

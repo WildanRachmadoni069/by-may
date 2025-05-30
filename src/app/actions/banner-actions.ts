@@ -71,10 +71,26 @@ export async function updateBannerAction(
   id: string,
   data: BannerUpdateInput
 ): Promise<BannerData> {
+  // Convert and sanitize update data
+  const updateData: BannerUpdateInput = {};
+
+  if (data.title !== undefined) {
+    updateData.title = data.title.trim();
+  }
+  if (data.imageUrl !== undefined) {
+    updateData.imageUrl = data.imageUrl.trim();
+  }
+  if (data.url !== undefined) {
+    updateData.url = data.url ? data.url.trim() || null : null;
+  }
+  if (data.active !== undefined) {
+    updateData.active = data.active;
+  }
+
   // Verifikasi autentikasi admin
   await checkAdminAuth();
 
-  const result = await BannerService.updateBanner(id, data);
+  const result = await BannerService.updateBanner(id, updateData);
   if (!result.success || !result.data) {
     throw new Error(result.message || "Gagal memperbarui banner");
   }

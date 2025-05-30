@@ -23,8 +23,7 @@ interface BannerImage {
  */
 interface BannerFormProps {
   /** Data awal untuk form (opsional) */
-  initialData?: BannerFormData;
-  /** Fungsi yang dipanggil saat form disubmit */
+  initialData?: BannerFormData /** Fungsi yang dipanggil saat form disubmit */;
   onSubmit: (data: BannerCreateInput) => Promise<void>;
   /** Teks untuk tombol submit */
   submitButtonText?: string;
@@ -50,7 +49,7 @@ export default function BannerForm({
     id: initialData?.id || undefined,
     title: initialData?.title || "",
     imageUrl: initialData?.imageUrl || "",
-    url: initialData?.url || "",
+    url: initialData?.url || null,
     active: initialData?.active ?? true,
   });
 
@@ -97,7 +96,7 @@ export default function BannerForm({
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "url" ? value.trim() || null : value,
     }));
   };
 
@@ -132,13 +131,14 @@ export default function BannerForm({
         description: "Gambar banner harus diupload",
       });
       return;
-    } // Convert form data to BannerCreateInput
+    } // Sanitasi dan konversi data form
     const submitData: BannerCreateInput = {
       title: formData.title.trim(),
       imageUrl: formData.imageUrl.trim(),
-      url: formData.url.trim() || null,
+      url: formData.url?.trim() || null,
       active: Boolean(formData.active),
     };
+
     try {
       console.log("Submitting banner data:", submitData);
       await onSubmit(submitData);
@@ -185,7 +185,7 @@ export default function BannerForm({
                 <Input
                   id="url"
                   name="url"
-                  value={formData.url}
+                  value={formData.url || ""}
                   onChange={handleChange}
                   placeholder="Contoh: /promo/lebaran atau https://example.com/promo"
                   disabled={isProcessing}

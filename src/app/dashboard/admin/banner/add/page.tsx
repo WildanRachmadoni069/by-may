@@ -5,7 +5,7 @@ import { createBannerAction } from "@/app/actions/banner-actions";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { BannerFormData } from "@/types/banner";
+import { BannerCreateInput } from "@/types/banner";
 
 /**
  * Halaman untuk menambahkan banner baru
@@ -18,8 +18,7 @@ export default function AddBannerPage() {
   /**
    * Menangani pembuatan banner baru
    * @param data Data banner yang akan dibuat
-   */
-  const handleCreate = async (data: BannerFormData) => {
+   */ const handleCreate = async (data: BannerCreateInput) => {
     try {
       setIsProcessing(true);
       await createBannerAction(data);

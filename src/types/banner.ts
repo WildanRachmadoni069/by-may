@@ -64,7 +64,7 @@ export interface BannerFormData {
   /** URL gambar dari Cloudinary */
   imageUrl: string;
   /** URL tujuan saat banner diklik (opsional) */
-  url: string;
+  url: string | null;
   /** Status aktif/nonaktif banner */
   active: boolean;
 }
