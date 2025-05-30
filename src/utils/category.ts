@@ -1,5 +1,5 @@
 // SERVER-SIDE ONLY - do not import in client components
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import { slugify } from "@/lib/utils";
 
 interface Category {
@@ -12,7 +12,7 @@ interface Category {
 
 // Get all categories
 export async function getCategories(): Promise<Category[]> {
-  const categories = await prisma.category.findMany({
+  const categories = await db.category.findMany({
     orderBy: { name: "asc" },
   });
 
@@ -27,17 +27,17 @@ export async function getCategories(): Promise<Category[]> {
 
 // Get category by slug
 export async function getCategoryBySlug(slug: string) {
-  return prisma.category.findUnique({
+  return db.category.findUnique({
     where: { slug },
   });
 }
 
 // Create a new category
 export async function createCategory(name: string): Promise<Category> {
-  const category = await prisma.category.create({
-    data: { 
+  const category = await db.category.create({
+    data: {
       name,
-      slug: slugify(name)
+      slug: slugify(name),
     },
   });
 
@@ -55,11 +55,11 @@ export async function updateCategory(
   id: string,
   name: string
 ): Promise<Category> {
-  const category = await prisma.category.update({
+  const category = await db.category.update({
     where: { id },
-    data: { 
+    data: {
       name,
-      slug: slugify(name)
+      slug: slugify(name),
     },
   });
 
@@ -74,7 +74,7 @@ export async function updateCategory(
 
 // Delete a category
 export async function deleteCategory(id: string): Promise<void> {
-  await prisma.category.delete({
+  await db.category.delete({
     where: { id },
   });
 }

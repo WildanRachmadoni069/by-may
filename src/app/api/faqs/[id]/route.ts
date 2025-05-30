@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth/auth";
 import { revalidatePath } from "next/cache";
 
@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const faq = await prisma.fAQ.findUnique({
+    const faq = await db.fAQ.findUnique({
       where: { id },
     });
 
@@ -73,7 +73,7 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const existingFAQ = await prisma.fAQ.findUnique({
+    const existingFAQ = await db.fAQ.findUnique({
       where: { id },
     });
 
@@ -89,7 +89,7 @@ export async function PATCH(
     if (question !== undefined) updateData.question = question;
     if (answer !== undefined) updateData.answer = answer;
     if (order !== undefined) updateData.order = order;
-    const updatedFAQ = await prisma.fAQ.update({
+    const updatedFAQ = await db.fAQ.update({
       where: { id },
       data: updateData,
     });
@@ -136,7 +136,7 @@ export async function DELETE(
     const { id } = await params;
 
     // Cek apakah FAQ ada
-    const existingFAQ = await prisma.fAQ.findUnique({
+    const existingFAQ = await db.fAQ.findUnique({
       where: { id },
     });
 
@@ -146,7 +146,7 @@ export async function DELETE(
         { status: 404 }
       );
     } // Hapus FAQ
-    await prisma.fAQ.delete({
+    await db.fAQ.delete({
       where: { id },
     });
 

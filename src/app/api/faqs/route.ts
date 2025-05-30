@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth/auth";
 import { Prisma } from "@/generated/prisma/client";
 /**
@@ -36,10 +36,10 @@ export async function GET(request: NextRequest) {
       : {};
 
     // Ambil total count untuk paginasi
-    const total = await prisma.fAQ.count({ where });
+    const total = await db.fAQ.count({ where });
 
     // Ambil data dengan paginasi
-    const faqs = await prisma.fAQ.findMany({
+    const faqs = await db.fAQ.findMany({
       where,
       orderBy: { order: "asc" },
       skip,
@@ -99,13 +99,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Temukan order tertinggi
-    const highestOrder = await prisma.fAQ.findFirst({
+    const highestOrder = await db.fAQ.findFirst({
       orderBy: { order: "desc" },
     });
     const nextOrder = highestOrder ? highestOrder.order + 1 : 0;
 
     // Buat FAQ baru
-    const faq = await prisma.fAQ.create({
+    const faq = await db.fAQ.create({
       data: {
         question,
         answer,

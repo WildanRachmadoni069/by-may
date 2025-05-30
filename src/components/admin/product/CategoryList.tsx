@@ -25,6 +25,7 @@ import {
 import { useCategoryStore } from "@/store/useCategoryStore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { logError, getErrorMessage } from "@/lib/debug";
+import { CategoryData } from "@/types/category";
 
 /**
  * Komponen untuk menampilkan dan mengelola daftar kategori
@@ -41,9 +42,9 @@ export default function CategoryList() {
     deletingCategories,
   } = useCategoryStore();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   // Ambil data kategori saat komponen dimount
@@ -53,18 +54,25 @@ export default function CategoryList() {
 
   /**
    * Menangani permintaan edit kategori
-   * @param category Kategori yang akan diedit
    */
-  const handleEdit = (category: { id: string; name: string }) => {
-    setEditingId(category.id);
+  const handleEdit = (category: CategoryData) => {
+    setEditingSlug(category.slug);
     setEditName(category.name);
+  };
+
+  /**
+   * Menangani pembatalan edit
+   */
+  const handleCancelEdit = () => {
+    setEditingSlug(null);
+    setEditName("");
   };
 
   /**
    * Menangani penyimpanan perubahan kategori
    */
   const handleSaveEdit = async () => {
-    if (!editingId) return;
+    if (!editingSlug) return;
 
     if (!editName.trim()) {
       toast({
@@ -77,19 +85,38 @@ export default function CategoryList() {
 
     try {
       setIsEditing(true);
-      await updateCategory(editingId, { name: editName });
-      toast({
-        title: "Kategori berhasil diperbarui",
-        description: "Perubahan pada kategori telah disimpan.",
-      });
-      setEditingId(null);
-      setEditName("");
+      const category = categories.find((c) => c.slug === editingSlug);
+      if (!category) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Kategori tidak ditemukan",
+        });
+        return;
+      }
+
+      const result = await updateCategory(category.id, { name: editName });
+
+      if (result.success && result.data) {
+        // Refresh data untuk memastikan UI terupdate
+        await fetchCategories();
+
+        toast({
+          title: "Kategori berhasil diperbarui",
+          description:
+            result.message || "Perubahan pada kategori telah disimpan.",
+        });
+        setEditingSlug(null);
+        setEditName("");
+      } else {
+        throw new Error(result.message || "Gagal memperbarui kategori");
+      }
     } catch (error) {
       logError("CategoryList.handleSaveEdit", error);
       toast({
-        title: "Gagal memperbarui kategori",
-        description: getErrorMessage(error),
         variant: "destructive",
+        title: "Error",
+        description: getErrorMessage(error),
       });
     } finally {
       setIsEditing(false);
@@ -100,25 +127,35 @@ export default function CategoryList() {
    * Menangani penghapusan kategori
    */
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteSlug) return;
 
     try {
-      const result = await deleteCategory(deleteId);
-
-      if (result.success) {
-        toast({
-          title: "Kategori berhasil dihapus",
-          description: "Kategori telah dihapus dari database.",
-        });
-      } else {
+      const category = categories.find((c) => c.slug === deleteSlug);
+      if (!category) {
         toast({
           variant: "destructive",
-          title: "Gagal menghapus kategori",
-          description:
-            result.message || "Terjadi kesalahan saat menghapus kategori.",
+          title: "Error",
+          description: "Kategori tidak ditemukan",
         });
+        return;
       }
-      setDeleteId(null);
+
+      const result = await deleteCategory(category.id);
+
+      if (result.success) {
+        // Refresh data untuk memastikan UI terupdate
+        await fetchCategories();
+
+        toast({
+          title: "Kategori berhasil dihapus",
+          description:
+            result.message || "Kategori telah dihapus dari database.",
+        });
+      } else {
+        throw new Error(
+          result.message || "Terjadi kesalahan saat menghapus kategori."
+        );
+      }
     } catch (error) {
       logError("CategoryList.handleDelete", error);
       toast({
@@ -127,48 +164,9 @@ export default function CategoryList() {
         description: getErrorMessage(error),
       });
     } finally {
-      setDeleteId(null);
+      setDeleteSlug(null);
     }
   };
-
-  /**
-   * Render loading skeleton
-   */
-  if (loading && categories.length === 0) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  /**
-   * Render error state
-   */
-  if (error) {
-    return (
-      <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
-        <p>Terjadi kesalahan saat memuat data: {error}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => fetchCategories()}
-          className="mt-2"
-        >
-          Coba Lagi
-        </Button>
-      </div>
-    );
-  }
-
-  if (categories.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
-        <CircleSlashed className="h-8 w-8" />
-        <p>Belum ada kategori</p>
-      </div>
-    );
-  }
 
   return (
     <div className="border rounded-md">
@@ -176,106 +174,171 @@ export default function CategoryList() {
         <TableHeader>
           <TableRow>
             <TableHead>Nama Kategori</TableHead>
+            <TableHead>Slug</TableHead>
             <TableHead className="text-right">Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {categories.map((category) => (
-            <TableRow key={category.id}>
-              <TableCell>
-                {editingId === category.id ? (
-                  <div className="flex flex-col md:flex-row gap-2 items-center">
-                    <Input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !isEditing) {
-                          handleSaveEdit();
-                        }
-                      }}
-                      className="flex-grow"
-                      disabled={isEditing}
-                    />
-                    <div className="w-full flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={handleSaveEdit}
-                        disabled={isEditing}
-                      >
-                        {isEditing && (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        )}
-                        {isEditing ? "Menyimpan..." : "Simpan"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setEditingId(null)}
-                        disabled={isEditing}
-                      >
-                        Batal
-                      </Button>
-                    </div>
+          {loading ? (
+            // Loading skeleton
+            [...Array(3)].map((_, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <Skeleton className="h-6 w-[200px]" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-[120px]" />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
                   </div>
-                ) : (
-                  category.name
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
+                </TableCell>
+              </TableRow>
+            ))
+          ) : error ? (
+            // Error state
+            <TableRow>
+              <TableCell colSpan={3}>
+                <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+                  <p>Terjadi kesalahan saat memuat data: {error}</p>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(category)}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchCategories()}
+                    className="mt-2"
                   >
-                    <Pencil className="h-4 w-4" />
+                    Coba Lagi
                   </Button>
-                  <Dialog open={deleteId === category.id}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setDeleteId(category.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-primary" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Hapus Kategori</DialogTitle>
-                        <DialogDescription>
-                          Apakah Anda yakin ingin menghapus kategori ini?
-                          Kategori yang dihapus tidak dapat dikembalikan.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => setDeleteId(null)}
-                        >
-                          Batal
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          onClick={handleDelete}
-                          disabled={deletingCategories[category.id]}
-                        >
-                          {deletingCategories[category.id] ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Menghapus...
-                            </>
-                          ) : (
-                            "Hapus"
-                          )}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+          ) : categories.length === 0 ? (
+            // Empty state
+            <TableRow>
+              <TableCell colSpan={3}>
+                <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+                  <CircleSlashed className="h-8 w-8" />
+                  <p>Belum ada kategori</p>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            // Data state
+            categories.map((category) => (
+              <TableRow key={category.id}>
+                <TableCell>
+                  {editingSlug === category.slug ? (
+                    <div className="flex flex-col md:flex-row gap-2 items-center">
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !isEditing) {
+                            handleSaveEdit();
+                          }
+                        }}
+                        className="flex-grow"
+                        disabled={isEditing}
+                      />
+                      <div className="w-full md:w-auto flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={handleSaveEdit}
+                          disabled={isEditing}
+                        >
+                          {isEditing && (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          )}
+                          {isEditing ? "Menyimpan..." : "Simpan"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                          disabled={isEditing}
+                        >
+                          Batal
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    category.name
+                  )}
+                </TableCell>
+                <TableCell>{category.slug}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(category)}
+                      disabled={editingSlug !== null || isEditing}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Dialog
+                      open={deleteSlug === category.slug}
+                      onOpenChange={(isOpen) => !isOpen && setDeleteSlug(null)}
+                    >
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteSlug(category.slug)}
+                          disabled={
+                            deleteSlug !== null ||
+                            deletingCategories[category.slug]
+                          }
+                          className="text-destructive hover:text-destructive"
+                        >
+                          {deletingCategories[category.slug] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Hapus Kategori</DialogTitle>
+                          <DialogDescription>
+                            Apakah Anda yakin ingin menghapus kategori &quot;
+                            {category.name}&quot;? Kategori yang dihapus tidak
+                            dapat dikembalikan.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setDeleteSlug(null)}
+                            disabled={deletingCategories[category.slug]}
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                            disabled={deletingCategories[category.slug]}
+                          >
+                            {deletingCategories[category.slug] ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Menghapus...
+                              </>
+                            ) : (
+                              "Hapus"
+                            )}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

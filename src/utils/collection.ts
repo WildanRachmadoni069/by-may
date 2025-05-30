@@ -1,5 +1,5 @@
 // SERVER-SIDE ONLY - do not import in client components
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import { slugify } from "@/lib/utils";
 
 interface Collection {
@@ -12,7 +12,7 @@ interface Collection {
 
 // Get all collections
 export async function getCollections(): Promise<Collection[]> {
-  const collections = await prisma.collection.findMany({
+  const collections = await db.collection.findMany({
     orderBy: { name: "asc" },
   });
 
@@ -27,7 +27,7 @@ export async function getCollections(): Promise<Collection[]> {
 
 // Create a new collection
 export async function createCollection(name: string): Promise<Collection> {
-  const collection = await prisma.collection.create({
+  const collection = await db.collection.create({
     data: {
       name,
       slug: slugify(name),
@@ -48,7 +48,7 @@ export async function updateCollection(
   id: string,
   name: string
 ): Promise<Collection> {
-  const collection = await prisma.collection.update({
+  const collection = await db.collection.update({
     where: { id },
     data: {
       name,
@@ -67,14 +67,14 @@ export async function updateCollection(
 
 // Get collection by slug
 export async function getCollectionBySlug(slug: string) {
-  return prisma.collection.findUnique({
+  return db.collection.findUnique({
     where: { slug },
   });
 }
 
 // Delete a collection
 export async function deleteCollection(id: string): Promise<void> {
-  await prisma.collection.delete({
+  await db.collection.delete({
     where: { id },
   });
 }

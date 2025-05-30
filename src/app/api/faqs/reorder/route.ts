@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/auth/auth";
 import { revalidatePath } from "next/cache";
 
@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Update order dengan transaksi
-    await prisma.$transaction(
+    await db.$transaction(
       reorderedFAQs.map(({ id, order }) =>
-        prisma.fAQ.update({
+        db.fAQ.update({
           where: { id },
           data: { order },
         })

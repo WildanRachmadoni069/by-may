@@ -34,12 +34,14 @@ interface CategoryState {
   /** Mengambil daftar kategori */
   fetchCategories: () => Promise<void>;
   /** Membuat kategori baru */
-  createCategory: (data: CategoryCreateInput) => Promise<CategoryData>;
+  createCategory: (
+    data: CategoryCreateInput
+  ) => Promise<ApiResponse<CategoryData>>;
   /** Memperbarui kategori */
   updateCategory: (
     id: string,
     data: CategoryUpdateInput
-  ) => Promise<CategoryData>;
+  ) => Promise<ApiResponse<CategoryData>>;
   /** Menghapus kategori */
   deleteCategory: (id: string) => Promise<ApiResponse>;
   /** Mengatur status penghapusan kategori */
@@ -87,22 +89,24 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     try {
       set({ loading: true, error: null });
       const response = await createCategory(data);
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Gagal membuat kategori");
+      if (response.success && response.data) {
+        set((state) => ({
+          categories: [...state.categories, response.data!],
+          loading: false,
+        }));
       }
-      const newCategory = response.data;
-      set((state) => ({
-        categories: [...state.categories, newCategory],
-        loading: false,
-      }));
-      return newCategory;
+      return response;
     } catch (error) {
       set({
         error:
           error instanceof Error ? error.message : "Gagal membuat kategori",
         loading: false,
       });
-      throw error;
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Gagal membuat kategori",
+      };
     }
   },
 
@@ -116,24 +120,31 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     try {
       set({ loading: true, error: null });
       const response = await updateCategory(id, data);
-      if (!response.success || !response.data) {
-        throw new Error(response.message || "Gagal memperbarui kategori");
+
+      if (response.success && response.data) {
+        set((state) => {
+          const newCategories = state.categories.map((category) =>
+            category.id === id ? response.data! : category
+          );
+
+          return {
+            categories: newCategories,
+            loading: false,
+          };
+        });
       }
-      const updatedCategory = response.data;
-      set((state) => ({
-        categories: state.categories.map((category) =>
-          category.id === id ? updatedCategory : category
-        ),
-        loading: false,
-      }));
-      return updatedCategory;
+      return response;
     } catch (error) {
       set({
         error:
           error instanceof Error ? error.message : "Gagal memperbarui kategori",
         loading: false,
       });
-      throw error;
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Gagal memperbarui kategori",
+      };
     }
   },
 
