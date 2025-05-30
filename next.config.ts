@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+const { PrismaPlugin } = require("@prisma/nextjs-monorepo-workaround-plugin");
 
 const nextConfig: NextConfig = {
   images: {
@@ -33,6 +34,14 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true, // Enable CSS optimization
     scrollRestoration: true, // Enhance scrolling navigation behavior
+  },
+  serverExternalPackages: ["@prisma/client", "bcrypt"],
+  output: "standalone",
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
+    if (isServer) {
+      config.plugins = [...(config.plugins || []), new PrismaPlugin()];
+    }
+    return config;
   },
   env: {
     NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:
