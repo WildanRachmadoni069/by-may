@@ -11,6 +11,7 @@ import React from "react";
 import { Metadata } from "next";
 import { ProductService } from "@/lib/services/product-service";
 import { createExcerptFromHtml } from "@/lib/utils";
+import { generateProductStructuredData } from "@/lib/utils/performance";
 
 // Props untuk layout dengan Promise-based params sesuai Next.js 15
 interface Props {
@@ -57,33 +58,14 @@ export async function generateMetadata({
     );
     const maxPrice = Math.max(
       ...(prices.length ? prices : [product.basePrice || 0])
-    );
-
-    // Create JSON-LD structured data
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "Product",
-      name: product.name,
-      description: description,
-      image: product.featuredImage?.url || [],
-      sku: product.id,
-      category: product.category?.name || "Al-Quran Custom Cover",
-      brand: {
-        "@type": "Brand",
-        name: "bymayscarf",
-      },
-      offers: {
-        "@type": "AggregateOffer",
-        priceCurrency: "IDR",
-        lowPrice: minPrice,
-        highPrice: maxPrice,
-        offerCount: product.priceVariants.length || 1,
-        availability:
-          product.baseStock || product.priceVariants.some((v) => v.stock > 0)
-            ? "https://schema.org/InStock"
-            : "https://schema.org/OutOfStock",
-      },
-    };
+    ); // Generate structured data using utility function
+    const structuredData = generateProductStructuredData({
+      ...product,
+      description,
+      basePrice: product.basePrice || 0,
+      images: product.additionalImages || [],
+      featuredImage: product.featuredImage,
+    });
     const keywordList = [product.name, "bymayscarf", "Al-Quran Custom Cover"];
 
     if (product.category?.name) {

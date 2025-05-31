@@ -38,16 +38,69 @@ export const defaultStructuredData = {
  * @returns Product structured data object
  */
 export function generateProductStructuredData(product: any) {
-  const basePrice = product.priceVariants?.[0]?.price || product.price;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
   const oneYearFromNow = new Date();
   oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+  const priceValidUntil = oneYearFromNow.toISOString().split("T")[0];
 
+  // Handle products with variations
+  if (
+    product.hasVariations &&
+    product.priceVariants &&
+    product.priceVariants.length > 0
+  ) {
+    const prices = product.priceVariants
+      .map((variant: any) => variant.price)
+      .filter(Boolean);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+
+    return {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      image:
+        product.images && product.images.length > 0
+          ? product.images.map((img: any) => img.url).filter(Boolean)
+          : product.featuredImage?.url || "",
+      description: product.description,
+      sku: product.sku || product.id,
+      mpn: product.id,
+      brand: {
+        "@type": "Brand",
+        name: "bymayscarf",
+      },
+      offers: {
+        "@type": "AggregateOffer",
+        priceCurrency: "IDR",
+        lowPrice: Number(minPrice),
+        highPrice: Number(maxPrice),
+        offerCount: prices.length,
+        priceValidUntil: priceValidUntil,
+        offers: product.priceVariants.map((variant: any) => ({
+          "@type": "Offer",
+          price: Number(variant.price),
+          priceCurrency: "IDR",
+          priceValidUntil: priceValidUntil,
+          availability:
+            variant.stock > 0
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+        })),
+      },
+    };
+  }
+
+  // Handle simple products without variations
+  const price = product.basePrice || product.price || 0;
   return {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: product.images?.[0]?.url || "",
+    image:
+      product.images && product.images.length > 0
+        ? product.images.map((img: any) => img.url).filter(Boolean)
+        : product.featuredImage?.url || "",
     description: product.description,
     sku: product.sku || product.id,
     mpn: product.id,
@@ -59,10 +112,10 @@ export function generateProductStructuredData(product: any) {
       "@type": "Offer",
       url: `${baseUrl}/produk/${product.slug}`,
       priceCurrency: "IDR",
-      price: basePrice,
-      priceValidUntil: oneYearFromNow.toISOString().split("T")[0],
+      price: Number(price),
+      priceValidUntil: priceValidUntil,
       availability:
-        product.stock > 0
+        product.baseStock > 0
           ? "https://schema.org/InStock"
           : "https://schema.org/OutOfStock",
       seller: {
