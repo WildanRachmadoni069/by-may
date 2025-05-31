@@ -288,77 +288,105 @@ export const useProductVariationStore = create<ProductVariationState>(
 
     // Menghasilkan varian harga berdasarkan kombinasi opsi yang ada
     generatePriceVariants: () => {
-      const { variations } = get();
+      console.log("Generating price variants...");
+      const { variations, hasVariations } = get();
 
-      // Jika tidak ada variasi, jangan hasilkan varian harga
-      if (variations.length === 0) {
+      // Validasi state
+      if (!hasVariations || !variations || variations.length === 0) {
+        console.log(
+          "No variations found or variations not enabled, skipping price variant generation"
+        );
         set({ priceVariants: [] });
         return;
       }
 
-      // Dapatkan varian harga yang sudah ada untuk mempertahankan nilai
-      const existingPriceVariants = get().priceVariants;
+      // Validasi bahwa semua variasi memiliki nama dan opsi yang valid
+      const invalidVariations = variations.filter(
+        (v) =>
+          !v.name ||
+          !v.options ||
+          v.options.length === 0 ||
+          v.options.some((o) => !o.name)
+      );
+      if (invalidVariations.length > 0) {
+        console.warn("Found invalid variations:", invalidVariations);
+        return;
+      }
 
-      // Fungsi pembantu untuk menghasilkan kombinasi opsi secara rekursif
+      // Simpan varian harga yang sudah ada
+      const existingPriceVariants = [...get().priceVariants];
+      console.log("Existing price variants:", existingPriceVariants);
+
+      // Fungsi pembantu untuk membuat label yang readable
+      const createLabel = (
+        variation: Variation,
+        option: VariationOption
+      ): string => {
+        return `${variation.name}: ${option.name}`;
+      };
+
+      // Fungsi rekursif untuk generate kombinasi
       const generateCombinations = (
-        currentVariationIndex: number,
+        currentIndex: number = 0,
         currentCombination: string[] = [],
         currentLabels: string[] = []
-      ): { combination: string[]; labels: string[] }[] => {
-        // Kasus dasar: jika semua variasi telah diproses, kembalikan kombinasi saat ini
-        if (currentVariationIndex >= variations.length) {
+      ): Array<{ combination: string[]; labels: string[] }> => {
+        if (currentIndex >= variations.length) {
           return [{ combination: currentCombination, labels: currentLabels }];
         }
 
-        const currentVariation = variations[currentVariationIndex];
-        let results: { combination: string[]; labels: string[] }[] = [];
+        const currentVariation = variations[currentIndex];
+        const results: Array<{ combination: string[]; labels: string[] }> = [];
 
-        // Untuk setiap opsi dalam variasi saat ini, buat kombinasi baru
-        currentVariation.options.forEach((option) => {
-          // Gunakan ID yang sebenarnya jika tersedia, jika tidak buat ID sementara
-          const optionId =
-            option.id || `temp-${currentVariation.name}-${option.name}`;
-          const optionLabel = `${currentVariation.name}: ${option.name}`;
+        // Iterasi melalui opsi untuk variasi saat ini
+        for (const option of currentVariation.options) {
+          if (!option.name) continue;
 
-          // Secara rekursif hasilkan kombinasi untuk level variasi berikutnya
+          const optionId = option.id || `temp-${Date.now()}-${option.name}`;
+          const label = createLabel(currentVariation, option);
+
+          // Generate kombinasi untuk level berikutnya
           const nextCombinations = generateCombinations(
-            currentVariationIndex + 1,
+            currentIndex + 1,
             [...currentCombination, optionId],
-            [...currentLabels, optionLabel]
+            [...currentLabels, label]
           );
 
-          results = [...results, ...nextCombinations];
-        });
+          results.push(...nextCombinations);
+        }
 
         return results;
       };
 
-      // Hasilkan semua kombinasi yang mungkin
-      const allCombinations = generateCombinations(0);
+      // Generate kombinasi baru
+      const combinations = generateCombinations();
+      console.log("Generated combinations:", combinations);
 
-      // Petakan ke objek varian harga, pertahankan nilai yang sudah ada
-      const newPriceVariants = allCombinations.map(
-        ({ combination, labels }) => {
-          // Buat kunci unik untuk kombinasi ini
-          const combinationKey = combination.join("|");
+      // Map kombinasi ke price variants
+      const newPriceVariants = combinations.map(({ combination, labels }) => {
+        const combinationKey = combination.join("|");
+        const existingVariant = existingPriceVariants.find(
+          (pv) => pv.optionCombination.join("|") === combinationKey
+        );
 
-          // Temukan varian harga yang ada dengan kombinasi yang sama
-          const existingVariant = existingPriceVariants.find(
-            (pv) => pv.optionCombination.join("|") === combinationKey
-          );
+        // Buat variant baru, pertahankan nilai yang sudah ada jika ada
+        const variant = {
+          id: existingVariant?.id,
+          optionCombination: combination,
+          optionLabels: labels,
+          price: existingVariant?.price ?? null,
+          stock: existingVariant?.stock ?? null,
+          sku: existingVariant?.sku,
+        };
 
-          // Gunakan nilai yang ada atau default
-          return {
-            id: existingVariant?.id,
-            optionCombination: combination,
-            optionLabels: labels,
-            price: existingVariant?.price ?? null,
-            stock: existingVariant?.stock ?? null,
-            sku: existingVariant?.sku,
-          };
-        }
-      );
+        console.log(
+          `Creating price variant for combination ${combinationKey}:`,
+          variant
+        );
+        return variant;
+      });
 
+      console.log("Setting new price variants:", newPriceVariants);
       set({ priceVariants: newPriceVariants });
     },
 

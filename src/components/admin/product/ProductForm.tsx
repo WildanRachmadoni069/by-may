@@ -48,6 +48,10 @@ import CharacterCountSEO from "@/components/seo/CharacterCountSEO";
 import { useRouter } from "next/navigation";
 import { CloudinaryService } from "@/lib/services/cloudinary-service";
 import { useSWRConfig } from "swr"; // Add SWR config
+import {
+  createProductAction,
+  updateProductAction,
+} from "@/app/actions/product-actions";
 
 interface ProductFormProps {
   initialValues?: Partial<Product>;
@@ -66,6 +70,10 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isDeletingImages, setIsDeletingImages] = useState(false);
   const { mutate } = useSWRConfig(); // Get SWR's global mutate function
+  const router = useRouter();
+
+  // Check if we're in edit mode
+  const isEdit = !!initialValues?.id;
 
   // Get variation state from store
   const {
@@ -203,71 +211,123 @@ const ProductForm: React.FC<ProductFormProps> = ({
     validationSchema: formSchema,
     onSubmit: async (values) => {
       try {
-        // Pastikan semua data variasi valid dan memiliki format yang benar
-        const processedVariations = variations.map((variation) => ({
-          id: variation.id || undefined, // Gunakan undefined daripada null
-          name: variation.name,
-          options: variation.options.map((option) => ({
-            id: option.id || undefined, // Gunakan undefined daripada null
-            name: option.name,
-            imageUrl: option.imageUrl,
-          })),
-        }));
+        const { hasVariations, variations, priceVariants } =
+          useProductVariationStore.getState();
 
-        // Proses price variants agar tidak ada nilai yang null
+        // Log state saat ini untuk debugging
+        console.log("[ProductForm] Submit state:", {
+          hasVariations,
+          variations,
+          priceVariants,
+        });
+
+        // Validasi data variasi jika diperlukan
+        if (hasVariations) {
+          // Validasi variasi
+          if (!variations || variations.length === 0) {
+            throw new Error("Variasi produk harus diisi");
+          }
+
+          // Validasi bahwa setiap variasi memiliki nama dan opsi
+          const invalidVariations = variations.filter(
+            (v) =>
+              !v.name ||
+              !v.options ||
+              v.options.length === 0 ||
+              v.options.some((o) => !o.name)
+          );
+          if (invalidVariations.length > 0) {
+            console.error("Invalid variations:", invalidVariations);
+            throw new Error(
+              "Setiap variasi harus memiliki nama dan minimal satu opsi"
+            );
+          }
+
+          // Validasi price variants
+          if (!priceVariants || priceVariants.length === 0) {
+            throw new Error(
+              "Varian harga harus diisi untuk produk dengan variasi"
+            );
+          }
+
+          // Validasi bahwa setiap price variant memiliki harga dan stok
+          const invalidPriceVariants = priceVariants.filter(
+            (pv) => pv.price === null || pv.stock === null
+          );
+          if (invalidPriceVariants.length > 0) {
+            console.error("Invalid price variants:", invalidPriceVariants);
+            throw new Error(
+              "Harga dan stok harus diisi untuk setiap kombinasi variasi"
+            );
+          }
+        }
+
+        // Proses variasi
+        const processedVariations = hasVariations
+          ? variations.map((variation) => ({
+              id: variation.id,
+              name: variation.name,
+              options: variation.options.map((option) => ({
+                id: option.id,
+                name: option.name,
+                imageUrl: option.imageUrl,
+              })),
+            }))
+          : [];
+
+        // Proses price variants
         const processedPriceVariants = hasVariations
-          ? priceVariants
-              .filter((pv) => pv.price !== null && pv.stock !== null) // Jangan sertakan varian dengan nilai null
-              .map((pv) => ({
+          ? priceVariants.map((pv) => {
+              console.log("Processing price variant:", pv);
+              if (pv.price === null || pv.stock === null) {
+                throw new Error(
+                  `Harga dan stok harus diisi untuk kombinasi: ${pv.optionLabels.join(
+                    ", "
+                  )}`
+                );
+              }
+
+              return {
                 id: pv.id,
                 optionCombination: pv.optionCombination,
                 optionLabels: pv.optionLabels,
-                price: pv.price || 0, // Gunakan 0 daripada null
-                stock: pv.stock || 0, // Gunakan 0 daripada null
-                sku: pv.sku || undefined, // Gunakan undefined daripada null
-              }))
+                price:
+                  typeof pv.price === "string" ? Number(pv.price) : pv.price,
+                stock:
+                  typeof pv.stock === "string" ? Number(pv.stock) : pv.stock,
+                sku: pv.sku || undefined,
+              };
+            })
           : [];
 
-        // Set the hasVariations value from the store before submitting
-        const submissionValues = {
-          ...values,
-          hasVariations: hasVariations,
-          // Include the variations from store with proper formatting
+        // Log data yang akan dikirim
+        console.log("[ProductForm] Processed data:", {
           variations: processedVariations,
-          // Include the price variants from store if product has variations, with proper formatting
+          priceVariants: processedPriceVariants,
+        });
+
+        // Gabungkan data form dengan variasi yang telah diproses
+        const productData: CreateProductInput = {
+          ...values,
+          hasVariations,
+          variations: processedVariations,
           priceVariants: processedPriceVariants,
         };
 
-        await onSubmit(submissionValues);
+        // Log data final
+        console.log("[ProductForm] Final product data:", productData);
 
-        // Reset variation store after successful submission
-        resetVariations();
-
-        // Invalidate the products cache to ensure fresh data display
-        mutate(
-          (key: string) =>
-            typeof key === "string" && key.startsWith("/api/products"),
-          undefined,
-          { revalidate: true }
-        );
-
-        toast({
-          title: initialValues
-            ? "Produk berhasil diperbarui"
-            : "Produk berhasil ditambahkan",
-          description: `Produk ${values.name} telah ${
-            initialValues ? "diperbarui" : "ditambahkan"
-          }`,
-        });
+        // Submit data
+        await onSubmit(productData);
       } catch (error) {
-        console.error("Error submitting product form:", error);
+        console.error("[ProductForm] Failed to save product:", error);
         toast({
           variant: "destructive",
           title: "Gagal menyimpan produk",
           description:
             error instanceof Error
               ? error.message
-              : "Terjadi kesalahan saat menyimpan produk",
+              : "Terjadi kesalahan saat menyimpan produk.",
         });
       }
     },
@@ -420,8 +480,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
       description: value,
     });
   };
-
-  const router = useRouter();
 
   /**
    * Fungsi untuk menghapus gambar dari Cloudinary

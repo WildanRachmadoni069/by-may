@@ -288,7 +288,6 @@ export const ProductService = {
    * @returns Produk yang dibuat
    */
   async createProduct(data: CreateProductInput): Promise<Product> {
-    // Hasilkan slug jika tidak disediakan
     const slug = data.slug || slugify(data.name);
 
     // Periksa apakah slug sudah ada
@@ -385,84 +384,110 @@ export const ProductService = {
 
         // Buat varian harga jika ada
         if (data.priceVariants && data.priceVariants.length > 0) {
+          console.log("Processing price variants:", data.priceVariants);
+
           for (const priceVariant of data.priceVariants) {
-            // Lewati jika data yang diperlukan tidak ada
+            // Log setiap price variant sebelum validasi
+            console.log("Processing variant:", {
+              combination: priceVariant.optionCombination,
+              price: priceVariant.price,
+              stock: priceVariant.stock,
+            });
+
+            // Validasi data yang diperlukan
             if (
-              priceVariant.price === null ||
-              priceVariant.stock === null ||
               !priceVariant.optionCombination ||
               priceVariant.optionCombination.length === 0
             ) {
+              console.warn(
+                "Skipping variant - invalid option combination:",
+                priceVariant
+              );
               continue;
             }
 
-            // Buat varian harga
-            const createdPriceVariant = await db.priceVariant.create({
-              data: {
-                productId: product.id,
-                price: priceVariant.price || 0,
-                stock: priceVariant.stock || 0,
-                sku: priceVariant.sku,
-              },
-            });
+            // Gunakan default 0 untuk price/stock yang null
+            const price = priceVariant.price ?? 0;
+            const stock = priceVariant.stock ?? 0;
 
-            // Array ini akan mengumpulkan opsi yang perlu dihubungkan
-            const optionsToLink: string[] = [];
+            try {
+              // Buat varian harga
+              const createdPriceVariant = await db.priceVariant.create({
+                data: {
+                  productId: product.id,
+                  price: price,
+                  stock: stock,
+                  sku: priceVariant.sku,
+                },
+              });
 
-            // Coba mapkan setiap opsi ke ID sebenarnya
-            for (let i = 0; i < priceVariant.optionCombination.length; i++) {
-              const optionKey = priceVariant.optionCombination[i];
-              let realOptionId = variationOptionsMap.get(optionKey);
+              console.log("Created price variant:", createdPriceVariant);
 
-              // Jika tidak dapat menemukannya secara langsung, coba format lain
-              if (
-                !realOptionId &&
-                priceVariant.optionLabels &&
-                priceVariant.optionLabels[i]
-              ) {
-                // Format: "Variasi: Opsi"
-                const label = priceVariant.optionLabels[i];
-                const parts = label.split(":").map((p) => p.trim());
+              // Array untuk mengumpulkan opsi yang perlu dihubungkan
+              const optionsToLink: string[] = [];
 
-                if (parts.length === 2) {
-                  const variationName = parts[0];
-                  const optionName = parts[1];
+              // Coba mapkan setiap opsi ke ID sebenarnya
+              for (let i = 0; i < priceVariant.optionCombination.length; i++) {
+                const optionKey = priceVariant.optionCombination[i];
+                let realOptionId = variationOptionsMap.get(optionKey);
 
-                  // Coba temukan berdasarkan key gabungan
-                  realOptionId = variationOptionsMap.get(
-                    `${variationName}-${optionName}`
-                  );
+                // Jika tidak dapat menemukannya secara langsung, coba format lain
+                if (
+                  !realOptionId &&
+                  priceVariant.optionLabels &&
+                  priceVariant.optionLabels[i]
+                ) {
+                  const label = priceVariant.optionLabels[i];
+                  const parts = label.split(":").map((p) => p.trim());
 
-                  // Atau dengan key template
-                  if (!realOptionId) {
-                    realOptionId = variationOptionsMap.get(
-                      `temp-${variationName}-${optionName}`
-                    );
+                  if (parts.length === 2) {
+                    const variationName = parts[0];
+                    const optionName = parts[1];
+
+                    // Coba berbagai format key untuk menemukan ID yang benar
+                    realOptionId =
+                      variationOptionsMap.get(
+                        `${variationName}-${optionName}`
+                      ) ||
+                      variationOptionsMap.get(
+                        `temp-${variationName}-${optionName}`
+                      );
                   }
+                }
+
+                if (realOptionId) {
+                  optionsToLink.push(realOptionId);
+                } else {
+                  console.warn("Could not find real option ID for:", {
+                    optionKey,
+                    label: priceVariant.optionLabels?.[i],
+                    mapKeys: Array.from(variationOptionsMap.keys()),
+                  });
                 }
               }
 
-              // Jika ditemukan ID yang valid, tambahkan ke daftar
-              if (realOptionId) {
-                optionsToLink.push(realOptionId);
-              }
-            }
-
-            // Sekarang buat koneksi untuk semua opsi yang berhasil dipetakan
-            for (const realOptionId of optionsToLink) {
-              try {
-                await db.priceVariantToOption.create({
-                  data: {
-                    priceVariantId: createdPriceVariant.id,
+              // Buat koneksi untuk semua opsi yang berhasil dipetakan
+              for (const realOptionId of optionsToLink) {
+                try {
+                  await db.priceVariantToOption.create({
+                    data: {
+                      priceVariantId: createdPriceVariant.id,
+                      optionId: realOptionId,
+                    },
+                  });
+                } catch (error) {
+                  console.error("Failed to link option to price variant:", {
+                    variantId: createdPriceVariant.id,
                     optionId: realOptionId,
-                  },
-                });
-              } catch (error) {
-                console.error(
-                  `Gagal menghubungkan opsi ${realOptionId} ke varian harga:`,
-                  error
-                );
+                    error,
+                  });
+                }
               }
+            } catch (error) {
+              console.error("Failed to create price variant:", {
+                variant: priceVariant,
+                error,
+              });
             }
           }
         }
