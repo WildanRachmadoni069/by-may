@@ -511,35 +511,336 @@ export const ProductService = {
     slug: string,
     data: Partial<CreateProductInput>
   ): Promise<Product> {
-    const product = await this.getProductBySlug(slug);
+    const existingProduct = await this.getProductBySlug(slug);
 
-    if (!product) {
-      throw new Error(`Produk dengan slug '${slug}' tidak ditemukan`);
+    if (!existingProduct) {
+      throw new Error(`Product with slug '${slug}' not found`);
     }
 
-    // Proses field JSON untuk Prisma menggunakan fungsi konverter
-    let updateData: any = { ...data };
-
-    // Tangani field JSON
-    if ("featuredImage" in data) {
-      updateData.featuredImage = this._toPrismaJson(data.featuredImage);
+    // Validate slug uniqueness outside transaction
+    if (data.slug && data.slug !== existingProduct.slug) {
+      const productWithSlug = await db.product.findUnique({
+        where: { slug: data.slug },
+      });
+      if (productWithSlug && productWithSlug.id !== existingProduct.id) {
+        throw new Error(
+          `Slug '${data.slug}' is already used by another product`
+        );
+      }
     }
 
-    if ("additionalImages" in data && data.additionalImages) {
-      updateData.additionalImages = this._toPrismaJsonArray(
-        data.additionalImages
+    // Build relationship updates
+    const categoryUpdate =
+      data.categoryId !== undefined
+        ? data.categoryId === null
+          ? { category: { disconnect: true } }
+          : { category: { connect: { id: data.categoryId } } }
+        : {};
+
+    const collectionUpdate =
+      data.collectionId !== undefined
+        ? data.collectionId === null
+          ? { collection: { disconnect: true } }
+          : { collection: { connect: { id: data.collectionId } } }
+        : {};
+
+    // Process JSON fields
+    const updateData: Prisma.ProductUpdateInput = {
+      name: data.name,
+      slug: data.slug,
+      description:
+        data.description !== undefined ? data.description : undefined,
+      featuredImage:
+        data.featuredImage !== undefined
+          ? this._toPrismaJson(data.featuredImage)
+          : undefined,
+      additionalImages:
+        data.additionalImages !== undefined
+          ? this._toPrismaJsonArray(data.additionalImages)
+          : undefined,
+      basePrice: data.basePrice !== undefined ? data.basePrice : undefined,
+      baseStock: data.baseStock !== undefined ? data.baseStock : undefined,
+      hasVariations:
+        data.hasVariations !== undefined ? data.hasVariations : undefined,
+      specialLabel:
+        data.specialLabel !== undefined ? data.specialLabel : undefined,
+      weight: data.weight !== undefined ? data.weight : undefined,
+      dimensions:
+        data.dimensions !== undefined
+          ? this._toPrismaJson(data.dimensions)
+          : undefined,
+      meta: data.meta !== undefined ? this._toPrismaJson(data.meta) : undefined,
+    };
+
+    // Handle category relationship
+    if (data.categoryId !== undefined) {
+      updateData.category =
+        data.categoryId === null
+          ? { disconnect: true }
+          : { connect: { id: data.categoryId } };
+    }
+
+    // Handle collection relationship
+    if (data.collectionId !== undefined) {
+      updateData.collection =
+        data.collectionId === null
+          ? { disconnect: true }
+          : { connect: { id: data.collectionId } };
+    }
+
+    // Remove variations and priceVariants from updateData as they'll be handled separately
+    delete updateData.variations;
+    delete updateData.priceVariants;
+
+    try {
+      // Handle everything in a single transaction
+      const updatedProduct = await db.$transaction(
+        async (tx) => {
+          // 1. Update basic product info
+          const basicUpdate = await tx.product.update({
+            where: { id: existingProduct.id },
+            data: updateData,
+          });
+
+          // 2. Handle variations if needed
+          if (data.hasVariations && Array.isArray(data.variations)) {
+            // Delete existing variations and their options
+            await tx.productVariationOption.deleteMany({
+              where: {
+                variation: {
+                  productId: existingProduct.id,
+                },
+              },
+            });
+            await tx.productVariation.deleteMany({
+              where: { productId: existingProduct.id },
+            });
+
+            // Create new variations and build option map
+            const optionMap = new Map<string, string>();
+
+            for (const variation of data.variations) {
+              const newVariation = await tx.productVariation.create({
+                data: {
+                  productId: basicUpdate.id,
+                  name: variation.name,
+                },
+              });
+
+              if (variation.options) {
+                for (const option of variation.options) {
+                  const newOption = await tx.productVariationOption.create({
+                    data: {
+                      variationId: newVariation.id,
+                      name: option.name,
+                      imageUrl: option.imageUrl,
+                    },
+                  });
+
+                  // Map both ID and name combination
+                  if (option.id) {
+                    optionMap.set(option.id, newOption.id);
+                  }
+                  optionMap.set(
+                    `${variation.name}-${option.name}`,
+                    newOption.id
+                  );
+                  optionMap.set(
+                    `temp-${variation.name}-${option.name}`,
+                    newOption.id
+                  );
+                }
+              }
+            }
+
+            // 3. Handle price variants if they exist
+            if (Array.isArray(data.priceVariants)) {
+              // Delete all existing price variants
+              await tx.priceVariantToOption.deleteMany({
+                where: {
+                  priceVariant: {
+                    productId: existingProduct.id,
+                  },
+                },
+              });
+              await tx.priceVariant.deleteMany({
+                where: { productId: existingProduct.id },
+              });
+
+              // Create new price variants
+              for (const variant of data.priceVariants) {
+                if (!variant.optionCombination?.length) continue;
+
+                const newPriceVariant = await tx.priceVariant.create({
+                  data: {
+                    productId: basicUpdate.id,
+                    price: Number(variant.price) || 0,
+                    stock: Number(variant.stock) || 0,
+                    sku: variant.sku || undefined,
+                  },
+                });
+
+                // Connect options to price variant
+                for (const optionId of variant.optionCombination) {
+                  const realOptionId = optionMap.get(optionId);
+                  if (realOptionId) {
+                    await tx.priceVariantToOption.create({
+                      data: {
+                        priceVariantId: newPriceVariant.id,
+                        optionId: realOptionId,
+                      },
+                    });
+                  }
+                }
+              }
+            }
+          }
+
+          // Return the fully updated product with all relations
+          return tx.product.findUnique({
+            where: { id: basicUpdate.id },
+            include: {
+              variations: {
+                include: {
+                  options: true,
+                },
+              },
+              priceVariants: {
+                include: {
+                  options: {
+                    include: {
+                      option: true,
+                    },
+                  },
+                },
+              },
+              category: true,
+              collection: true,
+            },
+          });
+        },
+        {
+          timeout: 30000, // Increase timeout to 30 seconds
+          maxWait: 35000, // Maximum time to wait for transaction
+          isolationLevel: "Serializable", // Highest isolation level to prevent race conditions
+        }
+      );
+
+      if (!updatedProduct) {
+        throw new Error("Failed to update product");
+      }
+
+      // Clean up old images after successful transaction
+      await this._cleanupProductImages(existingProduct, data);
+
+      return updatedProduct as unknown as Product;
+    } catch (error) {
+      console.error("Error dalam updateProduct:", error);
+      if (error instanceof Error) {
+        throw new Error(`Failed to update product: ${error.message}`);
+      }
+      throw new Error(
+        "An unexpected error occurred while updating the product"
       );
     }
+  },
 
-    if ("dimensions" in data) {
-      updateData.dimensions = this._toPrismaJson(data.dimensions);
+  /**
+   * Menghapus produk dan semua data terkait
+   * @param slug - Slug produk yang akan dihapus
+   * @returns Status keberhasilan dan pesan opsional
+   */
+  async deleteProduct(
+    slug: string
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const product = await this.getProductBySlug(slug);
+      if (!product) {
+        return {
+          success: false,
+          message: `Product dengan slug '${slug}' tidak ditemukan`,
+        };
+      }
+
+      // Hapus produk dan semua relasinya dalam satu transaksi
+      await db.$transaction(async (tx) => {
+        // 1. Hapus semua price variant options
+        await tx.priceVariantToOption.deleteMany({
+          where: {
+            priceVariant: {
+              productId: product.id,
+            },
+          },
+        });
+
+        // 2. Hapus semua price variants
+        await tx.priceVariant.deleteMany({
+          where: { productId: product.id },
+        });
+
+        // 3. Hapus semua variation options
+        await tx.productVariationOption.deleteMany({
+          where: {
+            variation: {
+              productId: product.id,
+            },
+          },
+        });
+
+        // 4. Hapus semua variations
+        await tx.productVariation.deleteMany({
+          where: { productId: product.id },
+        });
+
+        // 5. Hapus produk utama
+        await tx.product.delete({
+          where: { id: product.id },
+        });
+      });
+
+      // Setelah transaksi berhasil, hapus gambar dari Cloudinary
+      try {
+        // Hapus featured image
+        if (product.featuredImage?.url) {
+          await CloudinaryService.deleteImageByUrl(product.featuredImage.url);
+        }
+
+        // Hapus additional images
+        if (product.additionalImages?.length) {
+          for (const image of product.additionalImages) {
+            if (image?.url) {
+              await CloudinaryService.deleteImageByUrl(image.url);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error menghapus gambar dari Cloudinary:", error);
+        // Lanjutkan meskipun ada error dalam penghapusan gambar
+        // karena produk sudah terhapus dari database
+      }
+
+      return {
+        success: true,
+        message: `Product '${product.name}' berhasil dihapus`,
+      };
+    } catch (error) {
+      console.error("Error dalam deleteProduct:", error);
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Error tidak terduga saat menghapus produk",
+      };
     }
+  },
 
-    if ("meta" in data) {
-      updateData.meta = this._toPrismaJson(data.meta);
-    }
-
-    // Tangani perubahan gambar utama - bersihkan gambar lama jika berubah
+  // Helper methods for updateProduct
+  async _cleanupProductImages(
+    product: Product,
+    data: Partial<CreateProductInput>
+  ) {
+    // Cleanup featured image
     if (
       data.featuredImage &&
       product.featuredImage &&
@@ -550,15 +851,13 @@ export const ProductService = {
           await CloudinaryService.deleteImageByUrl(product.featuredImage.url);
         }
       } catch (error) {
-        // Catat tapi lanjutkan dengan pembaruan
         console.error("Gagal menghapus gambar utama lama:", error);
       }
     }
 
-    // Tangani perubahan gambar tambahan
+    // Cleanup additional images
     if (data.additionalImages) {
       try {
-        // Temukan gambar yang ada di set lama tapi tidak ada di set baru
         const oldUrls = (product.additionalImages || [])
           .map((img) => img?.url)
           .filter(Boolean);
@@ -566,21 +865,22 @@ export const ProductService = {
           .map((img) => img?.url)
           .filter(Boolean);
 
-        // Tentukan gambar yang akan dihapus
         const urlsToDelete = oldUrls.filter((url) => !newUrls.includes(url));
 
-        // Hapus gambar yang dihapus
         for (const url of urlsToDelete) {
           await CloudinaryService.deleteImageByUrl(url);
         }
       } catch (error) {
-        // Catat tapi lanjutkan dengan pembaruan
         console.error("Error membersihkan gambar tambahan:", error);
       }
     }
+  },
 
-    // Jika slug berubah, periksa keunikannya
-    if (data.slug && data.slug !== slug) {
+  async _validateSlugUniqueness(
+    product: Product,
+    data: Partial<CreateProductInput>
+  ) {
+    if (data.slug && data.slug !== product.slug) {
       const existingWithSlug = await db.product.findUnique({
         where: { slug: data.slug },
       });
@@ -589,254 +889,57 @@ export const ProductService = {
         throw new Error(`Slug '${data.slug}' sudah digunakan oleh produk lain`);
       }
     }
-
-    try {
-      // Perbarui produk dasar dalam transaksi
-      // Gunakan transaksi untuk memastikan semua perubahan berhasil atau gagal bersama-sama
-      const updatedProduct = await db.$transaction(async (tx) => {
-        // Salin data variasi dan varian harga sebelum menghapus dari updateData
-        const variations = updateData.variations;
-        const priceVariants = updateData.priceVariants;
-
-        // Hapus data variasi dan varian harga dari updateData karena akan diproses secara terpisah
-        delete updateData.variations;
-        delete updateData.priceVariants;
-
-        // 1. Perbarui produk
-        const updatedProduct = await tx.product.update({
-          where: { id: product.id },
-          data: updateData,
-          include: {
-            variations: {
-              include: {
-                options: true,
-              },
-            },
-            priceVariants: {
-              include: {
-                options: {
-                  include: {
-                    option: true,
-                  },
-                },
-              },
-            },
-            category: true,
-            collection: true,
-          },
-        });
-
-        // 2. Perbarui varian harga jika produk memiliki variasi
-        if (data.hasVariations && priceVariants && priceVariants.length > 0) {
-          // Ambil daftar varian harga yang ada
-          const existingPriceVariants = await tx.priceVariant.findMany({
-            where: { productId: product.id },
-            include: {
-              options: {
-                include: {
-                  option: true,
-                },
-              },
-            },
-          });
-
-          // Bangun peta opsi variasi untuk membantu pencarian
-          const optionIdMap = new Map<string, string>();
-
-          // Jika ada variasi yang diberikan, gunakan itu untuk membangun peta
-          if (variations && variations.length > 0) {
-            for (const variation of variations) {
-              if (variation.options) {
-                for (const option of variation.options) {
-                  if (option.id) {
-                    // Gunakan ID yang sudah ada
-                    optionIdMap.set(option.id, option.id);
-                  }
-                }
-              }
-            }
-          }
-
-          // Jika tidak ada variasi yang diberikan, gunakan variasi yang ada pada produk
-          else if (updatedProduct.variations.length > 0) {
-            for (const variation of updatedProduct.variations) {
-              for (const option of variation.options) {
-                optionIdMap.set(option.id, option.id);
-              }
-            }
-          }
-
-          // Update atau buat varian harga baru
-          for (const priceVariant of priceVariants) {
-            // Jika tidak ada kombinasi opsi atau harga/stok null, lewati
-            if (
-              !priceVariant.optionCombination ||
-              priceVariant.optionCombination.length === 0 ||
-              priceVariant.price === null ||
-              priceVariant.stock === null
-            ) {
-              continue;
-            }
-
-            // Pastikan harga dan stok adalah angka valid
-            const price =
-              typeof priceVariant.price === "number" ? priceVariant.price : 0;
-            const stock =
-              typeof priceVariant.stock === "number" ? priceVariant.stock : 0;
-
-            // Cari apakah varian harga ini sudah ada berdasarkan ID atau kombinasi opsi
-            let existingPriceVariant = priceVariant.id
-              ? existingPriceVariants.find((pv) => pv.id === priceVariant.id)
-              : null;
-
-            // Persiapkan data untuk perbarui atau buat baru
-            const priceVariantData = {
-              productId: updatedProduct.id,
-              price, // Gunakan nilai yang sudah divalidasi
-              stock, // Gunakan nilai yang sudah divalidasi
-              sku: priceVariant.sku || undefined,
-            };
-
-            if (existingPriceVariant) {
-              // Perbarui varian harga yang ada
-              await tx.priceVariant.update({
-                where: { id: existingPriceVariant.id },
-                data: priceVariantData,
-              });
-            } else {
-              // Buat varian harga baru
-              const newPriceVariant = await tx.priceVariant.create({
-                data: priceVariantData,
-              });
-
-              // Hubungkan opsi ke varian harga yang baru
-              for (const optionId of priceVariant.optionCombination) {
-                // Periksa apakah ID opsi ini valid (ada dalam peta)
-                const validOptionId = optionIdMap.get(optionId);
-                if (validOptionId) {
-                  await tx.priceVariantToOption.create({
-                    data: {
-                      priceVariantId: newPriceVariant.id,
-                      optionId: validOptionId,
-                    },
-                  });
-                }
-              }
-            }
-          }
-        }
-
-        return updatedProduct;
-      });
-
-      return updatedProduct as unknown as Product;
-    } catch (error) {
-      console.error("Error dalam updateProduct:", error);
-      throw error;
-    }
   },
 
-  /**
-   * Menghapus produk dan gambar terkait
-   * @param slug - Slug produk
-   * @returns Status keberhasilan dan pesan opsional
-   */
-  async deleteProduct(
-    slug: string
-  ): Promise<{ success: boolean; message?: string }> {
-    const product = await this.getProductBySlug(slug);
+  async _buildOptionIdMap(
+    tx: any,
+    variations: any[] | undefined,
+    product: any
+  ): Promise<Map<string, string>> {
+    const optionIdMap = new Map<string, string>();
 
-    if (!product) {
-      throw new Error(`Produk dengan slug '${slug}' tidak ditemukan`);
-    }
-
-    try {
-      // Kumpulkan semua URL gambar yang perlu dihapus
-      const imagesToDelete: string[] = [];
-
-      // 1. Tambahkan gambar utama jika ada
-      if (product.featuredImage?.url) {
-        imagesToDelete.push(product.featuredImage.url);
-      }
-
-      // 2. Tambahkan semua gambar tambahan
-      if (product.additionalImages && Array.isArray(product.additionalImages)) {
-        for (const image of product.additionalImages) {
-          if (image?.url) {
-            imagesToDelete.push(image.url);
-          }
-        }
-      }
-
-      // 3. Tambahkan gambar opsi variasi jika ada
-      if (product.variations && Array.isArray(product.variations)) {
-        for (const variation of product.variations) {
-          if (variation.options && Array.isArray(variation.options)) {
-            for (const option of variation.options) {
-              if (option.imageUrl) {
-                imagesToDelete.push(option.imageUrl);
-              }
+    if (Array.isArray(variations) && variations.length > 0) {
+      for (const variation of variations) {
+        if (variation.options) {
+          for (const option of variation.options) {
+            if (option.id) {
+              optionIdMap.set(option.id, option.id);
             }
           }
         }
       }
-
-      // Proses penghapusan dalam transaksi agar atomic
-      let imagesDeletionResult: { success: boolean; failed: string[] } = {
-        success: true,
-        failed: [],
-      };
-
-      // Coba hapus gambar-gambar terlebih dahulu
-      if (imagesToDelete.length > 0) {
-        const results = await Promise.allSettled(
-          imagesToDelete.map((url) => CloudinaryService.deleteImageByUrl(url))
-        );
-
-        // Periksa hasil penghapusan gambar
-        const failedImages = results
-          .map((result, index) => {
-            if (
-              result.status === "rejected" ||
-              (result.status === "fulfilled" && !result.value)
-            ) {
-              return imagesToDelete[index];
-            }
-            return null;
-          })
-          .filter(Boolean) as string[];
-
-        if (failedImages.length > 0) {
-          imagesDeletionResult = {
-            success: false,
-            failed: failedImages,
-          };
+    } else if (product.variations.length > 0) {
+      for (const variation of product.variations) {
+        for (const option of variation.options) {
+          optionIdMap.set(option.id, option.id);
         }
       }
-
-      // Jika ada gambar yang gagal dihapus, batalkan seluruh operasi
-      if (!imagesDeletionResult.success) {
-        return {
-          success: false,
-          message: `Gagal menghapus ${imagesDeletionResult.failed.length} gambar produk. Penghapusan produk dibatalkan untuk menjaga konsistensi data.`,
-        };
-      }
-
-      // Jika penghapusan gambar sukses, lanjutkan dengan penghapusan produk dari database
-      await db.product.delete({
-        where: { id: product.id },
-      });
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error menghapus produk:", error);
-      return {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "Error tidak diketahui saat menghapus produk",
-      };
     }
+
+    return optionIdMap;
+  },
+
+  _isValidPriceVariant(priceVariant: any): boolean {
+    return (
+      priceVariant.optionCombination &&
+      Array.isArray(priceVariant.optionCombination) &&
+      priceVariant.optionCombination.length > 0 &&
+      priceVariant.price !== null &&
+      priceVariant.stock !== null
+    );
+  },
+
+  _getValidOptionConnections(
+    optionCombination: string[],
+    optionIdMap: Map<string, string>
+  ): { optionId: string }[] {
+    return optionCombination
+      .map((optionId) => {
+        const validOptionId = optionIdMap.get(optionId);
+        return validOptionId ? { optionId: validOptionId } : null;
+      })
+      .filter(
+        (connection): connection is { optionId: string } => connection !== null
+      );
   },
 };
