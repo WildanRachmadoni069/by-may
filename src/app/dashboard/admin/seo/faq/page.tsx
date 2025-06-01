@@ -90,7 +90,7 @@ export default function FaqPageSEO() {
           <p className="text-sm text-muted-foreground">
             Optimalisasi halaman FAQ Anda untuk mesin pencari
           </p>
-        </div>{" "}
+        </div>
       </div>
 
       {/* Tampilkan pesan jika data SEO tidak ada */}

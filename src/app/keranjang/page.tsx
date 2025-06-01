@@ -408,7 +408,7 @@ export default function CartPage() {
 
                               {/* Add Stock Information */}
                               <p className="text-xs text-muted-foreground">
-                                Stok:{" "}
+                                Stok:
                                 {item.priceVariant?.stock || "Tidak tersedia"}
                               </p>
                             </div>

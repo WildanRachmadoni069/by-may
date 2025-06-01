@@ -3,12 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ProductForm from "@/components/admin/product/ProductForm";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-} from "@/components/ui/breadcrumb";
-import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { createProductAction } from "@/app/actions/product-actions";
 import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { CreateProductInput } from "@/types/product";
@@ -84,22 +80,19 @@ export default function AddProductPage() {
       setIsSubmitting(false);
     }
   };
-
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <Breadcrumb separator={<ChevronRight className="h-4 w-4" />}>
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/dashboard/admin/product">
-            Produk
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <BreadcrumbLink>Tambah Produk</BreadcrumbLink>
-        </BreadcrumbItem>
-      </Breadcrumb>
+      <div className="flex items-center gap-4 mb-4">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => router.push("/dashboard/admin/product")}
+          aria-label="Kembali"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-3xl font-bold">Tambah Produk</h1>
+      </div>
 
       <div>
         <h1 className="text-3xl font-bold mb-2">Tambah Produk Baru</h1>

@@ -90,7 +90,7 @@ export default function AboutPageSEO() {
           <p className="text-sm text-muted-foreground">
             Optimalisasi halaman Tentang Kami untuk mesin pencari
           </p>
-        </div>{" "}
+        </div>
       </div>
 
       {/* Tampilkan pesan jika data SEO tidak ada */}

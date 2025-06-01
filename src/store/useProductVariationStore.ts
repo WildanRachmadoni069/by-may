@@ -292,14 +292,10 @@ export const useProductVariationStore = create<ProductVariationState>(
 
     // Menghasilkan varian harga berdasarkan kombinasi opsi yang ada
     generatePriceVariants: () => {
-      console.log("Generating price variants...");
       const { variations, hasVariations } = get();
 
       // Validasi state
       if (!hasVariations || !variations || variations.length === 0) {
-        console.log(
-          "No variations found or variations not enabled, skipping price variant generation"
-        );
         set({ priceVariants: [] });
         return;
       }
@@ -319,7 +315,6 @@ export const useProductVariationStore = create<ProductVariationState>(
 
       // Simpan varian harga yang sudah ada
       const existingPriceVariants = [...get().priceVariants];
-      console.log("Existing price variants:", existingPriceVariants);
 
       // Fungsi pembantu untuk membuat label yang readable
       const createLabel = (
@@ -364,7 +359,6 @@ export const useProductVariationStore = create<ProductVariationState>(
 
       // Generate kombinasi baru
       const combinations = generateCombinations();
-      console.log("Generated combinations:", combinations);
 
       // Map kombinasi ke price variants
       const newPriceVariants = combinations.map(({ combination, labels }) => {
@@ -383,14 +377,9 @@ export const useProductVariationStore = create<ProductVariationState>(
           sku: existingVariant?.sku,
         };
 
-        console.log(
-          `Creating price variant for combination ${combinationKey}:`,
-          variant
-        );
         return variant;
       });
 
-      console.log("Setting new price variants:", newPriceVariants);
       set({ priceVariants: newPriceVariants });
     },
 

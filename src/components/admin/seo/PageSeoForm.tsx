@@ -57,8 +57,6 @@ export function PageSeoForm({
           keywords: values.keywords || null,
           ogImage: values.ogImage || null,
         });
-        console.log(pageSlug);
-
         // Revalidate using server action
         await revalidatePagePath(`/${pageSlug}`);
 
@@ -143,7 +141,7 @@ export function PageSeoForm({
             placeholder="contoh: al-quran custom, sajadah, tasbih, hampers islami"
             {...formik.getFieldProps("keywords")}
           />
-        </div>{" "}
+        </div>
         <div className="space-y-2">
           <LabelWithTooltip
             htmlFor="ogImage"

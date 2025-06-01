@@ -74,7 +74,7 @@ const VariationPreview = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-medium">
-            Variasi {index + 1}:{" "}
+            Variasi {index + 1}:
             <span className="font-semibold">{variation.name}</span>
           </h3>
           <Badge variant="outline" className="ml-1">

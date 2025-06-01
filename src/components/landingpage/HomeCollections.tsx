@@ -39,7 +39,7 @@ export default function HomeCollections({
           title={featuredProductsTitle}
           specialLabel="best"
           viewAllLink={featuredProductsLink}
-        />{" "}
+        />
       </section>
       {/* Section produk terbaru */}
       <section
@@ -52,7 +52,7 @@ export default function HomeCollections({
           title={newProductsTitle}
           specialLabel="new"
           viewAllLink={newProductsLink}
-        />{" "}
+        />
       </section>
       {/* Section artikel terbaru */}
       <section aria-labelledby="latest-articles" className="py-4">

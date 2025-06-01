@@ -133,12 +133,12 @@ export default async function ArticlePage({ searchParams }: ArticlePageProps) {
             <p className="text-gray-600">
               {hasArticles ? (
                 <>
-                  Menampilkan {total} hasil untuk pencarian{" "}
+                  Menampilkan {total} hasil untuk pencarian
                   <span className="font-medium">"{search}"</span>
                 </>
               ) : (
                 <>
-                  Tidak ditemukan artikel untuk pencarian{" "}
+                  Tidak ditemukan artikel untuk pencarian
                   <span className="font-medium">"{search}"</span>
                 </>
               )}

@@ -156,7 +156,7 @@ function ProductCollections({
           className="text-xl font-bold text-foreground sm:text-3xl border-b-2 border-b-primary pb-3 -mb-1"
           itemProp="name"
         >
-          {title}{" "}
+          {title}
         </h2>
         <div className="flex items-center gap-2 pb-3">
           <Button
@@ -191,7 +191,6 @@ function ProductCollections({
           setApi={setCarouselApi}
         >
           <CarouselContent className="-ml-1 md:-ml-2">
-            {" "}
             {displayProducts.map((product, index) => (
               <CarouselItem
                 key={product.id}

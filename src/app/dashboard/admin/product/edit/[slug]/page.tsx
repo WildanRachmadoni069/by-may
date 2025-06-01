@@ -4,13 +4,15 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ProductForm from "@/components/admin/product/ProductForm";
 import { updateProductAction } from "@/app/actions/product-actions";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import { CreateProductInput } from "@/types/product";
 import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { useProduct } from "@/hooks/useProduct";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSWRConfig } from "swr";
+import { useToast } from "@/hooks/use-toast";
+import { logError } from "@/lib/debug";
 
 export default function EditProductPage() {
   const params = useParams<{ slug: string }>();
@@ -18,6 +20,7 @@ export default function EditProductPage() {
   const router = useRouter();
   const { resetVariations } = useProductVariationStore();
   const { mutate: globalMutate } = useSWRConfig();
+  const { toast } = useToast();
 
   // Use the SWR hook to fetch product data
   const { product, isLoading, error, mutate } = useProduct(params.slug);
@@ -50,10 +53,23 @@ export default function EditProductPage() {
         { revalidate: true }
       );
 
+      // Show success toast
+      toast({
+        title: "Produk berhasil diperbarui",
+        description: `Produk "${updatedProduct.name}" telah berhasil diperbarui.`,
+      });
+
       router.push("/dashboard/admin/product");
     } catch (error) {
-      console.error("Error updating product:", error);
-      throw error;
+      logError("Failed to update product", error);
+      toast({
+        variant: "destructive",
+        title: "Gagal memperbarui produk",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Terjadi kesalahan saat memperbarui produk.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -91,7 +107,17 @@ export default function EditProductPage() {
 
   return (
     <div className="container max-w-7xl mx-auto py-6 space-y-6">
-      <h1 className="text-3xl font-bold">Edit Produk: {product.name}</h1>
+      <div className="flex items-center gap-4 mb-4">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => router.push("/dashboard/admin/product")}
+          aria-label="Kembali"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-3xl font-bold">Edit Produk: {product.name}</h1>
+      </div>
       <ProductForm
         initialValues={product}
         onSubmit={handleSubmit}

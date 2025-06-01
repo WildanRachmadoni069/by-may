@@ -69,7 +69,6 @@ function MobileNav() {
                       <AccordionTrigger className="w-full p-2 rounded-md bg-slate-100 hover:bg-slate-200 hover:no-underline transition-colors">
                         {/* Gunakan info profil sebagai trigger accordion */}
                         <div className="flex items-center gap-3 w-full">
-                          {" "}
                           <Avatar className="h-10 w-10 border-2 border-primary/20">
                             <AvatarImage
                               src=""

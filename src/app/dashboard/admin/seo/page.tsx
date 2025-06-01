@@ -77,7 +77,7 @@ export default function SEODashboardPage() {
         <p className="text-muted-foreground">
           Kelola pengaturan SEO untuk halaman statis website Anda
         </p>
-      </div>{" "}
+      </div>
       {isLoading ? null : (
         <Alert className="mb-6">
           <AlertCircle className="h-4 w-4" />
@@ -87,7 +87,7 @@ export default function SEODashboardPage() {
               : "Klik pada masing-masing kartu untuk mengelola pengaturan SEO halaman tersebut."}
           </AlertDescription>
         </Alert>
-      )}{" "}
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Home Page SEO Card */}
         <Card
@@ -109,7 +109,7 @@ export default function SEODashboardPage() {
             <p className="text-sm">
               {homepageSetting ? (
                 <>
-                  Judul:{" "}
+                  Judul:
                   {homepageSetting.title.length > 50
                     ? `${homepageSetting.title.substring(0, 50)}...`
                     : homepageSetting.title}
@@ -148,7 +148,7 @@ export default function SEODashboardPage() {
             <p className="text-sm">
               {faqSetting ? (
                 <>
-                  Judul:{" "}
+                  Judul:
                   {faqSetting.title.length > 50
                     ? `${faqSetting.title.substring(0, 50)}...`
                     : faqSetting.title}
@@ -187,7 +187,7 @@ export default function SEODashboardPage() {
             <p className="text-sm">
               {aboutSetting ? (
                 <>
-                  Judul:{" "}
+                  Judul:
                   {aboutSetting.title.length > 50
                     ? `${aboutSetting.title.substring(0, 50)}...`
                     : aboutSetting.title}

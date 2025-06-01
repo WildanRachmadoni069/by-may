@@ -384,16 +384,7 @@ export const ProductService = {
 
         // Buat varian harga jika ada
         if (data.priceVariants && data.priceVariants.length > 0) {
-          console.log("Processing price variants:", data.priceVariants);
-
           for (const priceVariant of data.priceVariants) {
-            // Log setiap price variant sebelum validasi
-            console.log("Processing variant:", {
-              combination: priceVariant.optionCombination,
-              price: priceVariant.price,
-              stock: priceVariant.stock,
-            });
-
             // Validasi data yang diperlukan
             if (
               !priceVariant.optionCombination ||
@@ -420,9 +411,6 @@ export const ProductService = {
                   sku: priceVariant.sku,
                 },
               });
-
-              console.log("Created price variant:", createdPriceVariant);
-
               // Array untuk mengumpulkan opsi yang perlu dihubungkan
               const optionsToLink: string[] = [];
 

@@ -68,29 +68,28 @@ export default function TentangKami() {
                     <p className="text-gray-700 leading-relaxed">
                       Berawal dari sebuah pertemanan di bangku perkuliahan dan
                       kesamaan minat dalam dunia investasi melalui organisasi
-                      mahasiswa, kami memulai perjalanan bisnis kami pada
-                      tahun 2021. Setelah mencoba berbagai bidang usaha mulai
-                      dari F&B hingga fashion scarf (yang menginspirasi nama
-                      brand ByMayScarf), kami menemukan peluang unik di
-                      industri percetakan Al-Qur'an custom.
+                      mahasiswa, kami memulai perjalanan bisnis kami pada tahun
+                      2021. Setelah mencoba berbagai bidang usaha mulai dari F&B
+                      hingga fashion scarf (yang menginspirasi nama brand
+                      ByMayScarf), kami menemukan peluang unik di industri
+                      percetakan Al-Qur'an custom.
                     </p>
                     <p className="text-gray-700 leading-relaxed">
                       Kami menyadari bahwa produk custom umumnya diidentikkan
-                      dengan harga premium. Namun, melalui inovasi
-                      operasional, kami berhasil menciptakan produk Al-Qur'an
-                      custom yang terjangkau namun tetap berkualitas premium.
-                      Bermula dari Shopee, kini kami hadir di empat
-                      marketplace besar Indonesia: Shopee, TikTokShop, Lazada,
-                      dan Tokopedia.
+                      dengan harga premium. Namun, melalui inovasi operasional,
+                      kami berhasil menciptakan produk Al-Qur'an custom yang
+                      terjangkau namun tetap berkualitas premium. Bermula dari
+                      Shopee, kini kami hadir di empat marketplace besar
+                      Indonesia: Shopee, TikTokShop, Lazada, dan Tokopedia.
                     </p>
                     <p className="text-gray-700 leading-relaxed">
                       Pada tahun 2022, kami resmi mendirikan CV Faza Mega
                       Berlian dan memperluas lini produk kami. Tidak hanya
-                      Al-Qur'an custom dengan berbagai varian ukuran dan
-                      desain, kami juga mengembangkan produk packaging,
-                      hardbox, softbox, serta perlengkapan ibadah lainnya
-                      seperti sajadah custom, tasbih, dan hampers untuk
-                      berbagai kesempatan seperti lebaran dan pernikahan.
+                      Al-Qur'an custom dengan berbagai varian ukuran dan desain,
+                      kami juga mengembangkan produk packaging, hardbox,
+                      softbox, serta perlengkapan ibadah lainnya seperti sajadah
+                      custom, tasbih, dan hampers untuk berbagai kesempatan
+                      seperti lebaran dan pernikahan.
                     </p>
                   </div>
                 </div>
@@ -201,7 +200,6 @@ export default function TentangKami() {
         <section className="py-16">
           <div className="container px-4">
             <div className="grid md:grid-cols-3 gap-8">
-              {" "}
               <div className="text-center">
                 <div className="relative h-[300px] rounded-lg overflow-hidden mb-4 border-2 border-primary/20 hover:border-primary/40 transition-colors">
                   <Image

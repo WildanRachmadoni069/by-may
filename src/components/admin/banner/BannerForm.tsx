@@ -140,7 +140,6 @@ export default function BannerForm({
     };
 
     try {
-      console.log("Submitting banner data:", submitData);
       await onSubmit(submitData);
     } catch (error) {
       console.error("Error submitting banner:", error);

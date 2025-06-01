@@ -138,7 +138,6 @@ export default function Footer() {
               itemScope
               itemType="https://schema.org/SiteNavigationElement"
             >
-              {" "}
               <Link
                 href="/produk?category=may-quran"
                 className="block text-muted-foreground hover:text-primary transition-colors"

@@ -109,7 +109,6 @@ function BannerLandingpage() {
                       opacity: current === index ? 1 : 0.7,
                     }}
                   >
-                    {" "}
                     {banner.url ? (
                       <Link
                         href={banner.url}
@@ -206,7 +205,7 @@ function BannerLandingpage() {
               />
             ))}
           </div>
-        )}{" "}
+        )}
       </div>
     </section>
   );

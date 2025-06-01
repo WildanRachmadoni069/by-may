@@ -20,7 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(baseUrl),
     title: {
-      default: seoData?.title || "Al-Quran Custom Cover Murah | bymayscarf",
+      default:
+        seoData?.title || "Al-Quran Custom Nama Murah di Surabaya | bymayscarf",
       template: "%s | bymayscarf",
     },
     description:

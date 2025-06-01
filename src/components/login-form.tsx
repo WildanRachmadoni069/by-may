@@ -93,7 +93,7 @@ export function LoginForm({
           <form className="p-6 md:p-8" onSubmit={formik.handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Selamat Datang Kembali</h1>{" "}
+                <h1 className="text-2xl font-bold">Selamat Datang Kembali</h1>
                 <p className="text-balance text-muted-foreground">
                   Login ke Akun bymayscarf Anda
                 </p>
@@ -151,7 +151,7 @@ export function LoginForm({
               </Button>
 
               <div className="text-center text-sm">
-                Belum Memiliki Akun?{" "}
+                Belum Memiliki Akun?
                 <Link href="/sign-up" className="underline underline-offset-4">
                   Daftar
                 </Link>

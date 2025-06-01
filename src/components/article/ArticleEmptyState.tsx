@@ -34,7 +34,7 @@ export function ArticleEmptyState({
         <p className="text-gray-500 mb-6 max-w-md mx-auto">
           Kami tidak dapat menemukan artikel yang sesuai dengan "{search}". Coba
           kata kunci lain atau lihat semua artikel.
-        </p>{" "}
+        </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link href="/artikel">
             <Button variant="outline">Lihat Semua Artikel</Button>
@@ -60,7 +60,7 @@ export function ArticleEmptyState({
       </div>
       <h2 className="text-xl font-semibold text-gray-900 mb-2">
         Belum ada artikel
-      </h2>{" "}
+      </h2>
       <p
         className={`text-gray-500 max-w-md mx-auto ${
           showHomeButton ? "mb-6" : "mb-2"

@@ -196,7 +196,7 @@ export function SignUpForm({
               </Button>
 
               <div className="text-center text-sm">
-                Sudah Punya Akun?{" "}
+                Sudah Punya Akun?
                 <Link href="/login" className="underline underline-offset-4">
                   Masuk
                 </Link>

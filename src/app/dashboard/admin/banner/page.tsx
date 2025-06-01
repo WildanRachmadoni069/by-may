@@ -124,7 +124,7 @@ function AdminBannerPage() {
         <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
           <CircleSlashed className="h-8 w-8" />
           <p>
-            Tidak ada banner dengan status{" "}
+            Tidak ada banner dengan status
             {filter.status === "active" ? "Aktif" : "Nonaktif"}
           </p>
           <Button
