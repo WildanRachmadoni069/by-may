@@ -18,8 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(baseUrl),
-    title:
-      seoData?.title || "Al-Quran Custom Nama Murah di Surabaya | By May Scarf",
+    title: seoData?.title || "Al-Quran Custom Nama Murah di Surabaya",
     description:
       seoData?.description ||
       "Jual Al-Quran custom cover dengan nama berlokasi di Surabaya, pilihan desain cantik dan harga terjangkau. Spesialis Al-Quran custom berkualitas tinggi di Indonesia.",
@@ -32,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
       "bymayscarf alquran custom nama murah di surabaya",
     ],
     openGraph: {
-      title: seoData?.title || "Al-Quran Custom Nama di Cover | By May Scarf",
+      title: seoData?.title || "Al-Quran Custom Nama di Cover",
       description:
         seoData?.description ||
         "Jual Al-Quran custom cover dengan nama, pilihan desain cantik dan harga terjangkau. Spesialis Al-Quran custom berkualitas tinggi di Indonesia.",
