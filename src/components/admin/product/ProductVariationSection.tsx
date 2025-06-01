@@ -11,6 +11,7 @@ import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { logError } from "@/lib/debug";
 import {
   Card,
   CardContent,
@@ -41,13 +42,13 @@ const deleteCloudinaryImage = async (imageUrl: string | undefined) => {
     });
 
     if (!response.ok) {
-      console.error(
-        "Gagal menghapus gambar dari Cloudinary:",
-        await response.text()
+      logError(
+        "deleteCloudinaryImage",
+        `Failed to delete image from Cloudinary: ${await response.text()}`
       );
     }
   } catch (error) {
-    console.error("Error saat menghapus gambar:", error);
+    logError("deleteCloudinaryImage", error);
   }
 };
 
@@ -613,6 +614,7 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
     removeVariation,
     setVariationFormOpen,
     generatePriceVariants,
+    resetVariations,
   } = useProductVariationStore();
 
   // Periksa apakah ada form variasi yang sedang terbuka
@@ -646,10 +648,14 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
           )
         );
       }
+    } // Hapus variasi dari store
+    if (variations.length === 1) {
+      // Jika ini variasi terakhir, reset semua state
+      resetVariations();
+    } else {
+      // Jika masih ada variasi lain, hapus variasi ini saja
+      removeVariation(index);
     }
-
-    // Hapus variasi dari store
-    removeVariation(index);
 
     toast({
       title: "Variasi dihapus",
@@ -779,9 +785,12 @@ const ProductVariationSection: React.FC<ProductVariationSectionProps> = ({
                         !variation.name
                       ) {
                         // Jika ini adalah variasi pertama yang baru ditambahkan dan belum ada nama
-                        setHasVariations(false);
+                        // Reset semua state variasi
+                        resetVariations();
+                      } else {
+                        // Jika bukan variasi pertama atau sudah ada nama, cukup tutup form
+                        setVariationFormOpen(index, false);
                       }
-                      setVariationFormOpen(index, false);
                     }}
                     onRemove={() => handleDeleteVariation(index)}
                   />

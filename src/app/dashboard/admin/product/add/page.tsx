@@ -13,14 +13,14 @@ import { createProductAction } from "@/app/actions/product-actions";
 import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { CreateProductInput } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
-import { useSWRConfig } from "swr"; // Import SWR config
+import { useSWRConfig } from "swr";
 
 export default function AddProductPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { resetVariations } = useProductVariationStore();
-  const { mutate } = useSWRConfig(); // Get global mutate function
+  const { mutate } = useSWRConfig();
 
   // Reset variation store when entering the page
   useEffect(() => {
@@ -65,12 +65,13 @@ export default function AddProductPage() {
         { revalidate: true }
       );
 
+      // Reset variations store after successful submission
+      resetVariations();
+
       // Navigate to the product list
       router.push("/dashboard/admin/product");
     } catch (error) {
       console.error("Failed to create product:", error);
-
-      // Show error toast
       toast({
         variant: "destructive",
         title: "Gagal menambahkan produk",
@@ -107,7 +108,11 @@ export default function AddProductPage() {
         </p>
       </div>
 
-      <ProductForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+      <ProductForm
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        mode="add"
+      />
     </div>
   );
 }

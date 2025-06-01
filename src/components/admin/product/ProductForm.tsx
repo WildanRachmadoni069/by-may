@@ -54,15 +54,17 @@ import {
 } from "@/app/actions/product-actions";
 
 interface ProductFormProps {
-  initialValues?: Partial<Product>;
+  initialValues?: Product;
   onSubmit: (values: CreateProductInput) => Promise<void>;
   isSubmitting?: boolean;
+  mode: "add" | "edit";
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({
   initialValues,
   onSubmit,
   isSubmitting = false,
+  mode,
 }) => {
   const { toast } = useToast();
   const [excerpt, setExcerpt] = useState<string>("");
@@ -214,13 +216,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
         const { hasVariations, variations, priceVariants } =
           useProductVariationStore.getState();
 
-        // Log state saat ini untuk debugging
-        console.log("[ProductForm] Submit state:", {
-          hasVariations,
-          variations,
-          priceVariants,
-        });
-
         // Validasi data variasi jika diperlukan
         if (hasVariations) {
           // Validasi variasi
@@ -237,7 +232,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
               v.options.some((o) => !o.name)
           );
           if (invalidVariations.length > 0) {
-            console.error("Invalid variations:", invalidVariations);
             throw new Error(
               "Setiap variasi harus memiliki nama dan minimal satu opsi"
             );
@@ -255,7 +249,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
             (pv) => pv.price === null || pv.stock === null
           );
           if (invalidPriceVariants.length > 0) {
-            console.error("Invalid price variants:", invalidPriceVariants);
             throw new Error(
               "Harga dan stok harus diisi untuk setiap kombinasi variasi"
             );
@@ -278,7 +271,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
         // Proses price variants
         const processedPriceVariants = hasVariations
           ? priceVariants.map((pv) => {
-              console.log("Processing price variant:", pv);
               if (pv.price === null || pv.stock === null) {
                 throw new Error(
                   `Harga dan stok harus diisi untuk kombinasi: ${pv.optionLabels.join(
@@ -300,12 +292,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
             })
           : [];
 
-        // Log data yang akan dikirim
-        console.log("[ProductForm] Processed data:", {
-          variations: processedVariations,
-          priceVariants: processedPriceVariants,
-        });
-
         // Gabungkan data form dengan variasi yang telah diproses
         const productData: CreateProductInput = {
           ...values,
@@ -314,13 +300,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
           priceVariants: processedPriceVariants,
         };
 
-        // Log data final
-        console.log("[ProductForm] Final product data:", productData);
-
         // Submit data
         await onSubmit(productData);
       } catch (error) {
-        console.error("[ProductForm] Failed to save product:", error);
         toast({
           variant: "destructive",
           title: "Gagal menyimpan produk",
@@ -496,7 +478,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
       });
       return true;
     } catch (error) {
-      console.error("Error deleting image:", error);
       return false;
     }
   };
@@ -590,7 +571,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
         });
       }
     } catch (error) {
-      console.error("Error cleaning up images:", error);
       toast({
         variant: "destructive",
         title: "Gagal membersihkan gambar",
@@ -614,13 +594,143 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  // Replace window.confirm with Dialog component
+  /**
+   * Membersihkan gambar yang baru diupload saat cancel
+   * Untuk mode 'add': hapus semua gambar
+   * Untuk mode 'edit': hanya hapus gambar baru yang berbeda dari initialValues
+   */
+  const cleanupUploadedImages = async () => {
+    if (!formik.dirty) return;
+
+    setIsDeletingImages(true);
+    const imagesToDelete: string[] = [];
+
+    try {
+      // Cek apakah ini mode add atau kita memiliki perubahan pada gambar
+      const shouldCleanup = mode === "add" || hasImageChanges();
+
+      if (!shouldCleanup) {
+        return;
+      }
+
+      // 1. Periksa gambar utama
+      if (
+        formik.values.featuredImage?.url &&
+        isNewlyUploadedImage(
+          formik.values.featuredImage.url,
+          initialValues?.featuredImage?.url
+        )
+      ) {
+        imagesToDelete.push(formik.values.featuredImage.url);
+      }
+
+      // 2. Periksa gambar tambahan
+      formik.values.additionalImages?.forEach((img, index) => {
+        const initialImageUrl = initialValues?.additionalImages?.[index]?.url;
+        if (img.url && isNewlyUploadedImage(img.url, initialImageUrl)) {
+          imagesToDelete.push(img.url);
+        }
+      });
+
+      // 3. Periksa gambar opsi variasi
+      const variationsFromStore = variations;
+      if (variationsFromStore && variationsFromStore.length > 0) {
+        const firstVariation = variationsFromStore[0];
+        if (firstVariation?.options) {
+          firstVariation.options.forEach((option, index) => {
+            const initialOption =
+              initialValues?.variations?.[0]?.options?.[index];
+            if (
+              option.imageUrl &&
+              isNewlyUploadedImage(option.imageUrl, initialOption?.imageUrl)
+            ) {
+              imagesToDelete.push(option.imageUrl);
+            }
+          });
+        }
+      }
+
+      // Hapus gambar yang perlu dihapus
+      if (imagesToDelete.length > 0) {
+        toast({
+          title: "Menghapus gambar",
+          description: "Sedang membersihkan gambar yang telah diupload...",
+        });
+
+        await Promise.all(
+          imagesToDelete.map((url) => deleteCloudinaryImage(url))
+        );
+
+        toast({
+          title: "Pembersihan selesai",
+          description: `${imagesToDelete.length} gambar berhasil dihapus`,
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Gagal membersihkan gambar",
+        description: "Beberapa gambar mungkin tidak berhasil dihapus",
+      });
+    } finally {
+      setIsDeletingImages(false);
+      resetVariations();
+      router.push("/dashboard/admin/product");
+    }
+  };
+
+  /**
+   * Memeriksa apakah ada perubahan pada gambar-gambar
+   */
+  const hasImageChanges = (): boolean => {
+    // Cek perubahan pada featured image
+    if (
+      formik.values.featuredImage?.url !== initialValues?.featuredImage?.url
+    ) {
+      return true;
+    }
+
+    // Cek perubahan pada additional images
+    const initialImagesUrls =
+      initialValues?.additionalImages?.map((img) => img.url) || [];
+    const currentImagesUrls =
+      formik.values.additionalImages?.map((img) => img.url) || [];
+
+    if (initialImagesUrls.length !== currentImagesUrls.length) {
+      return true;
+    }
+
+    if (
+      currentImagesUrls.some((url, index) => url !== initialImagesUrls[index])
+    ) {
+      return true;
+    }
+
+    // Cek perubahan pada variation images
+    const variationsFromStore = variations;
+    if (variationsFromStore?.[0]?.options) {
+      const currentOptionUrls = variationsFromStore[0].options
+        .map((opt) => opt.imageUrl)
+        .filter(Boolean);
+      const initialOptionUrls =
+        initialValues?.variations?.[0]?.options
+          ?.map((opt) => opt.imageUrl)
+          .filter(Boolean) || [];
+
+      if (currentOptionUrls.some((url) => !initialOptionUrls.includes(url))) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  // Handle cancel dengan logic yang berbeda untuk mode add dan edit
   const handleCancel = () => {
-    // If we have unsaved changes, show a confirmation dialog
-    if (formik.dirty) {
+    if (mode === "add" && formik.dirty) {
       setConfirmDialogOpen(true);
     } else {
-      // Reset variation store and navigate back if no changes
+      // Untuk mode edit, langsung kembali tanpa cleanup
       resetVariations();
       router.push("/dashboard/admin/product");
     }
@@ -629,7 +739,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   // Function to confirm navigation after dialog confirmation
   const handleConfirmNavigation = async () => {
     setConfirmDialogOpen(false);
-    await cleanupAllUploadedImages();
+    await cleanupUploadedImages();
   };
 
   return (

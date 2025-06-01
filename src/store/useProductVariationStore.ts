@@ -258,10 +258,14 @@ export const useProductVariationStore = create<ProductVariationState>(
           return { variations: newVariations };
         }
         return state;
+      }), // Mengatur ulang semua variasi dan state terkait
+    resetVariations: () =>
+      set({
+        variations: [],
+        hasVariations: false,
+        openVariationForms: [],
+        priceVariants: [],
       }),
-
-    // Mengatur ulang semua variasi
-    resetVariations: () => set({ variations: [], hasVariations: false }),
 
     // Mengimpor variasi dari sumber eksternal
     importVariations: (variations) =>

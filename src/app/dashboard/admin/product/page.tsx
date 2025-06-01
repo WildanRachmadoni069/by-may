@@ -530,8 +530,8 @@ function AdminProductList() {
             {filters.collectionId && (
               <Badge variant="outline" className="flex gap-1 items-center py-1">
                 <Library className="h-3 w-3 mr-1" />
-                {collections.find((c) => c.id === filters.collectionId)
-                  ?.name || "Loading..."}
+                {collections.find((c) => c.id === filters.collectionId)?.name ||
+                  "Loading..."}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -719,12 +719,14 @@ function AdminProductList() {
                     }
                   />
                 </PaginationItem>
-
                 {/* If loading, slightly dim the pagination items */}
-                <div className={isLoading || isValidating ? "opacity-70" : ""}>
+                <div
+                  className={`flex items-center ${
+                    isLoading || isValidating ? "opacity-70" : ""
+                  }`}
+                >
                   {renderPaginationItems()}
                 </div>
-
                 <PaginationItem>
                   <PaginationNext
                     onClick={() => {

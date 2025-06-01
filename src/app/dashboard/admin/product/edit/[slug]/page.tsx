@@ -37,6 +37,9 @@ export default function EditProductPage() {
       // Update SWR cache with the new data
       mutate(updatedProduct, false);
 
+      // Reset variations store after successful update
+      resetVariations();
+
       // Invalidate any products listings that might contain this product
       globalMutate(
         (key: string) =>
@@ -93,6 +96,7 @@ export default function EditProductPage() {
         initialValues={product}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
+        mode="edit"
       />
     </div>
   );
