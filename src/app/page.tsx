@@ -15,21 +15,52 @@ import { getSeoData } from "@/lib/services/seo";
 export async function generateMetadata(): Promise<Metadata> {
   const seoData = await getSeoData("homepage");
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bymayscarf.shop";
-
   return {
     metadataBase: new URL(baseUrl),
-    title: seoData?.title || "Al-Quran Custom Nama Murah di Surabaya",
+    title: {
+      template: "%s | bymayscarf",
+      default: seoData?.title || "Al-Quran Custom Nama Murah di Surabaya",
+    },
     description:
       seoData?.description ||
-      "Jual Al-Quran custom cover dengan nama berlokasi di Surabaya, pilihan desain cantik dan harga terjangkau. Spesialis Al-Quran custom berkualitas tinggi di Indonesia.",
-    keywords: seoData?.keywords?.split(",") || [
-      "al-quran custom cover",
-      "al-quran custom nama",
-      "jual al-quran custom",
-      "al-quran custom murah",
-      "al-quran custom nama murah di Surabaya",
-      "bymayscarf alquran custom nama murah di surabaya",
-    ],
+      "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
+    keywords:
+      seoData?.keywords ||
+      "al-quran custom, al-quran custom nama, al-quran custom cover, jual al-quran custom, al-quran custom murah",
+    authors: [{ name: "bymayscarf" }],
+    generator: "Next.js",
+    applicationName: "bymayscarf",
+    referrer: "origin-when-cross-origin",
+    creator: "bymayscarf",
+    publisher: "bymayscarf",
+    formatDetection: {
+      email: true,
+      address: true,
+      telephone: true,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    alternates: {
+      canonical: baseUrl,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seoData?.title || "Al-Quran Custom Cover | By May Scarf",
+      description:
+        seoData?.description ||
+        "Jual Al-Quran custom nama di cover murah berkualitas. Berbagai pilihan desain dan warna. Pengiriman ke seluruh Indonesia.",
+      images: seoData?.ogImage
+        ? [seoData.ogImage]
+        : [`${baseUrl}/img/Landing-Page/header-image.webp`],
+    },
     openGraph: {
       title: seoData?.title || "Al-Quran Custom Nama di Cover",
       description:

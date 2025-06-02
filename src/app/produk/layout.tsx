@@ -15,7 +15,7 @@ import SimpleStructuredData from "@/components/seo/SimpleStructuredData";
 
 // SEO metadata untuk halaman produk
 export const metadata: Metadata = {
-  title: "Produk Al-Quran Custom Cover | bymayscarf",
+  title: "Produk Al-Quran Custom Cover",
   description:
     "Temukan koleksi lengkap produk bymayscarf, dari Al-Qur'an custom cover hingga perlengkapan ibadah berkualitas di Surabaya.",
   keywords: [
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     "quran custom nama",
   ],
   openGraph: {
-    title: "Produk Al-Quran Custom Cover | bymayscarf",
+    title: "Produk Al-Quran Custom Cover",
     description:
       "Temukan koleksi lengkap produk bymayscarf, dari Al-Qur'an custom cover hingga perlengkapan ibadah berkualitas di Surabaya.",
     type: "website",
