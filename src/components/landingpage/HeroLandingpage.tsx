@@ -55,9 +55,9 @@ function HeroLandingpage() {
               src={mobileImageSrc}
               alt="Al-Quran Custom Nama Murah bymayscarf"
               fill
-              sizes="95vw"
+              sizes="(max-width: 1023px) 95vw, 1px"
               priority
-              quality={80}
+              quality={60}
               className="object-contain lg:hidden"
               placeholder="blur"
               blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
@@ -74,9 +74,9 @@ function HeroLandingpage() {
               src={desktopImageSrc}
               alt="Al-Quran Custom Nama bymayscarf"
               fill
-              sizes="(min-width: 1024px) 600px"
+              sizes="(max-width: 1023px) 1px, (min-width: 1024px) 50vw"
               priority
-              quality={85}
+              quality={75}
               className="object-contain hidden lg:block"
               placeholder="blur"
               blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="

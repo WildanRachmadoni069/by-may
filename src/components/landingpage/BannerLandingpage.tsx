@@ -205,21 +205,6 @@ function BannerLandingpage() {
             </>
           )}
         </Carousel>
-        {activeBanners.length > 1 && (
-          <div className="py-2 flex justify-center gap-1">
-            {Array.from({ length: count }).map((_, index) => (
-              <button
-                key={index}
-                className={cn(
-                  "w-2 h-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
-                  current === index ? "bg-primary" : "bg-neutral-300"
-                )}
-                onClick={() => api?.scrollTo(index)}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );

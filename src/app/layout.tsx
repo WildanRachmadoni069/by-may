@@ -83,6 +83,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
+      {" "}
       <head>
         <link
           rel="preconnect"
@@ -90,6 +91,20 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
+        {/* Preload hero image untuk mobile */}
+        <link
+          rel="preload"
+          as="image"
+          href="/img/Landing-Page/header-image-mobile.webp"
+          media="(max-width: 1023px)"
+        />
+        {/* Preload hero image untuk desktop */}
+        <link
+          rel="preload"
+          as="image"
+          href="/img/Landing-Page/header-image.webp"
+          media="(min-width: 1024px)"
+        />
       </head>
       <body
         className={`${jakartaSans.className} antialiased min-h-screen bg-background flex flex-col`}
