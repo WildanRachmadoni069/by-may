@@ -4,6 +4,10 @@ import React from "react";
 import { Button } from "../ui/button";
 
 function HeroLandingpage() {
+  // Media query untuk mendeteksi device
+  const mobileImageSrc = "/img/Landing-Page/header-image-mobile.webp";
+  const desktopImageSrc = "/img/Landing-Page/header-image.webp";
+
   return (
     <section
       className="bg-neutral-lighter py-12 lg:py-16 min-h-[100vh] flex items-center"
@@ -46,14 +50,34 @@ function HeroLandingpage() {
             itemScope
             itemType="https://schema.org/ImageObject"
           >
+            {/* Mobile Image */}
             <Image
-              src="/img/Landing-Page/header-image.webp"
-              alt="Al-Quran Custom Nama di Cover Premium"
+              src={mobileImageSrc}
+              alt="Al-Quran Custom Nama Murah bymayscarf"
               fill
-              sizes="(max-width: 640px) 95vw, (max-width: 1024px) 48vw, 600px"
+              sizes="95vw"
+              priority
+              quality={80}
+              className="object-contain lg:hidden"
+              placeholder="blur"
+              blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+              style={{
+                transform: "translate3d(0, 0, 0)",
+                willChange: "transform",
+              }}
+              itemProp="contentUrl"
+              loading="eager"
+              fetchPriority="high"
+            />
+            {/* Desktop Image */}
+            <Image
+              src={desktopImageSrc}
+              alt="Al-Quran Custom Nama bymayscarf"
+              fill
+              sizes="(min-width: 1024px) 600px"
               priority
               quality={85}
-              className="object-contain"
+              className="object-contain hidden lg:block"
               placeholder="blur"
               blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
               style={{
