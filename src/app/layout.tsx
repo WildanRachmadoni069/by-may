@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import AuthProvider from "@/components/auth-provider";
 import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
 import { getSeoData } from "@/lib/services/seo";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const jakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -83,21 +84,6 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        {/* Google tag (gtag.js) */}
-        <script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-18X5KKR39Q"
-        ></script>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-18X5KKR39Q');
-            `,
-          }}
-        />
         <link
           rel="preconnect"
           href="https://res.cloudinary.com"
@@ -113,6 +99,7 @@ export default function RootLayout({
           <main className="relative flex-grow">{children}</main>
           <LogoutDialog />
         </AuthProvider>
+        <GoogleAnalytics gaId="G-18X5KKR39Q" />
       </body>
     </html>
   );
