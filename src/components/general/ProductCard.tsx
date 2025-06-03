@@ -97,14 +97,26 @@ export default function ProductCard({ product, className }: ProductCardProps) {
         <div className="p-3">
           <h3 className="font-medium text-sm line-clamp-1 mb-1" itemProp="name">
             {product.name}
-          </h3>
+          </h3>{" "}
           <p
             className="text-primary font-semibold"
             itemProp="offers"
             itemScope
             itemType="https://schema.org/Offer"
           >
-            <span itemProp="price">{displayPrice}</span>
+            {displayPrice}
+            <meta
+              itemProp="price"
+              content={
+                product.hasVariations
+                  ? String(
+                      Math.min(
+                        ...product.priceVariants.map((v: any) => v.price)
+                      )
+                    )
+                  : String(product.basePrice)
+              }
+            />
             <meta itemProp="priceCurrency" content="IDR" />
             <meta
               itemProp="availability"
@@ -115,7 +127,6 @@ export default function ProductCard({ product, className }: ProductCardProps) {
               }
             />
           </p>
-
           {/* Category Badge */}
           {product.category && (
             <div className="mt-2">
