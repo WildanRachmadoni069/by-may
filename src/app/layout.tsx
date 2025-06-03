@@ -99,7 +99,7 @@ export default function RootLayout({
           <main className="relative flex-grow">{children}</main>
           <LogoutDialog />
         </AuthProvider>
-        <GoogleAnalytics gaId="G-18X5KKR39Q" />
+        <GoogleAnalytics gaId="G-18X5KKRJ9Q" />
       </body>
     </html>
   );
