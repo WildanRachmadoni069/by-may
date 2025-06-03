@@ -52,8 +52,8 @@ function BannerLandingpage() {
   const usePeekMode = activeBanners.length > 2;
 
   // Jika tidak ada banner atau sedang loading, tidak render apa-apa
-  if (loading) return null;
-  if (activeBanners.length === 0) return null;
+  if (loading || activeBanners.length === 0) return null;
+
   return (
     <section
       className="w-full py-1"
@@ -70,18 +70,18 @@ function BannerLandingpage() {
           opts={{
             align: "center",
             loop: activeBanners.length > 1,
-            slidesToScroll: 1,
-            duration: 25,
-            watchDrag: false,
             skipSnaps: false,
+            dragFree: false,
+            containScroll: "trimSnaps",
           }}
           plugins={
             activeBanners.length > 1
               ? [
                   Autoplay({
                     delay: 5000,
-                    stopOnInteraction: false,
+                    stopOnInteraction: true,
                     stopOnMouseEnter: true,
+                    rootNode: (target) => target.parentElement,
                   }),
                 ]
               : []
@@ -100,13 +100,13 @@ function BannerLandingpage() {
                   <div
                     className={cn(
                       "rounded-2xl",
-                      "transition-all duration-300 ease-out",
+                      "transition-all duration-300 ease-out transform",
                       current === index && usePeekMode
                         ? "scale-105"
-                        : "scale-95"
+                        : "scale-95 opacity-70"
                     )}
                     style={{
-                      opacity: current === index ? 1 : 0.7,
+                      willChange: "transform, opacity",
                     }}
                   >
                     {banner.url ? (
@@ -117,7 +117,7 @@ function BannerLandingpage() {
                         aria-label={`Promo: ${banner.title}`}
                       >
                         <div
-                          className="relative aspect-[1200/300] w-full"
+                          className="relative aspect-[4/1] w-full"
                           itemScope
                           itemType="https://schema.org/ImageObject"
                           itemProp="image"
@@ -126,10 +126,17 @@ function BannerLandingpage() {
                             src={banner.imageUrl}
                             alt={banner.title}
                             fill
-                            priority
-                            className="rounded-2xl"
-                            style={{ objectFit: "cover" }}
-                            sizes="(max-width: 768px) 100vw, 1200px"
+                            priority={index === 0}
+                            loading={index === 0 ? "eager" : "lazy"}
+                            className="rounded-2xl object-cover"
+                            sizes="(max-width: 640px) 95vw, (max-width: 1024px) 85vw, 1200px"
+                            quality={85}
+                            placeholder="blur"
+                            blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                            style={{
+                              transform: "translate3d(0, 0, 0)",
+                              willChange: "transform",
+                            }}
                             itemProp="contentUrl"
                           />
                           <meta itemProp="name" content={banner.title} />
@@ -141,7 +148,7 @@ function BannerLandingpage() {
                       </Link>
                     ) : (
                       <div
-                        className="relative aspect-[1200/300] w-full"
+                        className="relative aspect-[4/1] w-full"
                         itemScope
                         itemType="https://schema.org/ImageObject"
                         itemProp="image"
@@ -150,10 +157,17 @@ function BannerLandingpage() {
                           src={banner.imageUrl}
                           alt={banner.title}
                           fill
-                          priority
-                          className="rounded-2xl"
-                          style={{ objectFit: "cover" }}
-                          sizes="(max-width: 768px) 100vw, 1200px"
+                          priority={index === 0}
+                          loading={index === 0 ? "eager" : "lazy"}
+                          className="rounded-2xl object-cover"
+                          sizes="(max-width: 640px) 95vw, (max-width: 1024px) 85vw, 1200px"
+                          quality={85}
+                          placeholder="blur"
+                          blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+                          style={{
+                            transform: "translate3d(0, 0, 0)",
+                            willChange: "transform",
+                          }}
                           itemProp="contentUrl"
                         />
                         <meta itemProp="name" content={banner.title} />
@@ -174,7 +188,7 @@ function BannerLandingpage() {
               {/* Tombol Previous */}
               <button
                 onClick={() => api?.scrollPrev()}
-                className="absolute top-1/2 -translate-y-1/2 left-2 md:left-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md"
+                className="absolute top-1/2 -translate-y-1/2 left-2 md:left-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md focus:outline-none focus:ring-2 focus:ring-primary"
                 aria-label="Previous slide"
               >
                 <ChevronLeft className="h-6 w-6 text-destructive" />
@@ -183,7 +197,7 @@ function BannerLandingpage() {
               {/* Tombol Next */}
               <button
                 onClick={() => api?.scrollNext()}
-                className="absolute top-1/2 -translate-y-1/2 right-2 md:right-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md"
+                className="absolute top-1/2 -translate-y-1/2 right-2 md:right-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md focus:outline-none focus:ring-2 focus:ring-primary"
                 aria-label="Next slide"
               >
                 <ChevronRight className="h-6 w-6 text-destructive" />
@@ -197,7 +211,7 @@ function BannerLandingpage() {
               <button
                 key={index}
                 className={cn(
-                  "w-2 h-2 rounded-full transition-colors",
+                  "w-2 h-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary",
                   current === index ? "bg-primary" : "bg-neutral-300"
                 )}
                 onClick={() => api?.scrollTo(index)}
