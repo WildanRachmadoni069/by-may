@@ -4,6 +4,9 @@
  * @description Menampilkan halaman detail artikel dengan optimasi SEO, data terstruktur,
  * dan HTML semantik. Fitur meliputi informasi penulis, waktu baca, berbagi sosial,
  * dan artikel terkait.
+ *
+ * Note: Ini adalah Server Component untuk SEO optimal.
+ * generateStaticParams sudah dipindahkan ke layout.tsx
  */
 import React from "react";
 import { notFound } from "next/navigation";
@@ -21,6 +24,7 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb";
 import Footer from "@/components/landingpage/Footer";
+import MainNav from "@/components/landingpage/MainNav";
 import { Metadata, ResolvingMetadata } from "next";
 import {
   getArticleAction,
@@ -34,6 +38,28 @@ import { ArticleShare } from "@/components/article/ArticleShare";
 import { ArticleAuthorCard } from "@/components/article/ArticleAuthorCard";
 import { RelatedArticlesSection } from "@/components/article/RelatedArticlesSection";
 import StructuredData from "@/components/seo/StructuredData";
+
+/**
+ * Generate static params untuk artikel yang sudah dipublish
+ * Ini akan membuat halaman artikel di-prerender saat build time
+ * sehingga dapat terindeks dengan baik oleh Google
+ */
+export async function generateStaticParams() {
+  try {
+    // Ambil semua artikel yang sudah dipublish untuk static generation
+    const articlesResult = await getArticlesAction({
+      status: "published",
+      limit: 100, // Sesuaikan dengan jumlah artikel yang ada
+    });
+
+    return articlesResult.data.map((article) => ({
+      slug: article.slug,
+    }));
+  } catch (error) {
+    console.error("Error generating static params for articles:", error);
+    return [];
+  }
+}
 
 /**
  * Menghasilkan metadata dinamis untuk artikel
