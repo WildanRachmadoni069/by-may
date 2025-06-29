@@ -16,7 +16,8 @@ import { BannerData } from "@/types/banner";
 
 /**
  * Komponen carousel banner untuk halaman utama
- * Menampilkan banner yang aktif dengan fitur carousel
+ * @description Menampilkan banner yang aktif dengan fitur carousel dan mode peek
+ * untuk preview banner berikutnya
  */
 function BannerLandingpage() {
   const [api, setApi] = useState<CarouselApi>();
@@ -24,16 +25,13 @@ function BannerLandingpage() {
   const [count, setCount] = useState(0);
   const { fetchBanners, getActiveBanners, loading } = useBannerStore();
 
-  /**
-   * Ambil data banner saat komponen dimount
-   */
+  const neutralBlurDataURL =
+    "data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQIHWNgAAIAAAUAAY27m/MAAAAASUVORK5CYII=";
+
   useEffect(() => {
     fetchBanners();
   }, [fetchBanners]);
 
-  /**
-   * Konfigurasi carousel API
-   */
   useEffect(() => {
     if (!api) return;
 
@@ -45,14 +43,46 @@ function BannerLandingpage() {
     });
   }, [api]);
 
-  // Ambil banner aktif untuk ditampilkan
   const activeBanners: BannerData[] = getActiveBanners();
-
-  // Flag untuk menentukan mode tampilan carousel
   const usePeekMode = activeBanners.length > 2;
 
-  // Jika tidak ada banner atau sedang loading, tidak render apa-apa
   if (loading || activeBanners.length === 0) return null;
+
+  const getOpacityClass = (index: number) => {
+    if (!usePeekMode) return "scale-100 opacity-100";
+    return current === index ? "scale-105" : "scale-95 opacity-80";
+  };
+
+  const renderBannerImage = (banner: BannerData, index: number) => (
+    <div
+      className="relative aspect-[4/1] w-full overflow-hidden rounded-2xl"
+      itemScope
+      itemType="https://schema.org/ImageObject"
+      itemProp="image"
+    >
+      <Image
+        src={banner.imageUrl}
+        alt={banner.title}
+        fill
+        priority={index === 0}
+        loading={index === 0 ? "eager" : "lazy"}
+        className="object-cover"
+        sizes="(max-width: 640px) 95vw, (max-width: 1024px) 85vw, 1200px"
+        quality={90}
+        placeholder="blur"
+        blurDataURL={neutralBlurDataURL}
+        style={{ transform: "translate3d(0, 0, 0)" }}
+        itemProp="contentUrl"
+      />
+      <meta itemProp="name" content={banner.title} />
+      <meta
+        itemProp="description"
+        content={`Banner ${banner.url ? "promosi untuk" : "untuk"} ${
+          banner.title
+        }`}
+      />
+    </div>
+  );
 
   return (
     <section
@@ -96,18 +126,12 @@ function BannerLandingpage() {
                 className={usePeekMode ? "pl-4 md:basis-4/5" : "basis-full"}
               >
                 <div className={cn("p-1", current === index ? "z-20" : "z-10")}>
-                  {/* Main banner wrapper with scaling */}
                   <div
                     className={cn(
-                      "rounded-2xl",
-                      "transition-all duration-300 ease-out transform",
-                      current === index && usePeekMode
-                        ? "scale-105"
-                        : "scale-95 opacity-70"
+                      "rounded-2xl transition-all duration-300 ease-out transform",
+                      getOpacityClass(index)
                     )}
-                    style={{
-                      willChange: "transform, opacity",
-                    }}
+                    style={{ willChange: "transform, opacity" }}
                   >
                     {banner.url ? (
                       <Link
@@ -116,66 +140,10 @@ function BannerLandingpage() {
                         title={banner.title}
                         aria-label={`Promo: ${banner.title}`}
                       >
-                        <div
-                          className="relative aspect-[4/1] w-full"
-                          itemScope
-                          itemType="https://schema.org/ImageObject"
-                          itemProp="image"
-                        >
-                          <Image
-                            src={banner.imageUrl}
-                            alt={banner.title}
-                            fill
-                            priority={index === 0}
-                            loading={index === 0 ? "eager" : "lazy"}
-                            className="rounded-2xl object-cover"
-                            sizes="(max-width: 640px) 95vw, (max-width: 1024px) 85vw, 1200px"
-                            quality={85}
-                            placeholder="blur"
-                            blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-                            style={{
-                              transform: "translate3d(0, 0, 0)",
-                              willChange: "transform",
-                            }}
-                            itemProp="contentUrl"
-                          />
-                          <meta itemProp="name" content={banner.title} />
-                          <meta
-                            itemProp="description"
-                            content={`Banner promosi untuk ${banner.title}`}
-                          />
-                        </div>
+                        {renderBannerImage(banner, index)}
                       </Link>
                     ) : (
-                      <div
-                        className="relative aspect-[4/1] w-full"
-                        itemScope
-                        itemType="https://schema.org/ImageObject"
-                        itemProp="image"
-                      >
-                        <Image
-                          src={banner.imageUrl}
-                          alt={banner.title}
-                          fill
-                          priority={index === 0}
-                          loading={index === 0 ? "eager" : "lazy"}
-                          className="rounded-2xl object-cover"
-                          sizes="(max-width: 640px) 95vw, (max-width: 1024px) 85vw, 1200px"
-                          quality={85}
-                          placeholder="blur"
-                          blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-                          style={{
-                            transform: "translate3d(0, 0, 0)",
-                            willChange: "transform",
-                          }}
-                          itemProp="contentUrl"
-                        />
-                        <meta itemProp="name" content={banner.title} />
-                        <meta
-                          itemProp="description"
-                          content={`Banner untuk ${banner.title}`}
-                        />
-                      </div>
+                      renderBannerImage(banner, index)
                     )}
                   </div>
                 </div>
@@ -185,7 +153,6 @@ function BannerLandingpage() {
 
           {activeBanners.length > 1 && (
             <>
-              {/* Tombol Previous */}
               <button
                 onClick={() => api?.scrollPrev()}
                 className="absolute top-1/2 -translate-y-1/2 left-2 md:left-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -194,7 +161,6 @@ function BannerLandingpage() {
                 <ChevronLeft className="h-6 w-6 text-destructive" />
               </button>
 
-              {/* Tombol Next */}
               <button
                 onClick={() => api?.scrollNext()}
                 className="absolute top-1/2 -translate-y-1/2 right-2 md:right-4 z-30 flex items-center justify-center w-10 h-10 rounded-full bg-white/80 hover:bg-white shadow-md focus:outline-none focus:ring-2 focus:ring-primary"

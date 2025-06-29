@@ -3,10 +3,16 @@ import Image from "next/image";
 import React from "react";
 import { Button } from "../ui/button";
 
+/**
+ * Komponen hero section untuk landing page
+ * @description Menampilkan banner utama dengan teks promosi dan gambar produk
+ * yang dioptimasi untuk LCP dan responsif untuk mobile/desktop
+ */
 function HeroLandingpage() {
-  // Media query untuk mendeteksi device
   const mobileImageSrc = "/img/Landing-Page/header-image-mobile.webp";
   const desktopImageSrc = "/img/Landing-Page/header-image.webp";
+  const neutralBlurDataURL =
+    "data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/58hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
 
   return (
     <section
@@ -16,9 +22,8 @@ function HeroLandingpage() {
       itemType="https://schema.org/WebPageElement"
       itemProp="mainContentOfPage"
     >
-      <div className="container mx-auto flex flex-col lg:flex-row items-center lg:justify-between px-4 lg:px-8">
-        {/* Left: Text content with appropriate semantic markup */}
-        <div className="max-w-lg lg:mr-8">
+      <div className="container mx-auto flex flex-col lg:flex-row items-center lg:justify-between px-4 lg:px-8 gap-8 lg:gap-12">
+        <div className="max-w-lg lg:flex-1">
           <p className="text-lg text-primary font-medium uppercase">
             Selamat datang di BYMAYSCARF
           </p>
@@ -42,48 +47,40 @@ function HeroLandingpage() {
             <Link href="/produk">Lihat Koleksi</Link>
           </Button>
         </div>
-        {/* Right: Image with semantic markup and optimization */}
-        <div className="mt-8 lg:mt-0 relative flex justify-center lg:justify-end w-full lg:w-1/2">
+
+        <div className="relative flex justify-center lg:justify-end w-full lg:w-1/2 lg:flex-1">
           <div
-            className="w-full max-w-lg aspect-[4/3] relative"
+            className="w-full max-w-sm sm:max-w-md lg:max-w-lg aspect-[4/3] relative rounded-lg overflow-hidden shadow-sm"
             itemProp="image"
             itemScope
             itemType="https://schema.org/ImageObject"
           >
-            {/* Mobile Image */}
             <Image
               src={mobileImageSrc}
               alt="Al-Quran Custom Nama Murah bymayscarf"
               fill
-              sizes="(max-width: 1023px) 95vw, 1px"
+              sizes="(max-width: 384px) 100vw, (max-width: 640px) 384px, (max-width: 1024px) 448px, 1px"
               priority
-              quality={60}
+              quality={85}
               className="object-contain lg:hidden"
               placeholder="blur"
-              blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-              style={{
-                transform: "translate3d(0, 0, 0)",
-                willChange: "transform",
-              }}
+              blurDataURL={neutralBlurDataURL}
+              style={{ transform: "translate3d(0, 0, 0)" }}
               itemProp="contentUrl"
               loading="eager"
               fetchPriority="high"
             />
-            {/* Desktop Image */}
             <Image
               src={desktopImageSrc}
               alt="Al-Quran Custom Nama bymayscarf"
               fill
               sizes="(max-width: 1023px) 1px, (min-width: 1024px) 50vw"
               priority
-              quality={75}
+              quality={85}
               className="object-contain hidden lg:block"
               placeholder="blur"
-              blurDataURL="data:image/webp;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-              style={{
-                transform: "translate3d(0, 0, 0)",
-                willChange: "transform",
-              }}
+              blurDataURL={neutralBlurDataURL}
+              style={{ transform: "translate3d(0, 0, 0)" }}
               itemProp="contentUrl"
               loading="eager"
               fetchPriority="high"

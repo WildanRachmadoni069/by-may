@@ -12,6 +12,31 @@ import { Metadata } from "next";
 import { ProductService } from "@/lib/services/product-service";
 import { createExcerptFromHtml } from "@/lib/utils";
 import { generateProductStructuredData } from "@/lib/utils/performance";
+import { logError } from "@/lib/debug";
+
+/**
+ * Generate static params untuk produk yang aktif
+ * Ini akan membuat halaman produk di-prerender saat build time
+ * sehingga dapat terindeks dengan baik oleh Google
+ */
+export async function generateStaticParams() {
+  try {
+    const productsResult = await ProductService.getProducts({
+      page: 1,
+      limit: 1000,
+    });
+
+    const products = productsResult.data || [];
+    const validProducts = products.filter((product) => product.slug);
+
+    return validProducts.map((product) => ({
+      slug: product.slug,
+    }));
+  } catch (error) {
+    logError("ProductLayout.generateStaticParams", error);
+    return [];
+  }
+}
 
 // Props untuk layout dengan Promise-based params sesuai Next.js 15
 interface Props {
@@ -19,13 +44,15 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-// Define a proper type for the meta object to fix property access errors
 interface ProductMeta {
   title?: string;
   description?: string;
   ogImage?: string;
 }
 
+/**
+ * Generate metadata dinamis berdasarkan produk
+ */
 export async function generateMetadata({
   params,
 }: {
@@ -114,7 +141,7 @@ export async function generateMetadata({
       },
     };
   } catch (error) {
-    console.error("Error generating metadata:", error);
+    logError("ProductLayout.generateMetadata", error);
     return {
       title: "Error",
       description: "Terjadi kesalahan saat memuat produk.",
@@ -122,6 +149,13 @@ export async function generateMetadata({
   }
 }
 
+export const revalidate = 3600;
+
+/**
+ * Layout component untuk halaman detail produk
+ * @param props - Props komponen
+ * @param props.children - Child components yang akan di-render
+ */
 function ProductDetailLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
