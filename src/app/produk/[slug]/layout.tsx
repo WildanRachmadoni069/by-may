@@ -13,32 +13,8 @@ import { ProductService } from "@/lib/services/product-service";
 import { createExcerptFromHtml } from "@/lib/utils";
 import { generateProductStructuredData } from "@/lib/utils/performance";
 import { logError } from "@/lib/debug";
+import { generateProductStaticParams } from "./static-params";
 
-/**
- * Generate static params untuk produk yang aktif
- * Ini akan membuat halaman produk di-prerender saat build time
- * sehingga dapat terindeks dengan baik oleh Google
- */
-export async function generateStaticParams() {
-  try {
-    const productsResult = await ProductService.getProducts({
-      page: 1,
-      limit: 1000,
-    });
-
-    const products = productsResult.data || [];
-    const validProducts = products.filter((product) => product.slug);
-
-    return validProducts.map((product) => ({
-      slug: product.slug,
-    }));
-  } catch (error) {
-    logError("ProductLayout.generateStaticParams", error);
-    return [];
-  }
-}
-
-// Props untuk layout dengan Promise-based params sesuai Next.js 15
 interface Props {
   children: React.ReactNode;
   params: Promise<{ slug: string }>;
@@ -148,6 +124,16 @@ export async function generateMetadata({
     };
   }
 }
+
+/**
+ * Generate static params dengan batching untuk menghindari connection pool timeout
+ */
+export async function generateStaticParams() {
+  return await generateProductStaticParams();
+}
+
+// Enable ISR fallback untuk halaman yang tidak di-generate saat build
+export const dynamicParams = true;
 
 export const revalidate = 3600;
 

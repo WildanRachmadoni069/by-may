@@ -6,31 +6,19 @@
 import { Metadata } from "next";
 import { getArticlesAction } from "@/app/actions/article-actions";
 import { logError } from "@/lib/debug";
+import { generateArticleStaticParams } from "./static-params";
 
 /**
- * Generate static params untuk artikel yang sudah dipublish
- * Ini akan membuat halaman artikel di-prerender saat build time
- * sehingga dapat terindeks dengan baik oleh Google
+ * Generate static params dengan batching untuk menghindari connection pool timeout
  */
 export async function generateStaticParams() {
-  try {
-    const articlesResult = await getArticlesAction({
-      status: "published",
-      page: 1,
-      limit: 1000,
-    });
-
-    const articles = articlesResult.data || [];
-    const validArticles = articles.filter((article) => article.slug);
-
-    return validArticles.map((article) => ({
-      slug: article.slug,
-    }));
-  } catch (error) {
-    logError("ArticleLayout.generateStaticParams", error);
-    return [];
-  }
+  return await generateArticleStaticParams();
 }
+
+// Enable ISR fallback untuk halaman yang tidak di-generate saat build
+export const dynamicParams = true;
+
+export const revalidate = 3600;
 
 /**
  * Metadata dasar untuk template artikel
