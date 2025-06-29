@@ -10,6 +10,7 @@ import { useProductVariationStore } from "@/store/useProductVariationStore";
 import { CreateProductInput } from "@/types/product";
 import { useToast } from "@/hooks/use-toast";
 import { useSWRConfig } from "swr";
+import { logError } from "@/lib/debug";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -18,12 +19,12 @@ export default function AddProductPage() {
   const { resetVariations } = useProductVariationStore();
   const { mutate } = useSWRConfig();
 
-  // Reset variation store when entering the page
+  // Reset variation store saat masuk halaman
   useEffect(() => {
     resetVariations();
   }, [resetVariations]);
 
-  // Get variation data from store
+  // Ambil data variasi dari store
   const { variations, priceVariants, hasVariations, setHasVariations } =
     useProductVariationStore();
 
@@ -31,12 +32,12 @@ export default function AddProductPage() {
     try {
       setIsSubmitting(true);
 
-      // Ensure hasVariations is correctly set in the store
+      // Pastikan hasVariations diset dengan benar di store
       if (values.hasVariations !== hasVariations) {
         setHasVariations(values.hasVariations);
       }
 
-      // Include variations and price variants from store
+      // Sertakan variations dan price variants dari store
       const productData = {
         ...values,
         hasVariations,
@@ -44,16 +45,16 @@ export default function AddProductPage() {
         priceVariants: hasVariations ? priceVariants : [],
       };
 
-      // Create the product using server action
+      // Buat produk menggunakan server action
       const product = await createProductAction(productData);
 
-      // Show success toast
+      // Tampilkan toast sukses
       toast({
         title: "Produk berhasil ditambahkan",
         description: `Produk "${product.name}" telah berhasil ditambahkan.`,
       });
 
-      // Invalidate products cache to ensure fresh data
+      // Invalidate cache produk untuk memastikan data fresh
       mutate(
         (key: string) =>
           typeof key === "string" && key.startsWith("/api/products"),
@@ -61,13 +62,13 @@ export default function AddProductPage() {
         { revalidate: true }
       );
 
-      // Reset variations store after successful submission
+      // Reset variations store setelah submission berhasil
       resetVariations();
 
-      // Navigate to the product list
+      // Navigate ke daftar produk
       router.push("/dashboard/admin/product");
     } catch (error) {
-      console.error("Failed to create product:", error);
+      logError("AddProductPage.handleSubmit", error);
       toast({
         variant: "destructive",
         title: "Gagal menambahkan produk",

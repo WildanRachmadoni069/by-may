@@ -1,8 +1,8 @@
 /**
- * Static parameters generator untuk halaman artikel
+ * Generator static parameters untuk halaman artikel
  * @description File terpisah untuk generateStaticParams dengan optimasi connection pool
  */
-import { db } from "@/lib/db";
+import { dbManager } from "@/lib/db-manager";
 import { logError } from "@/lib/debug";
 
 /**
@@ -10,50 +10,60 @@ import { logError } from "@/lib/debug";
  */
 export async function generateArticleStaticParams() {
   try {
-    // Untuk production build di Vercel, hanya generate 10 artikel terpopuler
-    // Sisanya akan menggunakan ISR (Incremental Static Regeneration)
-    const limit = process.env.NODE_ENV === "production" ? 10 : 20;
+    // SEMENTARA: Nonaktifkan static generation untuk menghindari masalah connection pool
+    // Semua halaman akan menggunakan ISR on-demand
+    if (process.env.NODE_ENV === "production") {
+      logError(
+        "ArticleStaticParams",
+        "Production build: Menggunakan strategi ISR-only"
+      );
+      return [];
+    }
+
+    // Untuk development, generate beberapa halaman
+    const limit = 5;
 
     logError(
       "ArticleStaticParams",
-      `Starting static generation for max ${limit} articles`
+      `Development: Generate maksimal ${limit} artikel`
     );
 
-    // Query langsung dengan minimal data untuk menghindari connection timeout
-    const articles = await db.article.findMany({
-      select: {
-        slug: true,
-      },
-      where: {
-        status: "published",
-        slug: {
-          not: "",
+    // Gunakan db manager dengan retry logic
+    const articles = await dbManager.executeWithRetry(async (client) => {
+      return await client.article.findMany({
+        select: {
+          slug: true,
         },
-      },
-      take: limit,
-      orderBy: {
-        publishedAt: "desc", // Ambil artikel terbaru yang lebih sering diakses
-      },
+        where: {
+          status: "published",
+          slug: {
+            not: "",
+          },
+        },
+        take: limit,
+        orderBy: {
+          publishedAt: "desc",
+        },
+      });
     });
 
     const validSlugs = articles
-      .filter((article) => article.slug)
-      .map((article) => ({
+      .filter((article: any) => article.slug)
+      .map((article: any) => ({
         slug: article.slug as string,
       }));
 
     logError(
       "ArticleStaticParams",
-      `Generated ${validSlugs.length} article static params`
+      `Berhasil generate ${validSlugs.length} static params artikel`
     );
 
     return validSlugs;
   } catch (error) {
     logError("ArticleStaticParams.generateArticleStaticParams", error);
-    // Return minimal static params untuk fallback
     logError(
       "ArticleStaticParams",
-      "Error occurred, falling back to ISR-only generation"
+      "Error terjadi, fallback ke ISR-only generation"
     );
     return [];
   }

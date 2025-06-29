@@ -1,8 +1,8 @@
 /**
- * Static parameters generator untuk halaman produk
+ * Generator static parameters untuk halaman produk
  * @description File terpisah untuk generateStaticParams dengan optimasi connection pool
  */
-import { db } from "@/lib/db";
+import { dbManager } from "@/lib/db-manager";
 import { logError } from "@/lib/debug";
 
 /**
@@ -10,29 +10,40 @@ import { logError } from "@/lib/debug";
  */
 export async function generateProductStaticParams() {
   try {
-    // Untuk production build di Vercel, hanya generate 10 produk terpopuler
-    // Sisanya akan menggunakan ISR (Incremental Static Regeneration)
-    const limit = process.env.NODE_ENV === "production" ? 10 : 20;
+    // SEMENTARA: Nonaktifkan static generation untuk menghindari masalah connection pool
+    // Semua halaman akan menggunakan ISR on-demand
+    if (process.env.NODE_ENV === "production") {
+      logError(
+        "ProductStaticParams",
+        "Production build: Menggunakan strategi ISR-only"
+      );
+      return [];
+    }
+
+    // Untuk development, generate beberapa halaman
+    const limit = 5;
 
     logError(
       "ProductStaticParams",
-      `Starting static generation for max ${limit} products`
+      `Development: Generate maksimal ${limit} produk`
     );
 
-    // Query langsung dengan minimal data untuk menghindari connection timeout
-    const products = await db.product.findMany({
-      select: {
-        slug: true,
-      },
-      where: {
-        slug: {
-          not: "",
+    // Gunakan db manager dengan retry logic
+    const products = await dbManager.executeWithRetry(async (client) => {
+      return await client.product.findMany({
+        select: {
+          slug: true,
         },
-      },
-      take: limit,
-      orderBy: {
-        createdAt: "desc", // Ambil produk terbaru yang lebih sering diakses
-      },
+        where: {
+          slug: {
+            not: "",
+          },
+        },
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
     });
 
     const validSlugs = products
@@ -43,16 +54,15 @@ export async function generateProductStaticParams() {
 
     logError(
       "ProductStaticParams",
-      `Generated ${validSlugs.length} product static params`
+      `Berhasil generate ${validSlugs.length} static params produk`
     );
 
     return validSlugs;
   } catch (error) {
     logError("ProductStaticParams.generateProductStaticParams", error);
-    // Return minimal static params untuk fallback
     logError(
       "ProductStaticParams",
-      "Error occurred, falling back to ISR-only generation"
+      "Error terjadi, fallback ke ISR-only generation"
     );
     return [];
   }
