@@ -13,7 +13,6 @@ import { ProductService } from "@/lib/services/product-service";
 import { createExcerptFromHtml } from "@/lib/utils";
 import { generateProductStructuredData } from "@/lib/utils/performance";
 import { logError } from "@/lib/debug";
-import { generateProductStaticParams } from "./static-params";
 
 interface Props {
   children: React.ReactNode;
@@ -123,13 +122,6 @@ export async function generateMetadata({
       description: "Terjadi kesalahan saat memuat produk.",
     };
   }
-}
-
-/**
- * Generate static params dengan batching untuk menghindari connection pool timeout
- */
-export async function generateStaticParams() {
-  return await generateProductStaticParams();
 }
 
 // Enable ISR fallback untuk halaman yang tidak di-generate saat build

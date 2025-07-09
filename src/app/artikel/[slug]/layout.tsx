@@ -4,16 +4,7 @@
  * dan struktur umum halaman detail artikel
  */
 import { Metadata } from "next";
-import { getArticlesAction } from "@/app/actions/article-actions";
 import { logError } from "@/lib/debug";
-import { generateArticleStaticParams } from "./static-params";
-
-/**
- * Generate static params dengan batching untuk menghindari connection pool timeout
- */
-export async function generateStaticParams() {
-  return await generateArticleStaticParams();
-}
 
 // Enable ISR fallback untuk halaman yang tidak di-generate saat build
 export const dynamicParams = true;
