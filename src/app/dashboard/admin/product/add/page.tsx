@@ -83,7 +83,7 @@ export default function AddProductPage() {
   };
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex items-center gap-4">
         <Button
           variant="outline"
           size="icon"
@@ -92,11 +92,10 @@ export default function AddProductPage() {
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-3xl font-bold">Tambah Produk</h1>
+        <h1 className="text-3xl font-bold">Tambah Produk Baru</h1>
       </div>
 
       <div>
-        <h1 className="text-3xl font-bold mb-2">Tambah Produk Baru</h1>
         <p className="text-muted-foreground">
           Isi formulir berikut untuk menambahkan produk baru ke toko Anda.
         </p>

@@ -276,7 +276,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
 
-                  <SidebarMenuItem>
+                  {/* <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
                       isActive={pathname === "/dashboard/admin/order"}
@@ -297,7 +297,7 @@ function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
                         <span>Pengguna</span>
                       </Link>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  </SidebarMenuItem> */}
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
