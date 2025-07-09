@@ -169,158 +169,176 @@ interface ArticleDetailParams {
 export default async function ArticleDetailPage({
   params,
 }: ArticleDetailParams) {
-  const { slug } = await params;
-  const article = await getArticleAction(slug);
-  if (!article || article.status !== "published") {
-    notFound();
-  }
-  const relatedArticlesResult = await getArticlesAction({
-    status: "published",
-    limit: 3,
-  });
-  const relatedArticles = relatedArticlesResult.data
-    .filter((a) => a.slug !== slug)
-    .slice(0, 3);
-  const publishedDate = article.publishedAt || article.createdAt;
-  const formattedDate = formatDate(publishedDate);
-  const wordCount = article.content.replace(/<[^>]*>/g, "").split(/\s+/).length;
-  const readingMinutes = Math.ceil(wordCount / 250);
-  const hasValidImage =
-    article.featuredImage?.url && article.featuredImage.url.trim() !== "";
-  const placeholderImage = "/img/placeholder.png";
+  try {
+    const { slug } = await params;
 
-  return (
-    <main className="min-h-screen">
-      <StructuredData data={generateArticleStructuredData(article)} />
-      <article
-        itemScope
-        itemType="https://schema.org/Article"
-        className="container mx-auto px-4 py-8 max-w-4xl"
-      >
-        <nav aria-label="breadcrumb" className="mb-6">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/">Beranda</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link href="/artikel">Artikel</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbPage className="max-w-[10rem] md:max-w-full line-clamp-1">
+    // Validate slug format
+    if (!slug || typeof slug !== "string" || slug.trim() === "") {
+      notFound();
+    }
+
+    const article = await getArticleAction(slug);
+
+    if (!article || article.status !== "published") {
+      notFound();
+    }
+
+    const relatedArticlesResult = await getArticlesAction({
+      status: "published",
+      limit: 3,
+    });
+    const relatedArticles = relatedArticlesResult.data
+      .filter((a) => a.slug !== slug)
+      .slice(0, 3);
+    const publishedDate = article.publishedAt || article.createdAt;
+    const formattedDate = formatDate(publishedDate);
+    const wordCount = article.content
+      .replace(/<[^>]*>/g, "")
+      .split(/\s+/).length;
+    const readingMinutes = Math.ceil(wordCount / 250);
+    const hasValidImage =
+      article.featuredImage?.url && article.featuredImage.url.trim() !== "";
+    const placeholderImage = "/img/placeholder.png";
+
+    return (
+      <main className="min-h-screen">
+        <StructuredData data={generateArticleStructuredData(article)} />
+        <article
+          itemScope
+          itemType="https://schema.org/Article"
+          className="container mx-auto px-4 py-8 max-w-4xl"
+        >
+          <nav aria-label="breadcrumb" className="mb-6">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/">Beranda</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/artikel">Artikel</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="max-w-[10rem] md:max-w-full line-clamp-1">
+                    {article.title}
+                  </BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </nav>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+            <figure className="relative w-full aspect-[16/9]">
+              <Image
+                src={
+                  hasValidImage ? article.featuredImage!.url : placeholderImage
+                }
+                alt={
+                  hasValidImage
+                    ? article.featuredImage!.alt || article.title
+                    : article.title
+                }
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1200px"
+                priority
+                className="object-cover"
+                itemProp="image"
+              />
+            </figure>
+
+            <div className="p-6 md:p-8">
+              <header className="mb-6">
+                <h1
+                  itemProp="headline"
+                  className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-gray-900"
+                >
                   {article.title}
-                </BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </nav>
+                </h1>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <figure className="relative w-full aspect-[16/9]">
-            <Image
-              src={
-                hasValidImage ? article.featuredImage!.url : placeholderImage
-              }
-              alt={
-                hasValidImage
-                  ? article.featuredImage!.alt || article.title
-                  : article.title
-              }
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 1200px"
-              priority
-              className="object-cover"
-              itemProp="image"
-            />
-          </figure>
-
-          <div className="p-6 md:p-8">
-            <header className="mb-6">
-              <h1
-                itemProp="headline"
-                className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 text-gray-900"
-              >
-                {article.title}
-              </h1>
-
-              <div className="flex flex-wrap justify-between items-center text-sm text-gray-500 gap-4">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="flex items-center"
-                    itemProp="author"
-                    itemScope
-                    itemType="https://schema.org/Person"
-                  >
-                    <Avatar className="h-8 w-8 mr-2">
-                      <AvatarImage
-                        src="/img/avatar-placeholder.png"
-                        alt={article.author?.name || "Admin"}
-                      />
-                      <AvatarFallback>
-                        {article.author?.name?.[0] || "A"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span itemProp="name">
-                      {article.author?.name || "Admin"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center">
-                    <CalendarIcon className="mr-1 h-4 w-4" />
-                    <time
-                      itemProp="datePublished"
-                      dateTime={new Date(
-                        publishedDate || new Date()
-                      ).toISOString()}
+                <div className="flex flex-wrap justify-between items-center text-sm text-gray-500 gap-4">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="flex items-center"
+                      itemProp="author"
+                      itemScope
+                      itemType="https://schema.org/Person"
                     >
-                      {formattedDate}
-                    </time>
+                      <Avatar className="h-8 w-8 mr-2">
+                        <AvatarImage
+                          src="/img/avatar-placeholder.png"
+                          alt={article.author?.name || "Admin"}
+                        />
+                        <AvatarFallback>
+                          {article.author?.name?.[0] || "A"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span itemProp="name">
+                        {article.author?.name || "Admin"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center">
+                      <CalendarIcon className="mr-1 h-4 w-4" />
+                      <time
+                        itemProp="datePublished"
+                        dateTime={new Date(
+                          publishedDate || new Date()
+                        ).toISOString()}
+                      >
+                        {formattedDate}
+                      </time>
+                    </div>
+
+                    <div className="flex items-center">
+                      <span>{readingMinutes} menit membaca</span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center">
-                    <span>{readingMinutes} menit membaca</span>
-                  </div>
+                  <ArticleShare title={article.title} slug={article.slug} />
                 </div>
 
-                <ArticleShare title={article.title} slug={article.slug} />
+                <Separator className="my-6" />
+              </header>
+
+              <div itemProp="articleBody">
+                <ArticleContent content={article.content} />
               </div>
 
-              <Separator className="my-6" />
-            </header>
-
-            <div itemProp="articleBody">
-              <ArticleContent content={article.content} />
+              <footer className="mt-10">
+                <ArticleAuthorCard
+                  name={article.author?.name || "Admin"}
+                  role="Penulis"
+                  bio="Bekerja di By May Scarf, gemar menulis artikel seputar tips, inspirasi, dan pengetahuan tentang alquran dan fashion islami."
+                />
+              </footer>
             </div>
-
-            <footer className="mt-10">
-              <ArticleAuthorCard
-                name={article.author?.name || "Admin"}
-                role="Penulis"
-                bio="Bekerja di By May Scarf, gemar menulis artikel seputar tips, inspirasi, dan pengetahuan tentang alquran dan fashion islami."
-              />
-            </footer>
           </div>
-        </div>
 
-        {relatedArticles.length > 0 && (
-          <section aria-labelledby="related-articles-heading" className="mt-12">
-            <h2
-              id="related-articles-heading"
-              className="text-2xl font-bold mb-6 text-center"
+          {relatedArticles.length > 0 && (
+            <section
+              aria-labelledby="related-articles-heading"
+              className="mt-12"
             >
-              Artikel Terbaru Lainnya
-            </h2>
-            <RelatedArticlesSection articles={relatedArticles} />
-          </section>
-        )}
-      </article>
-      <Footer />
-    </main>
-  );
+              <h2
+                id="related-articles-heading"
+                className="text-2xl font-bold mb-6 text-center"
+              >
+                Artikel Terbaru Lainnya
+              </h2>
+              <RelatedArticlesSection articles={relatedArticles} />
+            </section>
+          )}
+        </article>
+        <Footer />
+      </main>
+    );
+  } catch (error) {
+    console.error("Error loading article:", error);
+    notFound();
+  }
 }

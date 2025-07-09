@@ -35,6 +35,26 @@ const nextConfig: NextConfig = {
     optimizeCss: true, // Enable CSS optimization
     scrollRestoration: true, // Enhance scrolling navigation behavior
   },
+  // Redirect configuration to avoid redirect loops
+  async redirects() {
+    return [
+      // Redirect trailing slashes to prevent redirect loops
+      {
+        source: "/((?!api).*)/index",
+        destination: "/$1",
+        permanent: true,
+      },
+    ];
+  },
+  // Handle not found pages properly
+  async rewrites() {
+    return [
+      {
+        source: "/sitemap.xml",
+        destination: "/api/sitemap",
+      },
+    ];
+  },
   serverExternalPackages: ["@prisma/client", "bcrypt"],
   output: "standalone",
   webpack: (config: any, { isServer }: { isServer: boolean }) => {

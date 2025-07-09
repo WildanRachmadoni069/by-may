@@ -10,22 +10,13 @@ import { logError } from "@/lib/debug";
  */
 export async function generateProductStaticParams() {
   try {
-    // SEMENTARA: Nonaktifkan static generation untuk menghindari masalah connection pool
-    // Semua halaman akan menggunakan ISR on-demand
-    if (process.env.NODE_ENV === "production") {
-      logError(
-        "ProductStaticParams",
-        "Production build: Menggunakan strategi ISR-only"
-      );
-      return [];
-    }
-
-    // Untuk development, generate beberapa halaman
-    const limit = 5;
+    // SEMENTARA: Untuk production, generate minimal beberapa produk
+    // untuk menghindari masalah redirect
+    const limit = process.env.NODE_ENV === "production" ? 10 : 5;
 
     logError(
       "ProductStaticParams",
-      `Development: Generate maksimal ${limit} produk`
+      `${process.env.NODE_ENV}: Generate maksimal ${limit} produk`
     );
 
     // Gunakan db manager dengan retry logic

@@ -27,14 +27,30 @@ export default async function middleware(request: NextRequest) {
   const isAuthPage = authPages.includes(pathname);
 
   // Define admin routes
-  const adminRoutes = pathname.startsWith("/admin");
+  const adminRoutes = pathname.startsWith("/dashboard/admin");
   const apiAdminRoutes = pathname.startsWith("/api/admin");
 
   // Allow public API routes and static files without further checks
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname.startsWith("/public/") ||
+    // Allow public dynamic routes
+    pathname.startsWith("/produk/") ||
+    pathname.startsWith("/artikel/") ||
+    pathname.startsWith("/faq") ||
+    pathname.startsWith("/tentang-kami") ||
+    pathname === "/" ||
+    // Allow other public API routes
+    pathname.startsWith("/api/products") ||
+    pathname.startsWith("/api/articles") ||
+    pathname.startsWith("/api/categories") ||
+    pathname.startsWith("/api/collections") ||
+    pathname.startsWith("/api/faqs") ||
+    pathname.startsWith("/api/banners") ||
+    pathname.startsWith("/sitemap.xml") ||
+    pathname.startsWith("/robots.txt")
   ) {
     return NextResponse.next();
   }

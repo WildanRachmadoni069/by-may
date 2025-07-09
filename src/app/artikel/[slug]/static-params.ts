@@ -10,22 +10,13 @@ import { logError } from "@/lib/debug";
  */
 export async function generateArticleStaticParams() {
   try {
-    // SEMENTARA: Nonaktifkan static generation untuk menghindari masalah connection pool
-    // Semua halaman akan menggunakan ISR on-demand
-    if (process.env.NODE_ENV === "production") {
-      logError(
-        "ArticleStaticParams",
-        "Production build: Menggunakan strategi ISR-only"
-      );
-      return [];
-    }
-
-    // Untuk development, generate beberapa halaman
-    const limit = 5;
+    // SEMENTARA: Untuk production, generate minimal beberapa artikel
+    // untuk menghindari masalah redirect
+    const limit = process.env.NODE_ENV === "production" ? 10 : 5;
 
     logError(
       "ArticleStaticParams",
-      `Development: Generate maksimal ${limit} artikel`
+      `${process.env.NODE_ENV}: Generate maksimal ${limit} artikel`
     );
 
     // Gunakan db manager dengan retry logic

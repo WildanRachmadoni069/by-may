@@ -42,10 +42,11 @@ export default function AuthProvider({
     if (initialized && !loading && currentUser) {
       // If user is logged in and on an auth page, redirect to home
       if (authRoutes.includes(pathname)) {
+        // Use replace to avoid creating history entry
         router.replace("/");
       }
     }
-  }, [initialized, loading, currentUser, pathname, router]);
+  }, [initialized, loading, currentUser, pathname, router, authRoutes]);
 
   // Show loading screen while checking auth status on first load
   if (!initialized && loading) {
