@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import useAuthStore from "@/store/useAuthStore";
 
 const LoginSchema = Yup.object().shape({
@@ -24,7 +24,7 @@ const LoginSchema = Yup.object().shape({
     .required("Password wajib diisi"),
 });
 
-export function LoginForm({
+function LoginFormContent({
   className,
   ...props
 }: React.ComponentProps<"div">) {
@@ -50,18 +50,16 @@ export function LoginForm({
           password: values.password,
         });
 
-        // Make sure our auth state is fully updated
-        const checkAuth = useAuthStore.getState().checkAuth;
-        await checkAuth();
-
         toast({
           title: "Login berhasil",
           description: "Selamat datang kembali!",
         });
 
-        // Redirect to the requested page or homepage
-        // Use replace instead of push for cleaner history
-        router.replace(redirectPath);
+        if (redirectPath === "/") {
+          window.location.href = "/";
+        } else {
+          router.replace(redirectPath);
+        }
       } catch (error) {
         console.error("Error signing in:", error);
 
@@ -169,5 +167,43 @@ export function LoginForm({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Loading component for Suspense fallback
+function LoginFormFallback() {
+  return (
+    <div className="flex flex-col gap-6">
+      <Card className="overflow-hidden">
+        <CardContent className="grid p-0 md:grid-cols-2">
+          <div className="p-6 md:p-8 flex items-center justify-center">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>Memuat...</span>
+            </div>
+          </div>
+          <div className="relative h-full hidden bg-muted md:block">
+            <Image
+              src="/img/auth-image/login-bg.webp"
+              alt="Login Image"
+              className="inset-0 object-cover dark:brightness-[0.2] dark:grayscale"
+              fill
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Main export with Suspense wrapper
+export function LoginForm({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <Suspense fallback={<LoginFormFallback />}>
+      <LoginFormContent className={className} {...props} />
+    </Suspense>
   );
 }

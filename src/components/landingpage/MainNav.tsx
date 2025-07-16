@@ -32,7 +32,7 @@ const CartButton = dynamic(() => import("./CartButton"), { ssr: false });
 
 function MainNav() {
   const pathName = usePathname();
-  const { currentUser, isAdmin } = useAuthStore();
+  const { currentUser, isAdmin, initialized, loading } = useAuthStore();
   const { setOpen: setLogoutDialogOpen } = useLogoutDialog();
 
   // Get initials from user's fullName
@@ -143,7 +143,9 @@ function MainNav() {
             <div className="flex items-center gap-4">
               <CartButton />
 
-              {currentUser ? (
+              {!initialized || loading ? (
+                <div className="h-9 w-9 bg-gray-200 animate-pulse rounded-full"></div>
+              ) : currentUser ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Avatar className="cursor-pointer h-9 w-9 border-2 border-primary/20 hover:border-primary/40 transition-all duration-200 shadow-sm hover:shadow">
@@ -257,14 +259,23 @@ function MainNav() {
                 </DropdownMenu>
               ) : (
                 <>
-                  <Button asChild variant={"outline"}>
-                    <Link href="/login">Masuk</Link>
-                  </Button>
-                  <div className="hidden sm:flex">
-                    <Button asChild variant={"default"}>
-                      <Link href="/sign-up">Daftar</Link>
-                    </Button>
-                  </div>
+                  {!initialized || loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-9 w-16 bg-gray-200 animate-pulse rounded-md"></div>
+                      <div className="h-9 w-16 bg-gray-200 animate-pulse rounded-md hidden sm:block"></div>
+                    </div>
+                  ) : (
+                    <>
+                      <Button asChild variant={"outline"}>
+                        <Link href="/login">Masuk</Link>
+                      </Button>
+                      <div className="hidden sm:flex">
+                        <Button asChild variant={"default"}>
+                          <Link href="/sign-up">Daftar</Link>
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>

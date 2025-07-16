@@ -11,7 +11,7 @@
  * - Loading states & error handling
  */
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import ProductCard from "@/components/general/ProductCard";
 import {
   ShoppingBag,
@@ -190,7 +190,8 @@ function ProductPage() {
    * - Halaman ke 1
    */
   const handleResetFilters = () => {
-    setSearchQuery("");    setFilters({
+    setSearchQuery("");
+    setFilters({
       categorySlug: undefined,
       collectionId: undefined,
       sortBy: "newest",
@@ -320,11 +321,12 @@ function ProductPage() {
               variant="outline"
               className="mt-4"
               onClick={() => {
-                setFilters({                        categorySlug: undefined,
-                        collectionId: undefined,
-                        sortBy: "newest",
-                        searchQuery: undefined,
-                        page: 1,
+                setFilters({
+                  categorySlug: undefined,
+                  collectionId: undefined,
+                  sortBy: "newest",
+                  searchQuery: undefined,
+                  page: 1,
                 });
               }}
             >
@@ -600,4 +602,22 @@ function ProductPage() {
   );
 }
 
-export default ProductPage;
+// Loading component for Suspense fallback
+function ProductPageFallback() {
+  return (
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    </div>
+  );
+}
+
+// Main export with Suspense wrapper
+export default function ProductPageWrapper() {
+  return (
+    <Suspense fallback={<ProductPageFallback />}>
+      <ProductPage />
+    </Suspense>
+  );
+}

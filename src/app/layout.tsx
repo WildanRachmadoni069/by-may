@@ -3,10 +3,10 @@ import localFont from "next/font/local";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import AuthProvider from "@/components/auth-provider";
 import { LogoutDialog } from "@/components/dashboard/LogoutDialog";
 import { getSeoData } from "@/lib/services/seo";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { AuthInitializer } from "@/components/auth-initializer";
 
 const jakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -108,11 +108,10 @@ export default function RootLayout({
       <body
         className={`${jakartaSans.className} antialiased min-h-screen bg-background flex flex-col`}
       >
-        <AuthProvider>
-          <Toaster />
-          <main className="relative flex-grow">{children}</main>
-          <LogoutDialog />
-        </AuthProvider>
+        <AuthInitializer />
+        <Toaster />
+        <main className="relative flex-grow">{children}</main>
+        <LogoutDialog />
         <GoogleAnalytics gaId="G-18X5KKRJ9Q" />
       </body>
     </html>
